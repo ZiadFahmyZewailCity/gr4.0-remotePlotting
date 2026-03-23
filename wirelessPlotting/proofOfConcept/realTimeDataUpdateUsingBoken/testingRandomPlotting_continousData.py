@@ -4,7 +4,7 @@ from pathlib import Path
 current_dir = Path(__file__).resolve().parent
 parent_dir = current_dir.parent
 sys.path.append(str(parent_dir))
-from generatingSignal import randomNoiseGauss
+import wirelessPlotting.proofOfConcept.SignalGenerator as SignalGenerator
 #
 
 
@@ -28,7 +28,7 @@ randomNoiseData = scatterGraph.data_source
 def callback():
     
     #Generate a new batch of random values
-    list_newY = randomNoiseGauss(samplesPerCall=1500)
+    ignoreTime, list_newY = SignalGenerator.SignalGenerator.randomNoiseGauss()
     count_new_samples = len(list_newY)
     #Need last cordinate here instead
     last_x = randomNoiseData.data['x'][-1]

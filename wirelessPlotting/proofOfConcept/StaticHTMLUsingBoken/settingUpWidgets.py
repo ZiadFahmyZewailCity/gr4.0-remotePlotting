@@ -1,6 +1,5 @@
 #Generating the signal
-from generatingSignal import sinGeneration
-
+import SignalGenerator
 #Imports for widgets
 from bokeh.models import Div, RangeSlider, Spinner
 
@@ -12,8 +11,9 @@ from bokeh.io import show
 #Brings it all together
 from bokeh.layouts import layout
 
+
 #Generating my own sin wave
-timeVector, sinWave = sinGeneration(frequency=10,duration=1,sample_rate=52000)
+timeVector,sinWave = SignalGenerator.SignalGenerator.sinGeneration()
 
 #Just naming the output file
 output_file("dynamic_sin_wave.html")

@@ -4,7 +4,7 @@ from pathlib import Path
 current_dir = Path(__file__).resolve().parent
 parent_dir = current_dir.parent
 sys.path.append(str(parent_dir))
-from generatingSignal import randomNoiseGauss
+from wirelessPlotting.proofOfConcept.SignalGenerator import randomNoiseGauss
 #
 
 

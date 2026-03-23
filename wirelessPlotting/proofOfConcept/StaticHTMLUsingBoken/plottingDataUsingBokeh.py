@@ -4,7 +4,7 @@ from pathlib import Path
 current_dir = Path(__file__).resolve().parent
 parent_dir = current_dir.parent
 sys.path.append(str(parent_dir))
-from generatingSignal import sinGeneration
+import SignalGenerator
 #
 
 #Plotting related
@@ -14,7 +14,7 @@ from bokeh.io import show
 
 
 #Generating a sinWave to be plotted
-timeVector,sinWave = sinGeneration()
+timeVector,sinWave = SignalGenerator.SignalGenerator.sinGeneration()
 
 output_file("sin_wave.html")
 
