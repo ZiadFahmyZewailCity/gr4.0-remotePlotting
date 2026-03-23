@@ -21,7 +21,7 @@ socket.bind("tcp://127.0.0.1:5555")
 # Time for intialization, recommened,  initialize before blasting data
 time.sleep(1)
 
-sig_gen = SignalGenerator(sample_rate=32000,chunk_duration=1)
+sig_gen = SignalGenerator(sample_rate=32000,chunk_duration=0.5)
 
 
 try:
