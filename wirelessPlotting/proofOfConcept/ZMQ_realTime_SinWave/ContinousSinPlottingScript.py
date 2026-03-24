@@ -9,7 +9,7 @@ WINDOW_WIDTH = 3200
 #Creating the figure
 myFigure = figure(title="Plotting Randomized sin", 
                   x_range=(0, WINDOW_WIDTH), 
-                  y_range=(-15, 15), 
+                  y_range=(-5, 5), 
                   width=800, 
                   height=400,
                   toolbar_location=None)
@@ -35,6 +35,7 @@ def update_plot():
         #Check socket & dont wait if there is nothing here
         raw_bytes = socket.recv(flags=zmq.NOBLOCK)
     except zmq.Again:
+        print("Exited")
 
         return
 
