@@ -1,3 +1,0 @@
-/home/ziad/GNURADIO_DEVELOPMENT/wirelessPlotting/proofOfConcept/OOT_test/build/CMakeFiles/mainFlowGraph.dir
-/home/ziad/GNURADIO_DEVELOPMENT/wirelessPlotting/proofOfConcept/OOT_test/build/CMakeFiles/edit_cache.dir
-/home/ziad/GNURADIO_DEVELOPMENT/wirelessPlotting/proofOfConcept/OOT_test/build/CMakeFiles/rebuild_cache.dir

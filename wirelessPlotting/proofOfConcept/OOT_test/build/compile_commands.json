@@ -1,8 +1,0 @@
-[
-{
-  "directory": "/home/ziad/GNURADIO_DEVELOPMENT/wirelessPlotting/proofOfConcept/OOT_test/build",
-  "command": "/usr/bin/g++-14 -D_GLIBCXX_USE_TBB_PAR_BACKEND=0 -isystem /usr/include/pgm-5.3 -isystem /usr/include/libxml2 -isystem /usr/include/mit-krb5 -std=c++23 -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wold-style-cast -Wcast-align -Wunused -Woverloaded-virtual -Wpedantic -Wconversion -Wsign-conversion -Wnull-dereference -Wdouble-promotion -Wformat=2 -Wno-unknown-pragmas -Wno-unused-command-line-argument -Werror -Wno-dangling-reference -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wlogical-op -Wuseless-cast -Wno-interference-size -Wno-maybe-uninitialized -Wno-tautological-compare -fconcepts-diagnostics-depth=3 -Wno-missing-field-initializers -o CMakeFiles/mainFlowGraph.dir/main.cpp.o -c /home/ziad/GNURADIO_DEVELOPMENT/wirelessPlotting/proofOfConcept/OOT_test/main.cpp",
-  "file": "/home/ziad/GNURADIO_DEVELOPMENT/wirelessPlotting/proofOfConcept/OOT_test/main.cpp",
-  "output": "CMakeFiles/mainFlowGraph.dir/main.cpp.o"
-}
-]
