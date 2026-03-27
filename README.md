@@ -1,12 +1,14 @@
-Hello, This branch is purely made for familiarizing myself with how to use Bokeh and ZMQ aswell as development of OOTs for GNU Radio 4.0
+Hello, This branch contains an OOT module for GR4.0, this OOT is meant to be a proof of concept for plotting data coming from a GR flowgraph into the broswer
+using bokeh 
 
-There currently exists a proof of concept for plotting data coming from a GNU Radio 4.0 block to something broswer based to be accessed wirelessly
+The actual OOT module is currently simply a block called ZMQBlock.hpp which publishes its input using ZMQ to a socket 
 
-If you'd like to run this test 
+A python script then subscribes to that soket and plots in the browswer using bokeh
 
-Simply run 
-1) "mainFlowGraph" located in OOT_TEST/Build (This generates a sin wave from signalsource blocks and publishes it to a socket using ZMQ)
-2) in the terminal within folder ZMQ_realTime_SinWave run bokeh serve --show ContinousSinPlottingScript.py
+To test this out
+
+1) run mainFlowGraph in the build director of the OOT-ZMQPublisher directory 
+2) while in the OOT-ZMQPublisher directory, run bokeh serve --show ContinousSinPlottingScript.py
 
 
 What you should see is a broswer tab open up once you run the bokeh serve command and a sin wave be plotted 
