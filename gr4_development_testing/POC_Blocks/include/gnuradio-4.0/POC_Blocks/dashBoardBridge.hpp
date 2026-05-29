@@ -47,9 +47,11 @@ namespace gr::POC_Blocks {
         //The adderess to the config file is passed here in this variable
         gr::Annotated<std::string, "config_file" ,gr::Visible> config_file = "";
 
-        //Default constructor
-        dashBoardBridge() : gr::Block<dashBoardBridge<T>>("dashBoardBridge") {}
-
+        
+        //Constructor required by GR4 to handle property maps
+        dashBoardBridge(gr::property_map initial_settings = {}) 
+        : gr::Block<dashBoardBridge<T>>(initial_settings) {}
+        
         //Make sure we can track these variables
         GR_MAKE_REFLECTABLE(dashBoardBridge, dataStream, frequencyUpdate, config_file);
 
@@ -101,7 +103,7 @@ namespace gr::POC_Blocks {
 
 
                 // Call back for recieving messages
-                flowGraphServer.set_message_handler([this](websocketpp::connection_hdl hdl, server::message_ptr msg) {
+                flowGraphServer.set_message_handler([this]([[maybe_unused]] websocketpp::connection_hdl hdl, server::message_ptr msg) {
                     if (msg->get_opcode() == websocketpp::frame::opcode::text) {
                         try {
                             auto json_msg = nlohmann::json::parse(msg->get_payload());
@@ -114,9 +116,12 @@ namespace gr::POC_Blocks {
                     }
                 });
 
+                flowGraphServer.clear_access_channels(websocketpp::log::alevel::all);
+
                 // Tell the server to open port 9000 and start listening
                 flowGraphServer.listen(9000);
                 flowGraphServer.start_accept();
+
 
                 // run the server in a background thread
                 flowGraphThread = std::thread([this]() { flowGraphServer.run(); });

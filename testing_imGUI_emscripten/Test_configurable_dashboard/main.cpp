@@ -16,6 +16,7 @@
 #include <math.h>
 #include <string>
 #include <vector>
+#include <cstring> // Added for std::memcpy
 #include "../json.hpp"
 
 // Global variables for the window infrastructure
@@ -119,25 +120,45 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
     else {
         if (!recieved_config) return EM_TRUE; // Ignore data until UI is built
 
-        // Cast the raw bytes directly to floats
-        float* incoming_floats = (float*)websocketEvent->data;
+        // DIAGNOSTIC: Print every 60th frame to the console so we know data is arriving
+        static int frame_counter = 0;
+        if (frame_counter++ % 60 == 0) {
+            std::cout << "[Network] Binary telemetry received: " << websocketEvent->numBytes << " bytes" << std::endl;
+        }
+
+        // WASM FIX: Safely copy bytes to prevent silent unaligned memory crashes
         int num_floats = websocketEvent->numBytes / sizeof(float);
+        std::vector<float> incoming_floats(num_floats);
+        std::memcpy(incoming_floats.data(), websocketEvent->data, websocketEvent->numBytes);
 
         // Update our plots with the new data
-        for (auto& panel : current_dashboard) {
+for (auto& panel : current_dashboard) {
             for (auto& object : panel.dashboardObjects) {
                 
                 if (object.type == dashboardElementType::TIME_SERIES) { 
                     
-                    // Keep the plot window to the last 100 samples
-                    object.databuffer.clear();
-                    int start_idx = (num_floats > 100) ? num_floats - 100 : 0;
-                    
-                    for (int i = start_idx; i < num_floats; i++) {
+                    // 1. DO NOT clear() the buffer! Append the new data to the end.
+                    for (int i = 0; i < num_floats; i++) {
                         object.databuffer.push_back(incoming_floats[i]);
                     }
                     
-                    // Assuming one plot for the MVP, break after updating
+                    // 2. The Rolling Oscilloscope Window
+                    // 48,000 samples/sec * 0.2 seconds = 9600 samples
+                    // This keeps exactly 1/5th of a second of data on the screen at all times.
+                    int max_window_size = 9600;
+                    
+                    if (object.databuffer.size() > max_window_size) {
+                        // Erase the oldest samples from the front of the vector
+                        object.databuffer.erase(
+                            object.databuffer.begin(), 
+                            object.databuffer.begin() + (object.databuffer.size() - max_window_size)
+                        );
+                    }
+                    
+                    // 3. Prevent ImGui crash on empty buffer
+                    if (object.databuffer.empty()) {
+                        object.databuffer.push_back(0.0f);
+                    }
                     break; 
                 }
             }
@@ -186,13 +207,35 @@ void main_loop(){
                         ImGui::Text("%s", object.title.c_str());
                     }
                     else if (object.type == dashboardElementType::TIME_SERIES){
-                        ImGui::PlotLines(object.title.c_str(), object.databuffer.data(), object.databuffer.size(), 0, NULL, -2.0f, 2.0f, ImVec2(400, 150));                    
+                        
+                        //Force title draw for debugging
+                        ImGui::Text("%s", object.title.c_str()); 
+                        
+                        //Check if we actually have data in the buffer
+                        if (object.databuffer.size() > 0) {
+                            
+                            // 
+                            std::string hidden_id = "##" + object.id;
+                            
+                            // Pass the hidden_id instead of ""
+                            ImGui::PlotLines(hidden_id.c_str(), object.databuffer.data(), (int)object.databuffer.size(), 0, NULL, -2.0f, 2.0f, ImVec2(400, 150));                    
+                        } else {
+                            //warning so we know the UI is working but waiting
+                            ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Waiting for DSP telemetry stream...");
+                        }
                     }
                     else if (object.type == dashboardElementType::SLIDER) {   
                         
-                        // -- UPDATED: Send a raw float string instead of JSON --
-                        if (ImGui::SliderFloat(object.title.c_str(), &object.current_val, 0.1f, 5.0f)) {
-                            std::string payload = std::to_string(object.current_val);
+                     \
+                        if (ImGui::SliderFloat(object.title.c_str(), &object.current_val, 0.1f, 100.0f)) {
+                            
+                            // Package the ID and the value into a JSON object
+                            nlohmann::json command_msg;
+                            command_msg["target"] = object.id;          
+                            command_msg["value"]  = object.current_val; 
+                            
+                            // Convert to string and send
+                            std::string payload = command_msg.dump();
                             emscripten_websocket_send_utf8_text(g_WebSocket, payload.c_str());
                         }
 
