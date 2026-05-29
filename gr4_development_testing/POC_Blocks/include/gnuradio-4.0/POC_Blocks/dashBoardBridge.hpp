@@ -9,8 +9,7 @@
 #include <websocketpp/roles/server_endpoint.hpp>
 #include <websocketpp/server.hpp> // Added so your server typedef works
 
-// STYLE TIP: Always include the standard libraries you rely on, even if 
-// the compiler sometimes lets it slide. It prevents unexpected errors later.
+
 #include <fstream>
 #include <sstream>
 #include <functional>
