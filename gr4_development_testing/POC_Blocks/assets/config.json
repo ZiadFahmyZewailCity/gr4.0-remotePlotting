@@ -1,0 +1,27 @@
+{
+  "msg_type": "config",
+  "panels": [
+    {
+      "panel_name": "GNU Radio 4.0 Live DSP",
+      "dashboardElement": [
+        {
+          "id": "label_1",
+          "type": "text",
+          "title": "Real-Time Signal Output"
+        },
+        {
+          "id": "plot_1",
+          "type": "timeseries",
+          "title": "Processed Waveform",
+          "data_source": "live_data"
+        },
+        {
+          "id": "slider_multiplier",
+          "type": "widget",
+          "title": "Amplitude Multiplier",
+          "data_source": "multiplier"
+        }
+      ]
+    }
+  ]
+}

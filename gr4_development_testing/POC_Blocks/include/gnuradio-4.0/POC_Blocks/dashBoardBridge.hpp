@@ -31,19 +31,24 @@ struct DashboardBridge : gr::Block<DashboardBridge<T>> {
 
     // --- PORTS & PARAMETERS ---
     gr::PortIn<T> in;
-    
+
     gr::Annotated<T, "multiplier", gr::Visible> multiplier = static_cast<T>(1.0);
-    
-    // NEW: Parameter to hold the path to the config file
+
     gr::Annotated<std::string, "config_file", gr::Visible> config_file = "";
 
     GR_MAKE_REFLECTABLE(DashboardBridge, in, multiplier, config_file);
+
+    // --- CORRECT GR4 CONSTRUCTOR ---
+    // Accepts a property_map so gr::Graph::emplaceBlock<>() constraints are satisfied.
+    // The base class applies the map to all Annotated parameters automatically.
+    explicit DashboardBridge(gr::property_map init_settings = {})
+        : gr::Block<DashboardBridge<T>>(std::move(init_settings)) {}
 
     // --- INFRASTRUCTURE ---
     server m_server;
     std::set<websocketpp::connection_hdl, std::owner_less<websocketpp::connection_hdl>> m_connections;
     std::thread m_server_thread;
-    std::string m_cached_config; // Caches the JSON string so we don't read the disk repeatedly
+    std::string m_cached_config;
 
     // --- LIFECYCLE HOOKS ---
     void start() {
@@ -68,9 +73,8 @@ struct DashboardBridge : gr::Block<DashboardBridge<T>> {
             m_server.set_open_handler([this](websocketpp::connection_hdl hdl) {
                 m_connections.insert(hdl);
                 std::cout << "[DashboardBridge] Frontend Connected!" << std::endl;
-                
+
                 if (!m_cached_config.empty()) {
-                    // Send the cached JSON as a TEXT frame
                     m_server.send(hdl, m_cached_config, websocketpp::frame::opcode::text);
                     std::cout << "[DashboardBridge] Config pushed to frontend." << std::endl;
                 }
@@ -82,12 +86,9 @@ struct DashboardBridge : gr::Block<DashboardBridge<T>> {
             });
 
             // 3. Receive slider updates
-            m_server.set_message_handler([this](websocketpp::connection_hdl hdl, server::message_ptr msg) {
+            m_server.set_message_handler([this]([[maybe_unused]] websocketpp::connection_hdl hdl, server::message_ptr msg) {
                 if (msg->get_opcode() == websocketpp::frame::opcode::text) {
                     std::string payload = msg->get_payload();
-                    
-                    // Note: For this MVP, we still assume the raw string is just "3.5"
-                    // If you send full JSON from Emscripten, you will need nlohmann::json::parse() here!
                     try {
                         float new_val = std::stof(payload);
                         this->multiplier = static_cast<T>(new_val);
@@ -125,8 +126,8 @@ struct DashboardBridge : gr::Block<DashboardBridge<T>> {
 
         const T* raw_data = input.data();
         std::vector<T> processed_data(nSamples);
-        
-        for(std::size_t i = 0; i < nSamples; i++) {
+
+        for (std::size_t i = 0; i < nSamples; i++) {
             processed_data[i] = raw_data[i] * multiplier.value;
         }
 
