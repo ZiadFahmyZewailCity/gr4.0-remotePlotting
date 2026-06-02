@@ -7,7 +7,7 @@ CXX = emcc
 
 # Output directory and the final WebAssembly HTML file
 BUILD_DIR = build
-TARGET = $(BUILD_DIR)/index.html
+TARGET = $(BUILD_DIR)/dashboard.html
 
 # Include paths (Telling the compiler where to find .h and .hpp files)
 # -I../imgui         : Finds "imgui.h" and "backends/..."
