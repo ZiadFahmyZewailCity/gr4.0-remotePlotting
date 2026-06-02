@@ -1,16 +1,13 @@
 /*
 This outline is for running a dynamic flowgraph pushing to a Web UI.
 It acts as the Coordinator, connecting the Source, Throttle, and Bridge,
-and routing UI commands back to the Source.
+and routing widget commands back to the Source.
 */
 
 #include <gnuradio-4.0/Graph.hpp>
 #include <gnuradio-4.0/Scheduler.hpp>
 #include <gnuradio-4.0/basic/SignalGenerator.hpp> 
 #include <gnuradio-4.0/testing/NullSources.hpp>
-
-// Include your custom OOT block
-// Note: Adjust this include path based on exactly where you saved it!
 #include <gnuradio-4.0/POC_Blocks/dashBoardBridge.hpp> 
 
 namespace basicBlocks = gr::basic;
@@ -27,7 +24,7 @@ int main() {
     - Bridge: Streams data and hosts the WebSocket server
     */
 
-    // --- 1. SIGNAL GENERATOR BLOCK (Source) ---
+    //Single generator
     auto& source = graph.emplaceBlock<basicBlocks::SignalGenerator<float>>();
     source.sample_rate = 48000.f;
     source.frequency   = 50.0f; 
@@ -38,37 +35,31 @@ int main() {
     source.signal_type = basicBlocks::signal_generator::Type::Sin; 
     source.chunk_size  = 1024;
 
-    // --- 2. SIM COMPUTE BLOCK (The Throttle) ---
-    // Without this, the flowgraph runs at CPU speed and crashes the WebSocket
+    //Throttling the source 
     auto& throttle = graph.emplaceBlock<testing::SimCompute<float>>();
-    throttle.target_throughput = 48000.f; // Throttle to exactly 48kS/s
-    throttle.busy_wait = false;           // Use sleep() instead of burning CPU cycles
+    throttle.target_throughput = 48000.f; 
+    throttle.busy_wait = false;           
 
-    // --- 3. DASHBOARD BRIDGE BLOCK (Pure Sink & Remote Control) ---
+    //Custom block for managing the dashboard
     auto& bridge = graph.emplaceBlock<pocBlocks::dashBoardBridge<float>>();
     
-    // Set the path to your UI config file. 
-    // IMPORTANT: Make sure this path is correct relative to where you run the executable!
+    // Set the path to UI config
     bridge.config_file = "../POC_Blocks/assets/config.json"; 
 
 
-    // --- THE COORDINATOR LINK ---
-    // This is the magic. When the bridge receives a frequency command from the UI,
-    // it pulls its internal trigger. This lambda intercepts it and updates the source block.
+    //Updating frequency of sin wave
     bridge.on_freq_update = [&source](float new_freq) {
         
-        // 1. Save the old frequency state for the hook
+        //Save old frequncy state in property map
         gr::property_map old_props;
         old_props["frequency"] = source.frequency;
-        
-        // 2. Prepare the new frequency state
+        //Set new frequency state in property map
         gr::property_map new_props;
         new_props["frequency"] = new_freq;
 
-        // 3. Update the raw C++ variable
+        
+        // Tell source to reclaculate its frequency
         source.frequency = new_freq;
-
-        // 4. THE FIX: Force the block to recalculate its internal DSP math!
         source.settingsChanged(old_props, new_props);
 
         std::cout << "[Coordinator] Frequency shifted to: " << new_freq << " Hz" << std::endl;

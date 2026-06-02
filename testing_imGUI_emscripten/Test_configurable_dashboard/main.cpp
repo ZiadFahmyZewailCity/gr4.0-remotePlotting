@@ -137,14 +137,11 @@ for (auto& panel : current_dashboard) {
                 
                 if (object.type == dashboardElementType::TIME_SERIES) { 
                     
-                    // 1. DO NOT clear() the buffer! Append the new data to the end.
+                    // Added a buffer for better plotting
                     for (int i = 0; i < num_floats; i++) {
                         object.databuffer.push_back(incoming_floats[i]);
                     }
-                    
-                    // 2. The Rolling Oscilloscope Window
-                    // 48,000 samples/sec * 0.2 seconds = 9600 samples
-                    // This keeps exactly 1/5th of a second of data on the screen at all times.
+    
                     int max_window_size = 9600;
                     
                     if (object.databuffer.size() > max_window_size) {
@@ -155,7 +152,7 @@ for (auto& panel : current_dashboard) {
                         );
                     }
                     
-                    // 3. Prevent ImGui crash on empty buffer
+                    // Prevent ImGui crash on empty buffer
                     if (object.databuffer.empty()) {
                         object.databuffer.push_back(0.0f);
                     }
