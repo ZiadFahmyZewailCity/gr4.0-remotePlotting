@@ -54,16 +54,16 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/ziad/GNURADIO_DEVELOPMENT/gr4_development_testing
+CMAKE_SOURCE_DIR = /home/ziad/GNURADIO_DEVELOPMENT/POC_Block_Flowgraph
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/ziad/GNURADIO_DEVELOPMENT/gr4_development_testing/build
+CMAKE_BINARY_DIR = /home/ziad/GNURADIO_DEVELOPMENT/POC_Block_Flowgraph/build
 
 #=============================================================================
 # Directory level rules for the build root directory
 
 # The main recursive "all" target.
-all: CMakeFiles/staticFlowGraph.dir/all
+all: CMakeFiles/POCFlowGraph.dir/all
 .PHONY : all
 
 # The main recursive "preinstall" target.
@@ -71,34 +71,34 @@ preinstall:
 .PHONY : preinstall
 
 # The main recursive "clean" target.
-clean: CMakeFiles/staticFlowGraph.dir/clean
+clean: CMakeFiles/POCFlowGraph.dir/clean
 .PHONY : clean
 
 #=============================================================================
-# Target rules for target CMakeFiles/staticFlowGraph.dir
+# Target rules for target CMakeFiles/POCFlowGraph.dir
 
 # All Build rule for target.
-CMakeFiles/staticFlowGraph.dir/all:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/staticFlowGraph.dir/build.make CMakeFiles/staticFlowGraph.dir/depend
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/staticFlowGraph.dir/build.make CMakeFiles/staticFlowGraph.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/ziad/GNURADIO_DEVELOPMENT/gr4_development_testing/build/CMakeFiles --progress-num=1,2 "Built target staticFlowGraph"
-.PHONY : CMakeFiles/staticFlowGraph.dir/all
+CMakeFiles/POCFlowGraph.dir/all:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/POCFlowGraph.dir/build.make CMakeFiles/POCFlowGraph.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/POCFlowGraph.dir/build.make CMakeFiles/POCFlowGraph.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/ziad/GNURADIO_DEVELOPMENT/POC_Block_Flowgraph/build/CMakeFiles --progress-num=1,2 "Built target POCFlowGraph"
+.PHONY : CMakeFiles/POCFlowGraph.dir/all
 
 # Build rule for subdir invocation for target.
-CMakeFiles/staticFlowGraph.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/ziad/GNURADIO_DEVELOPMENT/gr4_development_testing/build/CMakeFiles 2
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/staticFlowGraph.dir/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/ziad/GNURADIO_DEVELOPMENT/gr4_development_testing/build/CMakeFiles 0
-.PHONY : CMakeFiles/staticFlowGraph.dir/rule
+CMakeFiles/POCFlowGraph.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/ziad/GNURADIO_DEVELOPMENT/POC_Block_Flowgraph/build/CMakeFiles 2
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/POCFlowGraph.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/ziad/GNURADIO_DEVELOPMENT/POC_Block_Flowgraph/build/CMakeFiles 0
+.PHONY : CMakeFiles/POCFlowGraph.dir/rule
 
 # Convenience name for target.
-staticFlowGraph: CMakeFiles/staticFlowGraph.dir/rule
-.PHONY : staticFlowGraph
+POCFlowGraph: CMakeFiles/POCFlowGraph.dir/rule
+.PHONY : POCFlowGraph
 
 # clean rule for target.
-CMakeFiles/staticFlowGraph.dir/clean:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/staticFlowGraph.dir/build.make CMakeFiles/staticFlowGraph.dir/clean
-.PHONY : CMakeFiles/staticFlowGraph.dir/clean
+CMakeFiles/POCFlowGraph.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/POCFlowGraph.dir/build.make CMakeFiles/POCFlowGraph.dir/clean
+.PHONY : CMakeFiles/POCFlowGraph.dir/clean
 
 #=============================================================================
 # Special targets to cleanup operation of make.

@@ -327,7 +327,7 @@ int main(){
 
     // Assign the return value directly to g_WebSocket
     g_WebSocket = emscripten_socketSetup(
-        "ws://localhost:9000",
+        "ws://10.21.4.141:6500",
         callback_succefulConnect,
         callback_Close,
         callback_Run

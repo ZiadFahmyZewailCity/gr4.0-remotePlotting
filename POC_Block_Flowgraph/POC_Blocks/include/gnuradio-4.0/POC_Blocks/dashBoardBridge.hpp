@@ -118,8 +118,9 @@ namespace gr::POC_Blocks {
 
                 flowGraphServer.clear_access_channels(websocketpp::log::alevel::all);
 
-                // Tell the server to open port 9000 and start listening
-                flowGraphServer.listen(9000);
+                // Tell the server to open port 5600 and start listening
+                flowGraphServer.listen(websocketpp::lib::asio::ip::tcp::v4(), 6500);
+
                 flowGraphServer.start_accept();
 
 

@@ -4,7 +4,7 @@
 # compile CXX with /usr/bin/g++-14
 CXX_DEFINES = -DASIO_STANDALONE -DFMT_SHARED -D_GLIBCXX_USE_TBB_PAR_BACKEND=0
 
-CXX_INCLUDES = -I/home/ziad/GNURADIO_DEVELOPMENT/gr4_development_testing/POC_Blocks/include
+CXX_INCLUDES = -I/home/ziad/GNURADIO_DEVELOPMENT/POC_Block_Flowgraph/POC_Blocks/include
 
 CXX_FLAGS = -std=c++23 -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wold-style-cast -Wcast-align -Wunused -Woverloaded-virtual -Wpedantic -Wconversion -Wsign-conversion -Wnull-dereference -Wdouble-promotion -Wformat=2 -Wno-unknown-pragmas -Wno-unused-command-line-argument -Werror -Wno-dangling-reference -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wlogical-op -Wuseless-cast -Wno-interference-size -Wno-maybe-uninitialized -Wno-tautological-compare -fconcepts-diagnostics-depth=3 -Wno-missing-field-initializers
 

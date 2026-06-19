@@ -1,4 +1,4 @@
-# Install script for directory: /home/ziad/GNURADIO_DEVELOPMENT/gr4_development_testing
+# Install script for directory: /home/ziad/GNURADIO_DEVELOPMENT/POC_Block_Flowgraph
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -50,5 +50,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/ziad/GNURADIO_DEVELOPMENT/gr4_development_testing/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/ziad/GNURADIO_DEVELOPMENT/POC_Block_Flowgraph/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

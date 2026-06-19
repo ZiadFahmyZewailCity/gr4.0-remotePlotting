@@ -57,10 +57,10 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/ziad/GNURADIO_DEVELOPMENT/gr4_development_testing
+CMAKE_SOURCE_DIR = /home/ziad/GNURADIO_DEVELOPMENT/POC_Block_Flowgraph
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/ziad/GNURADIO_DEVELOPMENT/gr4_development_testing/build
+CMAKE_BINARY_DIR = /home/ziad/GNURADIO_DEVELOPMENT/POC_Block_Flowgraph/build
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -87,9 +87,9 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/ziad/GNURADIO_DEVELOPMENT/gr4_development_testing/build/CMakeFiles /home/ziad/GNURADIO_DEVELOPMENT/gr4_development_testing/build//CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/ziad/GNURADIO_DEVELOPMENT/POC_Block_Flowgraph/build/CMakeFiles /home/ziad/GNURADIO_DEVELOPMENT/POC_Block_Flowgraph/build//CMakeFiles/progress.marks
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/ziad/GNURADIO_DEVELOPMENT/gr4_development_testing/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/ziad/GNURADIO_DEVELOPMENT/POC_Block_Flowgraph/build/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -117,24 +117,24 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named staticFlowGraph
+# Target rules for targets named POCFlowGraph
 
 # Build rule for target.
-staticFlowGraph: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 staticFlowGraph
-.PHONY : staticFlowGraph
+POCFlowGraph: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 POCFlowGraph
+.PHONY : POCFlowGraph
 
 # fast build rule for target.
-staticFlowGraph/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/staticFlowGraph.dir/build.make CMakeFiles/staticFlowGraph.dir/build
-.PHONY : staticFlowGraph/fast
+POCFlowGraph/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/POCFlowGraph.dir/build.make CMakeFiles/POCFlowGraph.dir/build
+.PHONY : POCFlowGraph/fast
 
 flowgraphs/POCFlowGraph.o: flowgraphs/POCFlowGraph.cpp.o
 .PHONY : flowgraphs/POCFlowGraph.o
 
 # target to build an object file
 flowgraphs/POCFlowGraph.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/staticFlowGraph.dir/build.make CMakeFiles/staticFlowGraph.dir/flowgraphs/POCFlowGraph.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/POCFlowGraph.dir/build.make CMakeFiles/POCFlowGraph.dir/flowgraphs/POCFlowGraph.cpp.o
 .PHONY : flowgraphs/POCFlowGraph.cpp.o
 
 flowgraphs/POCFlowGraph.i: flowgraphs/POCFlowGraph.cpp.i
@@ -142,7 +142,7 @@ flowgraphs/POCFlowGraph.i: flowgraphs/POCFlowGraph.cpp.i
 
 # target to preprocess a source file
 flowgraphs/POCFlowGraph.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/staticFlowGraph.dir/build.make CMakeFiles/staticFlowGraph.dir/flowgraphs/POCFlowGraph.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/POCFlowGraph.dir/build.make CMakeFiles/POCFlowGraph.dir/flowgraphs/POCFlowGraph.cpp.i
 .PHONY : flowgraphs/POCFlowGraph.cpp.i
 
 flowgraphs/POCFlowGraph.s: flowgraphs/POCFlowGraph.cpp.s
@@ -150,7 +150,7 @@ flowgraphs/POCFlowGraph.s: flowgraphs/POCFlowGraph.cpp.s
 
 # target to generate assembly for a file
 flowgraphs/POCFlowGraph.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/staticFlowGraph.dir/build.make CMakeFiles/staticFlowGraph.dir/flowgraphs/POCFlowGraph.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/POCFlowGraph.dir/build.make CMakeFiles/POCFlowGraph.dir/flowgraphs/POCFlowGraph.cpp.s
 .PHONY : flowgraphs/POCFlowGraph.cpp.s
 
 # Help Target
@@ -161,7 +161,7 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
-	@echo "... staticFlowGraph"
+	@echo "... POCFlowGraph"
 	@echo "... flowgraphs/POCFlowGraph.o"
 	@echo "... flowgraphs/POCFlowGraph.i"
 	@echo "... flowgraphs/POCFlowGraph.s"
