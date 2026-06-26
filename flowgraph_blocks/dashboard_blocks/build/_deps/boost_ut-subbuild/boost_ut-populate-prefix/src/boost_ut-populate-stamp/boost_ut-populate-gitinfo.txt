@@ -1,0 +1,15 @@
+# This is a generated file and its contents are an internal implementation detail.
+# The download step will be re-executed if anything in this file changes.
+# No other meaning or use of this file is supported.
+
+method=git
+command=/usr/bin/cmake;-P;/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/build/_deps/boost_ut-subbuild/boost_ut-populate-prefix/tmp/boost_ut-populate-gitclone.cmake
+source_dir=/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/build/_deps/boost_ut-src
+work_dir=/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/build/_deps
+repository=https://github.com/boost-ext/ut.git
+remote=origin
+init_submodules=TRUE
+recurse_submodules=--recursive
+submodules=
+CMP0097=NEW
+

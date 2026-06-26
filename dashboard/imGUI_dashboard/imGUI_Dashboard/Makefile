@@ -9,20 +9,19 @@ CXX = emcc
 BUILD_DIR = build
 TARGET = $(BUILD_DIR)/dashboard.html
 
-# Include paths (Telling the compiler where to find .h and .hpp files)
-# -I../imgui         : Finds "imgui.h" and "backends/..."
-# -I..               : Finds "../json.hpp"
-INCLUDES = -I../imgui -I..
+# Relative path math from: dashboard/imGUI_dashboard/imGUI_Dashboard/
+# ../.. lands in "dashboard/"
+INCLUDES = -I../../imgui -I../..
 
-# Source files (The actual C++ files that need to be compiled)
+# Source files
 SOURCES = \
-	main.cpp \
-	../imgui/imgui.cpp \
-	../imgui/imgui_draw.cpp \
-	../imgui/imgui_tables.cpp \
-	../imgui/imgui_widgets.cpp \
-	../imgui/backends/imgui_impl_sdl2.cpp \
-	../imgui/backends/imgui_impl_opengl3.cpp
+    main.cpp \
+    ../../imgui/imgui.cpp \
+    ../../imgui/imgui_draw.cpp \
+    ../../imgui/imgui_tables.cpp \
+    ../../imgui/imgui_widgets.cpp \
+    ../../imgui/backends/imgui_impl_sdl2.cpp \
+    ../../imgui/backends/imgui_impl_opengl3.cpp
 
 # Emscripten Compilation Flags
 EMFLAGS = -s USE_SDL=2 \

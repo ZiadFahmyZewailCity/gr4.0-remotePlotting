@@ -1,0 +1,1 @@
+/usr/bin/g++-14 CMakeFiles/qa_dashBoardServer.dir/qa_dashBoardServer.cpp.o CMakeFiles/qa_dashBoardServer.dir/__/src/dashBoard_server.cpp.o -o qa_dashBoardServer  /usr/lib/x86_64-linux-gnu/libzmq.so 
