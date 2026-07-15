@@ -1,0 +1,19 @@
+Start testing: Jun 26 17:19 EEST
+----------------------------------------------------------
+1/1 Testing: qa_dashBoardServer
+1/1 Test: qa_dashBoardServer
+Command: "/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/build/tests/qa_dashBoardServer"
+Directory: /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/build/tests
+"qa_dashBoardServer" start time: Jun 26 17:19 EEST
+Output:
+----------------------------------------------------------
+[32mSuite 'global': all tests passed[0m (6 asserts in 3 tests)
+<end of output>
+Test time =   0.08 sec
+----------------------------------------------------------
+Test Passed.
+"qa_dashBoardServer" end time: Jun 26 17:19 EEST
+"qa_dashBoardServer" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Jun 26 17:19 EEST

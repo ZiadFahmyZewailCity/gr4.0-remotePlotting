@@ -138,7 +138,6 @@ void DashboardServer::on_message(connection_hdl hdl, server::message_ptr msg){
     {
 
     }
-
 }
 
 void DashboardServer::set_ZMQ_context(zmq::context_t &context){
