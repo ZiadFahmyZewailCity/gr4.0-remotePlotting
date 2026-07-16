@@ -15,9 +15,10 @@ namespace gr::dashboard_blocks {
     template <typename T>
     struct dep_imGUI_timeSeries : gr::Block<dep_imGUI_timeSeries<T>> {
 
+        
         using Description = gr::Doc<R""(
             Ingests live DSP sample streams and broadcasts them over ZeroMQ.
-            Prepends a topic header matching the frontend ImGui config ID.
+            Preapends a topic header matching the frontend ImGui config ID.
         )"">;
 
         gr::PortIn<T> in;
