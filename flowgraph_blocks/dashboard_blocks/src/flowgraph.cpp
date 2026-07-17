@@ -1,9 +1,3 @@
-/*
-This outline is for running a dynamic flowgraph pushing to a Web UI.
-It acts as the Coordinator, connecting the Source, Throttle, and Dashboard Blocks,
-and routing ZeroMQ widget commands back to the Source.
-*/
-
 #include <gnuradio-4.0/Graph.hpp>
 #include <gnuradio-4.0/Scheduler.hpp>
 #include <gnuradio-4.0/basic/SignalGenerator.hpp> 

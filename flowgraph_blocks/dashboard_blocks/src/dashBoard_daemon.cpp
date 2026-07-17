@@ -71,8 +71,6 @@ void read_config_file(zmq::socket_t & flowgraphSocket, const std::string &config
 
 }
 
-
-
 //This should just run the dashboard
 int main(){
     

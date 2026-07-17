@@ -29,6 +29,21 @@ EMSCRIPTEN_WEBSOCKET_T g_WebSocket = 0;
 bool is_connected = false;
 bool recieved_config = false;
 
+//TO DO: Dont fully understand this 
+// Determines the WebSocket host at runtime from whatever address the browser
+// actually used to load this page (localhost, a LAN IP, a hostname, etc).
+// This means the same compiled .wasm works from any device on the network
+// without needing to hardcode/rebuild for a specific IP.
+EM_JS(char*, get_websocket_url, (), {
+    var host = window.location.hostname;
+    var url = "ws://" + host + ":9090";
+    var lengthBytes = lengthBytesUTF8(url) + 1;
+    var stringOnWasmHeap = _malloc(lengthBytes);
+    stringToUTF8(url, stringOnWasmHeap, lengthBytes);
+    return stringOnWasmHeap;
+});
+
+
 //Structs for dashboard elements 
 enum class dashboardElementType { TIME_SERIES, SLIDER, TEXT_LABEL};
 
@@ -354,9 +369,19 @@ int main(){
 
     emscripten_async_wget_data("/config.json", NULL, callback_configLoaded, callback_configFailed);
 
+
+    //TO DO: Dont fully understand how this works, got it from somewhere on the internet
+    // Build the websocket URL from the page's own host instead of a hardcoded
+    // IP, so this works whether the page was loaded via localhost or a LAN IP.
+    char* ws_url_raw = get_websocket_url();
+    std::string ws_url(ws_url_raw);
+    free(ws_url_raw);
+    std::cout << "Connecting to WebSocket at: " << ws_url << std::endl;
+
+
     // Assign the return value directly to g_WebSocket
     g_WebSocket = emscripten_socketSetup(
-        "ws://127.0.0.1:9090",
+        ws_url,
         callback_succefulConnect,
         callback_Close,
         callback_Run

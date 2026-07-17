@@ -7,7 +7,6 @@
 #include <gnuradio-4.0/meta/reflection.hpp>
 #include <zmq.hpp>
 #include <string>
-#include <vector>
 #include <cstring>
 
 namespace gr::dashboard_blocks {
@@ -15,15 +14,14 @@ namespace gr::dashboard_blocks {
     template <typename T>
     struct dep_imGUI_timeSeries : gr::Block<dep_imGUI_timeSeries<T>> {
 
-        using Description = gr::Doc<R""(
-            Ingests live DSP sample streams and broadcasts them over ZeroMQ.
-            Prepends a topic header matching the frontend ImGui config ID.
-        )"">;
+        
+        using Description = gr::Doc<R""(Ingests live DSP sample streams and broadcasts them over ZeroMQ. Preapends a topic header matching the frontend ImGui config ID.)"">;
 
         gr::PortIn<T> in;
 
         gr::Annotated<std::string, "topic_id", gr::Visible> topic_id = "plot_1";
-        gr::Annotated<std::string, "zmq_endpoint", gr::Visible> endpoint = "tcp://127.0.0.1:5555";
+        
+        gr::Annotated<std::string, "zmq_endpoint"> endpoint = "tcp://127.0.0.1:5555";
 
         zmq::context_t zmq_ctx{1};
         zmq::socket_t publisher;
