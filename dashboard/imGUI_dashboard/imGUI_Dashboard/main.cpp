@@ -1,4 +1,5 @@
 #include "imgui.h"
+#include "implot.h"
 // Hooks ImGui up to SDL2 (Window & Input)
 #include "backends/imgui_impl_sdl2.h" 
 // Hooks ImGui up to OpenGL3 / WebGL (Graphics Rendering)
@@ -11,6 +12,9 @@
 // Required so we can use emscripten_set_main_loop()
 #include <emscripten.h> 
 #include <emscripten/websocket.h>
+
+
+
 
 #include <iostream>
 #include <math.h>
@@ -248,23 +252,32 @@ void main_loop(){
                     }
                     else if (object.type == dashboardElementType::TIME_SERIES){
                         
-                        //Force title draw for debugging
-                        ImGui::Text("%s", object.title.c_str()); 
-                        
                         //Check if we actually have data in the buffer
                         if (object.databuffer.size() > 0) {
                             
-                            // 
                             std::string hidden_id = "##" + object.id;
                             
-                            // Pass the hidden_id instead of ""
-                            ImGui::PlotLines(hidden_id.c_str(), object.databuffer.data(), (int)object.databuffer.size(), 0, NULL, -2.0f, 2.0f, ImVec2(400, 150));                    
-                        } else {
-                            //warning so we know the UI is working but waiting
+                            if (ImPlot::BeginPlot(object.title.c_str(), ImVec2(-1, 200))) {
+                                
+                                //Axis labels
+                                ImPlot::SetupAxes("Samples", "Amplitude");
+                                //Zooming in and out
+                                ImPlot::SetupAxisLimits(ImAxis_Y1, -2.0, 2.0, ImPlotCond_Once);
+                                
+                                // We keep X locked to the buffer size so it acts like a live oscilloscope screen
+                                ImPlot::SetupAxisLimits(ImAxis_X1, 0, (double)object.databuffer.size(), ImPlotCond_Always);
+                                
+                                ImPlot::PlotLine(hidden_id.c_str(), object.databuffer.data(), (int)object.databuffer.size());
+                                ImPlot::EndPlot();                        
+                            } 
+                        } 
+                        else {
+                            // FIXED BUG: This is now correctly attached to the buffer size check!
+                            // warning so we know the UI is working but waiting
                             ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Waiting for DSP telemetry stream...");
                         }
                     }
-                    else if (object.type == dashboardElementType::SLIDER) {   
+                    else if (object.type == dashboardElementType::SLIDER) { 
                         
                         if (ImGui::SliderFloat(object.title.c_str(), &object.current_val, 0.1f, 100.0f)) {
                             
@@ -326,6 +339,8 @@ void imGUI_contextSetup(){
     IMGUI_CHECKVERSION();
     //This context is what essentailly tracks everything, its 
     ImGui::CreateContext();
+    //ImPlot Context
+    ImPlot::CreateContext();
     ImGui_ImplSDL2_InitForOpenGL(g_Window, g_GLContext);
     ImGui_ImplOpenGL3_Init("#version 300 es");
 }
