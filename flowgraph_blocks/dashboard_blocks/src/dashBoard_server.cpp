@@ -102,41 +102,41 @@ void DashboardServer::on_open(connection_hdl hdl) {
     std::lock_guard<std::mutex> lock(lockingConnections);
     dashBoardServer_connections.insert(hdl);
     std::cout << "Client connected\n";
+
+    std::string SYNC_CMD =  "SERVER:SYNC"; 
+    dispatch_internal_message(SYNC_CMD);
 }
 
 void DashboardServer::on_message(connection_hdl hdl, server::message_ptr msg){
 
-    //Check that the context is valid
-    if(!sharedContext)
-    {
-        //TO DO: Remove
-        std::cout << "Shared Context not found\n";
-        return ;
-    }
 
     std::string ws_payload = msg->get_payload();
 
+    //This does the json parsing and turns the json message from the widget to just normal ascii to be sent to the flowgraph
+    //Note this is in the server side of the dashboard server and so needs to be moved within the dashboard server process to
+    //the part of the server which handles the IPC with the flowgraph 
     try {
+
+        //Parse the json
         auto json_cmd = nlohmann::json::parse(ws_payload);
+        
+        //Find the widget
         std::string target_id = json_cmd.value("target", "");
+        //Find the value 
         float val = json_cmd.value("value", 0.0f);
+        //Create the simple binary packet to be sent to the flowgraph
         std::string zmq_frame = target_id + ":" + std::to_string(val);
 
-        //Generate the internal connection, this should function as a deepCopy and so should be super 
-        //fast and non-blocking
-        zmq::socket_t internal_connection_daemon(*sharedContext, zmq::socket_type::push);
-        internal_connection_daemon.set(zmq::sockopt::linger, 0);
-        internal_connection_daemon.connect("inproc://commands");
-
-        //Commands from dashBoard
-        zmq::message_t commands_to_flowgraph(zmq_frame.begin(), zmq_frame.end());
-        
-
-        internal_connection_daemon.send(commands_to_flowgraph, zmq::send_flags::none);
+        dispatch_internal_message(zmq_frame);
     }
-    catch (...)
-    {
-
+    //Error messages made by AI, not sure what would be a good error message so thought AI would give good pointers.
+    catch (const nlohmann::json::parse_error& e) {
+        std::cerr << "[JSON Error] Malformed WebSocket payload: " << e.what() << "\n";
+    }
+    //TO DO: I think there is a double error message here because the try/catch of the dispatch_internal_message will also send out a message
+    //Fix later
+    catch (const std::exception& e) {
+        std::cerr << "[Server Error] Unexpected error in on_message: " << e.what() << "\n";
     }
 
 }
@@ -144,7 +144,6 @@ void DashboardServer::on_message(connection_hdl hdl, server::message_ptr msg){
 void DashboardServer::set_ZMQ_context(zmq::context_t &context){
     sharedContext = &context;
 }
-
 
 //On Disconnect 
 void DashboardServer::on_close(connection_hdl hdl) {
@@ -177,6 +176,35 @@ bool  DashboardServer::readFile(const std::string& filepath, std::string& out_co
                         std::istreambuf_iterator<char>());
     return true;
 
+
+
+}
+
+
+void DashboardServer::dispatch_internal_message(const std::string& cmd){
+
+    //Check that the context is valid
+    if(!sharedContext)
+    {
+        //TO DO: Remove
+        std::cout << "Shared Context not found\n";
+        return ;
+    }
+
+    try {
+
+        //Generate the internal connection, this should function as a deepCopy and so should be super 
+        //fast and non-blocking
+        zmq::socket_t internal_connection_daemon(*sharedContext, zmq::socket_type::push);
+        internal_connection_daemon.set(zmq::sockopt::linger, 0);
+        internal_connection_daemon.connect("inproc://commands");
+
+        //Commands from dashBoard
+        zmq::message_t commands_to_flowgraph(cmd.begin(), cmd.end());
+        internal_connection_daemon.send(commands_to_flowgraph, zmq::send_flags::none);
+
+    }
+    catch(...){}
 
 
 }

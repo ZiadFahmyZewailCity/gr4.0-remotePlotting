@@ -54,7 +54,11 @@ private:
     //Helper function for reading config file  
     bool readFile(const std::string& filepath, std::string& out_content);
 
+    //Helper function for sending messages internally to the ZMQ side of the process
+    void dispatch_internal_message(const std::string& cmd);
+
 public:
+
     //Constructor Initalizes callbacks 
     explicit DashboardServer(std::string web_root_path);
 

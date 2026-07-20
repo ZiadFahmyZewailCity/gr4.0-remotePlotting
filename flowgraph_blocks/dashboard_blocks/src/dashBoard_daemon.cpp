@@ -156,10 +156,11 @@ int main(){
 
         //Commands coming from the dashBoard to flowgraph
         if(sockets[1].revents & ZMQ_POLLIN){
+
             zmq::message_t dashBoard_command_message;
-            
-            //Flag need to be added apparently or a deprecated version of the function is used, should not the only differce 
-            //between the two just seems to be that the newer version is strictly typed when it comes to flags
+            //Flag need to be added apparently or a deprecated version of the function is used, 
+            // should not be an issue, 
+            // the only differce between the two just seems to be that the newer version is strictly typed when it comes to flags
             auto recived_command = internal_cmd_rx.recv(dashBoard_command_message, zmq::recv_flags::none);
             if(recived_command){
                 //Look into version to see if we need a 
