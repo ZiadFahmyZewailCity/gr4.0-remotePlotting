@@ -281,7 +281,7 @@ void main_loop(){
                         
                         if (ImGui::SliderFloat(object.title.c_str(), &object.current_val, 0.1f, 100.0f)) {
                             
-                            // Package the ID and the value into a JSON object
+                            // Package the ID of the widget and the value into a JSON object
                             nlohmann::json command_msg;
                             command_msg["target"] = object.id;          
                             command_msg["value"]  = object.current_val; 
