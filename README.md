@@ -1,3 +1,5 @@
+# DEPRICATED
+
 
 Branch was made to figure out what was the issue with getting the dashboard working properly on a seperate device.
 
