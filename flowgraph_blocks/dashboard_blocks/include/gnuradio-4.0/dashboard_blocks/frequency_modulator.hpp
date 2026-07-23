@@ -7,6 +7,9 @@
 #include <iostream>
 #include <functional> // Required for lambdas
 
+//THIS IS THE AI GENERATED PURELY FOR TESTING HAVING THE VARIABLE BEING VARIED FROM WITHIN THE FLOWGRAPH TO SEE HOW IT WILL BE UPDATED IN THE DASHBOARD
+
+
 namespace gr::dashboard_blocks {
 
     template <typename T>
