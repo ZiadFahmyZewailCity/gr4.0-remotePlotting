@@ -43,6 +43,7 @@ int main() {
     // 4. Uplink Command Listener 
     auto& slider_src = graph.emplaceBlock<dashboardBlocks::dep_imGUI_slider<float>>();
     slider_src.widget_id = "slider_freq";
+    slider_src.current_val = source.frequency;
 
     // 5. Dummy drain
     auto& drain = graph.emplaceBlock<testing::NullSink<float>>();
