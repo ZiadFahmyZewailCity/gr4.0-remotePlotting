@@ -41,9 +41,12 @@ namespace gr::dashboard_blocks {
         //considering having a a ptr to the variable passed to the block)
         gr::PortOut<T> out;
 
-        // Coordinator interrupt trigger
+        //On update of variable widget is tracking, call this function to update it in the flowgraph, function must be defined in the flowgraph 
         std::function<void(T)> on_val_update = nullptr;
-        
+        //Use this function to track the current state of the variable the widget is tracking the in the flowgraph, function must be defined in the flowgraph 
+        //Function definition should just return variable value 
+        std::function<T()> get_external_val = nullptr;
+
         //Create the ZMQ context
         zmq::context_t zmq_ctx{1};
         //instantiate the ZMQ socket
@@ -128,12 +131,16 @@ namespace gr::dashboard_blocks {
                             //Copy the current value after the header in the buffer (Payload is binary bytes)
                             std::memcpy(static_cast<char*>(z_msg.data()) + header.size(), &current_val.value, sizeof(current_val.value));
 
+                            //TO DO: Consider making this a helper function so the lastPublished value is always updated
                             //Send the message to the dashboard server
                             publisher.send(z_msg, zmq::send_flags::dontwait);
+                            //Always update the last published value after a publish
+                            lastPublishedValue = current_val.value;
 
                             std::cout << "Message has been published to the dashboard_server" << "\n";
-                            
 
+                            
+                    
                         }
 
                     }
@@ -159,7 +166,7 @@ namespace gr::dashboard_blocks {
 
                             //Update the variable in the block itself 
                             current_val.value = parsed_val;
-
+                            
 
                             //Send new widget value over ZMQ PUB to other dashboards
                             //TO DO: Use this to trigger an update if a change to the frequency value occurs within the flowgraph
@@ -179,7 +186,8 @@ namespace gr::dashboard_blocks {
 
                             //Send the message to the dashboard server
                             publisher.send(z_msg, zmq::send_flags::dontwait);
-
+                            //Always update the last published value after a publish
+                            lastPublishedValue = current_val.value;
 
                             //TO DO: Remove Debug Message
                             std::cout << "Message has been published to the dashboard_server" << "\n";
@@ -198,7 +206,40 @@ namespace gr::dashboard_blocks {
 
             }
 
-            //Add code to send update to widgets if flowgraph update widget parameter value
+            //Check if PTR isnt null
+            if(this->get_external_val){
+
+                //Get the current value from the flowgraph
+                T current_flowgraph_val = this->get_external_val();
+                //If they arent the same, set current value to be what the current value is in the flowgraph
+                if(current_flowgraph_val != current_val.value) {current_val.value = current_flowgraph_val; }
+
+            }
+            else{
+                
+            }
+
+            if(current_val.value != lastPublishedValue){
+
+                //Define the total payload size
+                std::string header = widget_id.value + ":";
+                std::size_t payload_size = header.size() + sizeof(current_val.value);
+
+                //Create the ZMQ message
+                zmq::message_t z_msg(payload_size);
+                
+                //Copy the header into the front of the buffer (Header is ASCII)
+                std::memcpy(z_msg.data(), header.data(), header.size());
+                //Copy the current value after the header in the buffer (Payload is binary bytes)
+                std::memcpy(static_cast<char*>(z_msg.data()) + header.size(), &current_val.value, sizeof(current_val.value));
+
+                //TO DO: Consider making this a helper function so the lastPublished value is always updated
+                //Send the message to the dashboard server
+                publisher.send(z_msg, zmq::send_flags::dontwait);
+                //Always update the last published value after a publish
+                lastPublishedValue = current_val.value;
+                
+            }
 
 
             std::fill_n(output.data(), nSamples, current_val.value);

@@ -4,6 +4,7 @@
 CMakeFiles/flowgraph.dir/src/flowgraph.cpp.o: /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/src/flowgraph.cpp \
   /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/dep_imGUI_slider.hpp \
   /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/dep_imGUI_timeSeries.hpp \
+  /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/frequency_modulator.hpp \
   /usr/include/alloca.h \
   /usr/include/asm-generic/bitsperlong.h \
   /usr/include/asm-generic/errno-base.h \
@@ -727,12 +728,6 @@ CMakeFiles/flowgraph.dir/src/flowgraph.cpp.o: /home/ziad/GNURADIO_DEVELOPMENT/fl
 
 /usr/lib/gcc/x86_64-linux-gnu/14/include/smmintrin.h:
 
-/usr/include/c++/14/type_traits:
-
-/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/dep_imGUI_slider.hpp:
-
-/usr/include/x86_64-linux-gnu/bits/mman-map-flags-generic.h:
-
 /usr/include/c++/14/tuple:
 
 /usr/include/c++/14/tr1/modified_bessel_func.tcc:
@@ -957,27 +952,15 @@ CMakeFiles/flowgraph.dir/src/flowgraph.cpp.o: /home/ziad/GNURADIO_DEVELOPMENT/fl
 
 /usr/include/linux/stddef.h:
 
-/usr/include/c++/14/experimental/bits/simd_fixed_size.h:
+/usr/include/c++/14/tr1/special_function_util.h:
 
-/usr/lib/gcc/x86_64-linux-gnu/14/include/avx512fp16vlintrin.h:
+/usr/include/c++/14/bits/stl_set.h:
 
-/usr/include/c++/14/bits/this_thread_sleep.h:
-
-/usr/include/x86_64-linux-gnu/bits/dlfcn.h:
-
-/usr/include/c++/14/semaphore:
-
-/usr/include/c++/14/bits/invoke.h:
-
-/usr/include/x86_64-linux-gnu/bits/confname.h:
+/usr/include/c++/14/bits/sstream.tcc:
 
 /usr/include/c++/14/bits/fs_ops.h:
 
 /usr/lib/gcc/x86_64-linux-gnu/14/include/keylockerintrin.h:
-
-/usr/include/c++/14/tr1/legendre_function.tcc:
-
-/usr/include/c++/14/bits/exception_defines.h:
 
 /usr/include/c++/14/bits/fs_fwd.h:
 
@@ -997,6 +980,8 @@ CMakeFiles/flowgraph.dir/src/flowgraph.cpp.o: /home/ziad/GNURADIO_DEVELOPMENT/fl
 
 /usr/include/linux/limits.h:
 
+/usr/include/c++/14/bits/cpp_type_traits.h:
+
 /usr/include/c++/14/bits/align.h:
 
 /usr/include/c++/14/ext/aligned_buffer.h:
@@ -1004,8 +989,6 @@ CMakeFiles/flowgraph.dir/src/flowgraph.cpp.o: /home/ziad/GNURADIO_DEVELOPMENT/fl
 /usr/local/include/gnuradio-4.0/AtomicRef.hpp:
 
 /usr/include/c++/14/bits/ostream.tcc:
-
-/usr/include/c++/14/bits/cpp_type_traits.h:
 
 /usr/include/c++/14/tr1/riemann_zeta.tcc:
 
@@ -1055,7 +1038,9 @@ CMakeFiles/flowgraph.dir/src/flowgraph.cpp.o: /home/ziad/GNURADIO_DEVELOPMENT/fl
 
 /usr/include/c++/14/bits/charconv.h:
 
-/usr/include/c++/14/tr1/special_function_util.h:
+/usr/include/c++/14/bits/exception.h:
+
+/usr/include/c++/14/bits/stl_raw_storage_iter.h:
 
 /usr/include/c++/14/cwchar:
 
@@ -1077,11 +1062,21 @@ CMakeFiles/flowgraph.dir/src/flowgraph.cpp.o: /home/ziad/GNURADIO_DEVELOPMENT/fl
 
 /usr/include/x86_64-linux-gnu/bits/dl_find_object.h:
 
+/usr/include/c++/14/bits/exception_defines.h:
+
 /usr/include/alloca.h:
 
 /usr/lib/gcc/x86_64-linux-gnu/14/include/wbnoinvdintrin.h:
 
 /usr/include/c++/14/bits/locale_facets_nonio.tcc:
+
+/usr/include/c++/14/tr1/legendre_function.tcc:
+
+/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/dep_imGUI_slider.hpp:
+
+/usr/include/c++/14/type_traits:
+
+/usr/include/x86_64-linux-gnu/bits/mman-map-flags-generic.h:
 
 /usr/include/c++/14/cctype:
 
@@ -1090,8 +1085,6 @@ CMakeFiles/flowgraph.dir/src/flowgraph.cpp.o: /home/ziad/GNURADIO_DEVELOPMENT/fl
 /usr/include/c++/14/bits/unordered_set.h:
 
 /usr/include/c++/14/bits/memoryfwd.h:
-
-/usr/include/c++/14/bits/exception.h:
 
 /usr/local/include/gnuradio-4.0/BlockingSync.hpp:
 
@@ -1120,6 +1113,20 @@ CMakeFiles/flowgraph.dir/src/flowgraph.cpp.o: /home/ziad/GNURADIO_DEVELOPMENT/fl
 /usr/local/include/gnuradio-4.0/meta/utils.hpp:
 
 /usr/lib/gcc/x86_64-linux-gnu/14/include/avxifmaintrin.h:
+
+/usr/include/x86_64-linux-gnu/bits/confname.h:
+
+/usr/include/c++/14/experimental/bits/simd_fixed_size.h:
+
+/usr/lib/gcc/x86_64-linux-gnu/14/include/avx512fp16vlintrin.h:
+
+/usr/include/c++/14/bits/this_thread_sleep.h:
+
+/usr/include/x86_64-linux-gnu/bits/dlfcn.h:
+
+/usr/include/c++/14/semaphore:
+
+/usr/include/c++/14/bits/invoke.h:
 
 /usr/local/include/gnuradio-4.0/annotated.hpp:
 
@@ -1177,8 +1184,6 @@ CMakeFiles/flowgraph.dir/src/flowgraph.cpp.o: /home/ziad/GNURADIO_DEVELOPMENT/fl
 
 /usr/include/c++/14/bits/alloc_traits.h:
 
-/usr/include/c++/14/bits/stl_raw_storage_iter.h:
-
 /usr/include/c++/14/experimental/bits/simd_scalar.h:
 
 /usr/include/c++/14/variant:
@@ -1235,15 +1240,9 @@ CMakeFiles/flowgraph.dir/src/flowgraph.cpp.o: /home/ziad/GNURADIO_DEVELOPMENT/fl
 
 /usr/include/c++/14/bits/stl_multiset.h:
 
-/usr/include/c++/14/bits/atomic_timed_wait.h:
-
 /usr/include/x86_64-linux-gnu/bits/fcntl-linux.h:
 
 /usr/include/c++/14/bits/streambuf.tcc:
-
-/usr/include/c++/14/bits/stl_set.h:
-
-/usr/include/c++/14/bits/sstream.tcc:
 
 /usr/include/c++/14/bits/locale_facets_nonio.h:
 
@@ -1310,6 +1309,10 @@ CMakeFiles/flowgraph.dir/src/flowgraph.cpp.o: /home/ziad/GNURADIO_DEVELOPMENT/fl
 /usr/include/x86_64-linux-gnu/bits/wctype-wchar.h:
 
 /usr/include/c++/14/bits/shared_ptr_base.h:
+
+/usr/include/c++/14/bits/atomic_timed_wait.h:
+
+/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/frequency_modulator.hpp:
 
 /usr/include/c++/14/bits/stl_numeric.h:
 
