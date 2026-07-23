@@ -10,6 +10,7 @@
 #include <gnuradio-4.0/annotated.hpp>
 #include <gnuradio-4.0/meta/reflection.hpp>
 #include <gnuradio-4.0/Message.hpp>
+#include <iostream>
 #include <zmq.hpp>
 #include <string>
 //Needed for std::function
@@ -111,7 +112,8 @@ namespace gr::dashboard_blocks {
 
                     //Send the latest value of the variable to the dashboard_server via the ZMQ PUB
                     if(target == "SERVER"){
-
+                        
+                        std::cout << "I Have recieved a server message" << "\n";
                         if(publisher){
                             
                             //Define the total payload size
@@ -128,6 +130,9 @@ namespace gr::dashboard_blocks {
 
                             //Send the message to the dashboard server
                             publisher.send(z_msg, zmq::send_flags::dontwait);
+
+                            std::cout << "Message has been published to the dashboard_server" << "\n";
+                            
 
                         }
 
@@ -156,6 +161,8 @@ namespace gr::dashboard_blocks {
                             //TO DO: Use this to trigger an update if a change to the frequency value occurs within the flowgraph
                             //lastPublishedValue = current_val.value;
 
+                            //TO DO: Remove Debug Message
+                            std::cout << "Message has been published to the dashboard_server" << "\n";
 
                         }
                         catch(const std::exception& e){

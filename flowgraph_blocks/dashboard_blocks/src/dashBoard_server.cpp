@@ -37,9 +37,13 @@ DashboardServer::DashboardServer(std::string web_root_path)
 }
 
 //Set port variable and sets dashboardServer to listen to port
+//The address is set to be resuable
+//TO DO: Perhaphs not a good idea to reset the reuse address here, breaks function doing single thing idea
 void DashboardServer::set_port(uint16_t port) {
-    server_port = port;
-    dashBoardServer.listen(server_port);
+    
+    //Set so the address is reusable
+    dashBoardServer.set_reuse_addr(true);
+    dashBoardServer.listen(port);
 }
 
 void DashboardServer::runServer() {
@@ -143,6 +147,10 @@ void DashboardServer::on_message(connection_hdl hdl, server::message_ptr msg){
 
 void DashboardServer::set_ZMQ_context(zmq::context_t &context){
     sharedContext = &context;
+
+    //Trying to fix an issue with SYNC message not firing when connecting to the dashboard instance
+    internal_PUSH_SOCKET = std::make_unique<zmq::socket_t>(*sharedContext, zmq::socket_type::push);
+    internal_PUSH_SOCKET->connect("inproc://commands");
 }
 
 //On Disconnect 
@@ -183,25 +191,32 @@ bool  DashboardServer::readFile(const std::string& filepath, std::string& out_co
 
 void DashboardServer::dispatch_internal_message(const std::string& cmd){
 
+    
+    //TO DO: Remove debug message
+    std::cout << "internal Messaging function called" << "\n";
+
     //Check that the context is valid
     if(!sharedContext)
     {
-        //TO DO: Remove
+        //TO DO: Remove debug message
         std::cout << "Shared Context not found\n";
         return ;
     }
 
+    //TO DO: Remove debug message
+    if (!internal_PUSH_SOCKET) {
+        
+        std::cout << "Socket not intialized";
+        return;
+    }
+
     try {
-
-        //Generate the internal connection, this should function as a deepCopy and so should be super 
-        //fast and non-blocking
-        zmq::socket_t internal_connection_daemon(*sharedContext, zmq::socket_type::push);
-        internal_connection_daemon.set(zmq::sockopt::linger, 0);
-        internal_connection_daemon.connect("inproc://commands");
-
+        
         //Commands from dashBoard
         zmq::message_t commands_to_flowgraph(cmd.begin(), cmd.end());
-        internal_connection_daemon.send(commands_to_flowgraph, zmq::send_flags::none);
+        internal_PUSH_SOCKET->send(commands_to_flowgraph, zmq::send_flags::none);
+        //TO DO: Remove
+        std::cout << "Push should be complete" << "\n";
 
     }
     catch(...){}

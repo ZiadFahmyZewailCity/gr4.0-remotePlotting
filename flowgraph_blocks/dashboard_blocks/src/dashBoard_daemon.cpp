@@ -1,4 +1,7 @@
 #include "dashBoard_server.hpp"
+#include <cstddef>
+#include <cstring>
+#include <string>
 #include <zmq.h>
 #include <zmq.hpp>
 #include <zmq_addon.hpp>
@@ -83,11 +86,8 @@ int main(){
     //Hardcoded for now should be changed to be configured by the flowgraph
     dashBoard_server.set_port(9090);
 
-    //TO DO: Dont fully understand this syntax in particular for starting up a thread 
-    std::thread serverThread([&dashBoard_server]()
-    {
-        dashBoard_server.runServer();
-    });
+
+    //Note The server thread is started up later in the main
 
 
     /*
@@ -96,20 +96,23 @@ int main(){
         We can do this via ZMQs poller, which is not actually polling based but interrupt based 
     */
 
-
     //Define the context for the ZMQ
     zmq::context_t context;
+    //Create persistent socket for internal communication between ZMQ thread & Asychnrous Server Thread
+    zmq::socket_t internal_cmd_rx(context, zmq::socket_type::pull);
+    internal_cmd_rx.bind("inproc://commands");
+
+
     //Share the state for the zmq betweent the processes
     dashBoard_server.set_ZMQ_context(context);
 
     
-    //Socket definitons
+    //TO DO: Consider making these socket persistent
+    //Non Persistent Socket definitons
     //Reciving data from GR4 Flowgraph
     zmq::socket_t data_aggregation(context, zmq::socket_type::sub);
     //Sending commands coming down from the dashboard to the flowgraph
     zmq::socket_t commands_toFlowGraph(context, zmq::socket_type::pub);
-    //Sending commands from the background websocket thread
-    zmq::socket_t internal_cmd_rx(context, zmq::socket_type::pull);
 
     //Reading config file in order to only accept message with the correct header ID
     //May not be that necessary
@@ -121,9 +124,14 @@ int main(){
     //Socket connections
     //TO DO: Should find a way to automate this to avoid port conflict 
     commands_toFlowGraph.bind("tcp://*:5556");
-    
-    //TO DO: Figure this out
-    internal_cmd_rx.bind("inproc://commands");
+
+
+    //Start Up server thread after completing the ZMQ is fully intialized
+    //TO DO: Dont fully understand this syntax in particular for starting up a thread 
+    std::thread serverThread([&dashBoard_server]()
+    {
+        dashBoard_server.runServer();
+    });
 
     //This array of sockets are handled by the poll function
     //Note revents is the member variable which stores if the socket has recieved a message or not
@@ -147,9 +155,30 @@ int main(){
             zmq::message_t data_sinks;
             auto recived_sinks = data_aggregation.recv(data_sinks,zmq::recv_flags::none);
             
-            //Look into sending a certain verison of recived sinks message
+            //TO DO: made for debugging remove this and pass directly data_sinks to string to the broadcast 
+            std::string debug_message = data_sinks.to_string();
+            size_t delim_pos = debug_message.find(":");
+            if(delim_pos != std::string::npos){
+
+                std::string header_id = debug_message.substr(0,delim_pos);
+                std::string payload = debug_message.substr(delim_pos + 1, debug_message.length());
+
+                if(payload.size() == sizeof(float)){
+
+                    float widget_val = 0.0f;
+
+                    std::memcpy(&widget_val,payload.data(),sizeof(float));
+                    std::cout << "[FLOWGRAPH RX] WIDGET -> ID: " << header_id 
+                                  << " | Value: " << widget_val << std::endl;
+
+                }
+
+            } 
+
+
+            //TO DO: Look into sending a certain verison of recived sinks message
             if(recived_sinks) { 
-                dashBoard_server.broadcast_data(data_sinks.to_string());
+                dashBoard_server.broadcast_data(debug_message);
             };
 
         }
@@ -157,8 +186,12 @@ int main(){
         //Commands coming from the dashBoard to flowgraph
         if(sockets[1].revents & ZMQ_POLLIN){
 
+
+
             zmq::message_t dashBoard_command_message;
-            //Flag need to be added apparently or a deprecated version of the function is used, 
+            
+            // COMMENT FOR MYSELF:
+            // Flag need to be added apparently or a deprecated version of the function is used, 
             // should not be an issue, 
             // the only differce between the two just seems to be that the newer version is strictly typed when it comes to flags
             auto recived_command = internal_cmd_rx.recv(dashBoard_command_message, zmq::recv_flags::none);
@@ -171,7 +204,7 @@ int main(){
     }
 
 
-
+    // COMMENT FOR MYSELF:
     //The thread never techincally ends, but i do think if one of the threads gets a kill order (SIGINT)
     //This will make it so the other closes without issue ?
     serverThread.join();
