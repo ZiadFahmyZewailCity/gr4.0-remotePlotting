@@ -176,7 +176,9 @@ int main(){
             } 
 
 
-            //TO DO: Look into sending a certain verison of recived sinks message
+            //TO DO: The to_string here is a major performance bottleneck here and is not necessary, my own broadcast_data function is whats 
+            //forcing me to do it this way, however readjusting this is pretty simple, just going to have to refactor the broadcast data funciton to have accept a ptr 
+            //to the payload
             if(recived_sinks) { 
                 dashBoard_server.broadcast_data(debug_message);
             };
