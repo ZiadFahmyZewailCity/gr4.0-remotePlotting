@@ -236,14 +236,14 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
                                         //Copy new value into slider update
                                         memcpy(&slider_update, websocketEvent->data + data_offset ,sizeof(float));
 
-                                        // ---> INJECT TARGETED DEBUG PRINT HERE <---
+                                        //TO DO: Remove this is for debugging
                                         std::cout << "[UI LOGIC] Matched Slider: '" << object.id 
                                                 << "' | Value parsed: " << slider_update 
                                                 << " | is_being_edited: " << (object.is_being_edited ? "TRUE (Blocked)" : "FALSE (Updating)") 
                                                 << std::endl;
 
 
-                                        if (!object.is_being_edited) {
+                                        if (!object.is_being_edited && object.edit_cooldown == 0) {
                                             object.current_val = slider_update;
                                         }
 

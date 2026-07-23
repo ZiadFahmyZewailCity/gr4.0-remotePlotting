@@ -97,12 +97,12 @@ namespace gr::dashboard_blocks {
             while (subscriber && subscriber.recv(rx_frame, zmq::recv_flags::dontwait)) {
                 
 
-                //Take message and turn it into string, this should have a delimeter in it
+                //Take message, put it in a string container, find ":" delimter
                 std::string raw_dashBoard_server_message = rx_frame.to_string();
                 auto delim = raw_dashBoard_server_message.find(":");
 
                 if(delim != std::string::npos){
-
+                    
                     //Extract the target
                     std::string target = raw_dashBoard_server_message.substr(0,delim);
                     
@@ -144,22 +144,42 @@ namespace gr::dashboard_blocks {
                     */
                     //Take the new value of the widget and update the variable in the flowgraph
                     else if (target == widget_id.value) {
-    
+                        
                         try{
-
+                            //Update the variable in the flowgraph
                             //Getting the payload
                             std::string payload = raw_dashBoard_server_message.substr(delim + 1, raw_dashBoard_server_message.length());
                             //casting it to the type of the variable being controlled by the widget
                             T parsed_val = static_cast<T>(std::stof(payload));
                             
-                            current_val.value = parsed_val;
                             //This should be the method by which we update the varible in the overall flowgraph
                             if(this->on_val_update){
                                 this->on_val_update(parsed_val);
                             }
 
+                            //Update the variable in the block itself 
+                            current_val.value = parsed_val;
+
+
+                            //Send new widget value over ZMQ PUB to other dashboards
                             //TO DO: Use this to trigger an update if a change to the frequency value occurs within the flowgraph
-                            //lastPublishedValue = current_val.value;
+                            
+                            //TO DO:This is the same exact code that triggers on SYNC, consider putting into some kind of function
+                            //Define the total payload size, question for mentors, is it normal to add a helper function in the private section of the block
+                            std::string header = widget_id.value + ":";
+                            std::size_t payload_size = header.size() + sizeof(current_val.value);
+
+                            //Create the ZMQ message
+                            zmq::message_t z_msg(payload_size);
+                            
+                            //Copy the header into the front of the buffer (Header is ASCII)
+                            std::memcpy(z_msg.data(), header.data(), header.size());
+                            //Copy the current value after the header in the buffer (Payload is binary bytes)
+                            std::memcpy(static_cast<char*>(z_msg.data()) + header.size(), &current_val.value, sizeof(current_val.value));
+
+                            //Send the message to the dashboard server
+                            publisher.send(z_msg, zmq::send_flags::dontwait);
+
 
                             //TO DO: Remove Debug Message
                             std::cout << "Message has been published to the dashboard_server" << "\n";
@@ -177,6 +197,9 @@ namespace gr::dashboard_blocks {
 
 
             }
+
+            //Add code to send update to widgets if flowgraph update widget parameter value
+
 
             std::fill_n(output.data(), nSamples, current_val.value);
 
