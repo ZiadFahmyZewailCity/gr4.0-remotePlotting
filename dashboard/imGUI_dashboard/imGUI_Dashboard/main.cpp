@@ -81,41 +81,49 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
     nlohmann::json message;
     
     try {
+        // Parse the raw payload
         message = nlohmann::json::parse(payload);
-    } catch (...) {
-        std::cout << "Error parsing incoming JSON config." << std::endl;
-        return;
-    }
 
-    current_dashboard.clear();
+        current_dashboard.clear();
 
-    if (message.contains("panels")) {
-        for (auto& json_panel : message["panels"]) {
-            dashboardPanel newPanel;
-            newPanel.panel_name = json_panel["panel_name"];
+        if (message.contains("panels")) {
+            for (auto& json_panel : message["panels"]) {
+                dashboardPanel newPanel;
+                // Safely get the panel name, fallback to "Unnamed Panel" if missing
+                newPanel.panel_name = json_panel.value("panel_name", "Unnamed Panel");
 
-            for (auto& item : json_panel["dashboardElement"]) {
-                dashboardElement new_dashboardElement;
-                new_dashboardElement.id = item["id"];
-                new_dashboardElement.title = item["title"];
-                new_dashboardElement.data_source = item.value("data_source", "");
-            
-                if (item["type"] == "timeseries") {
-                    new_dashboardElement.type = dashboardElementType::TIME_SERIES;
-                    new_dashboardElement.databuffer.resize(100, 0.0f);
+                //Intalize
+                for (auto& item : json_panel["dashboardElement"]) {
+                    dashboardElement new_dashboardElement;
+                    
+                    //Extract ID, give a fallback if id not found
+                    new_dashboardElement.id = item.value("id", "unknown_id");
+                    //Extract title, give fallback if title not found
+                    new_dashboardElement.title = item.value("title", "Untitled Dashboard element");
+                    //Extract data source, give fallback if data_source not found
+                    new_dashboardElement.data_source = item.value("data_source", "");
+                
+                    if (item["type"] == "timeseries") {
+                        new_dashboardElement.type = dashboardElementType::TIME_SERIES;
+                        new_dashboardElement.databuffer.resize(100, 0.0f);
+                    }
+                    else if (item["type"] == "widget") {
+                        new_dashboardElement.type = dashboardElementType::SLIDER;
+                    }
+                    else if (item["type"] == "text") {
+                        new_dashboardElement.type = dashboardElementType::TEXT_LABEL;
+                    }
+                    newPanel.dashboardObjects.push_back(new_dashboardElement);
                 }
-                else if (item["type"] == "widget") {
-                    new_dashboardElement.type = dashboardElementType::SLIDER;
-                }
-                else if (item["type"] == "text") {
-                    new_dashboardElement.type = dashboardElementType::TEXT_LABEL;
-                }
-                newPanel.dashboardObjects.push_back(new_dashboardElement);
+                current_dashboard.push_back(newPanel);
             }
-            current_dashboard.push_back(newPanel);
+            recieved_config = true;
+            std::cout << "Dashboard UI Built from Backend Config!" << std::endl;
         }
-        recieved_config = true;
-        std::cout << "Dashboard UI Built from Backend Config!" << std::endl;
+    } catch (const std::exception& e) {
+        // Now catches ANY parsing or key-extraction errors without crashing WASM
+        std::cout << "Error parsing incoming JSON config: " << e.what() << std::endl;
+        return;
     }
 }
 

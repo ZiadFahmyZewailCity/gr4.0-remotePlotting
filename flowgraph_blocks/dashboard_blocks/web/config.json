@@ -13,7 +13,7 @@
         {
           "id": "slider_freq",
           "type": "widget",
-          "title": "Frequency (Hz)"
+          "target": "current_val"
         }
       ]
     }

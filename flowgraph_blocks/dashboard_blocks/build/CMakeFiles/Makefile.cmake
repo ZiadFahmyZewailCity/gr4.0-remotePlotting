@@ -74,6 +74,9 @@ set(CMAKE_MAKEFILE_DEPENDS
   "/usr/share/cmake/cppzmq/cppzmqConfigVersion.cmake"
   "/usr/share/cmake/cppzmq/cppzmqTargets.cmake"
   "/usr/share/cmake/cppzmq/libzmq-pkg-config/FindZeroMQ.cmake"
+  "/usr/share/cmake/nlohmann_json/nlohmann_jsonConfig.cmake"
+  "/usr/share/cmake/nlohmann_json/nlohmann_jsonConfigVersion.cmake"
+  "/usr/share/cmake/nlohmann_json/nlohmann_jsonTargets.cmake"
   )
 
 # The corresponding makefile is:

@@ -522,6 +522,7 @@ CMakeFiles/flowgraph.dir/src/flowgraph.cpp.o: \
  /usr/local/include/gnuradio-4.0/testing/NullSources.hpp \
  /usr/local/include/gnuradio-4.0/DataSet.hpp \
  /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/dep_imGUI_timeSeries.hpp \
+ /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_management.hpp \
  /usr/include/zmq.hpp /usr/include/zmq.h /usr/include/signal.h \
  /usr/include/x86_64-linux-gnu/bits/signum-generic.h \
  /usr/include/x86_64-linux-gnu/bits/signum-arch.h \

@@ -16,6 +16,7 @@ find_package(fmt REQUIRED)
 find_package(cppzmq REQUIRED)
 find_package(websocketpp REQUIRED)
 find_package(gnuradio4 REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
 # =====================================================================
 # Target 1: Standalone Dashboard Daemon (ZMQ <-> WebSocket Broker)
@@ -52,6 +53,7 @@ endif()
 # =====================================================================
 add_executable(flowgraph
     src/flowgraph.cpp
+    src/imGUI_management.cpp 
 )
 
 target_include_directories(flowgraph PRIVATE
@@ -66,6 +68,7 @@ target_link_libraries(flowgraph PRIVATE
     cppzmq
     fmt::fmt
     Threads::Threads
+    nlohmann_json::nlohmann_json
 )
 
 

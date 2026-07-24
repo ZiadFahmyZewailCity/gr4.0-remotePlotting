@@ -10,6 +10,7 @@
 #include <gnuradio-4.0/annotated.hpp>
 #include <gnuradio-4.0/meta/reflection.hpp>
 #include <gnuradio-4.0/Message.hpp>
+#include <gnuradio-4.0/dashboard_blocks/imGUI_management.hpp>
 #include <iostream>
 #include <zmq.hpp>
 #include <string>
@@ -60,9 +61,19 @@ namespace gr::dashboard_blocks {
         T lastPublishedValue = current_val.value;
 
         public:
-
         dep_imGUI_slider(gr::property_map initial_settings = {})
-            : gr::Block<dep_imGUI_slider<T>>(initial_settings) {}
+            : gr::Block<dep_imGUI_slider<T>>(initial_settings) 
+        {
+            // Register the widget config using the live variables
+            imGUI_DashboardRegistry::getInstance().register_imGUI_block([this]() -> std::string {
+                std::string json_data = "{";
+                json_data += "\"id\": \"" + this->widget_id.value + "\", ";
+                json_data += "\"type\": \"widget\", ";
+                json_data += "\"target\": \"" + this->target_property.value + "\"";
+                json_data += "}";
+                return json_data;
+            });
+        }
 
         //No ports
         //Widgets are meant to vary already existing variables 
@@ -83,6 +94,9 @@ namespace gr::dashboard_blocks {
             publisher = zmq::socket_t(zmq_ctx,zmq::socket_type::pub);
             //Connect Publisher socket to the dashboard server 
             publisher.connect(dashboard_server.value);
+
+            //Which ever block reaches this first will start dashboard server
+            imGUI_DashboardRegistry::getInstance().boot_dashboardServer_Once();
             
         }
 
@@ -90,6 +104,9 @@ namespace gr::dashboard_blocks {
             //Closing SUB & PUB
             if (subscriber) { subscriber.close(); };
             if (publisher) { publisher.close(); }
+
+            //unregistering from singleton
+            imGUI_DashboardRegistry::getInstance().unregisterBlockAndTeardown();
         }
 
         [[nodiscard]] gr::work::Status processBulk(gr::OutputSpanLike auto& output) {
@@ -206,6 +223,8 @@ namespace gr::dashboard_blocks {
 
             }
 
+
+            //Lamda call for updating variable from flowgraph                 
             //Check if PTR isnt null
             if(this->get_external_val){
 
