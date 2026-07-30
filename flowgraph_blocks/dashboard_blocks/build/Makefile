@@ -659,6 +659,30 @@ src/flowgraph.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/flowgraph.dir/build.make CMakeFiles/flowgraph.dir/src/flowgraph.cpp.s
 .PHONY : src/flowgraph.cpp.s
 
+src/imGUI_management.o: src/imGUI_management.cpp.o
+.PHONY : src/imGUI_management.o
+
+# target to build an object file
+src/imGUI_management.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/flowgraph.dir/build.make CMakeFiles/flowgraph.dir/src/imGUI_management.cpp.o
+.PHONY : src/imGUI_management.cpp.o
+
+src/imGUI_management.i: src/imGUI_management.cpp.i
+.PHONY : src/imGUI_management.i
+
+# target to preprocess a source file
+src/imGUI_management.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/flowgraph.dir/build.make CMakeFiles/flowgraph.dir/src/imGUI_management.cpp.i
+.PHONY : src/imGUI_management.cpp.i
+
+src/imGUI_management.s: src/imGUI_management.cpp.s
+.PHONY : src/imGUI_management.s
+
+# target to generate assembly for a file
+src/imGUI_management.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/flowgraph.dir/build.make CMakeFiles/flowgraph.dir/src/imGUI_management.cpp.s
+.PHONY : src/imGUI_management.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -713,6 +737,9 @@ help:
 	@echo "... src/flowgraph.o"
 	@echo "... src/flowgraph.i"
 	@echo "... src/flowgraph.s"
+	@echo "... src/imGUI_management.o"
+	@echo "... src/imGUI_management.i"
+	@echo "... src/imGUI_management.s"
 .PHONY : help
 
 

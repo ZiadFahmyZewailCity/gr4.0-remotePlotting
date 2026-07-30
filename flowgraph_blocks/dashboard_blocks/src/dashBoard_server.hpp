@@ -9,6 +9,7 @@
 #include <websocketpp/logger/levels.hpp>
 #include <websocketpp/server.hpp>
 #include <iostream>
+#include <memory>
 #include <set>
 #include <string>
 #include <zmq.h>
@@ -29,6 +30,10 @@ private:
     //Required so that the ZMQ side of the server process can communicate with the 
     //ZMQ handling side
     zmq::context_t* sharedContext;
+
+    //Persistent socket for handling inprocess communication
+    //Had some race conditions before when creating and destroying the socket every time
+    std::unique_ptr<zmq::socket_t> internal_PUSH_SOCKET;
 
     //Variable for setting where the path of the dashboard is
     std::string dashBoard_web_root;
@@ -54,7 +59,11 @@ private:
     //Helper function for reading config file  
     bool readFile(const std::string& filepath, std::string& out_content);
 
+    //Helper function for sending messages internally to the ZMQ side of the process
+    void dispatch_internal_message(const std::string& cmd);
+
 public:
+
     //Constructor Initalizes callbacks 
     explicit DashboardServer(std::string web_root_path);
 

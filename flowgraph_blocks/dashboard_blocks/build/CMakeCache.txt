@@ -88,7 +88,10 @@ CMAKE_CXX_FLAGS_RELEASE:STRING=-O3 -DNDEBUG
 CMAKE_CXX_FLAGS_RELWITHDEBINFO:STRING=-O2 -g -DNDEBUG
 
 //No help, variable specified on the command line.
-CMAKE_CXX_STANDARD:UNINITIALIZED=23
+CMAKE_CXX_STANDARD:UNINITIALIZED=26
+
+//No help, variable specified on the command line.
+CMAKE_CXX_STANDARD_REQUIRED:UNINITIALIZED=ON
 
 //No help, variable specified on the command line.
 CMAKE_C_COMPILER:UNINITIALIZED=gcc-14
@@ -432,6 +435,9 @@ fmt_DIR:PATH=/usr/lib/x86_64-linux-gnu/cmake/fmt
 //The directory containing a CMake configuration file for gnuradio4.
 gnuradio4_DIR:PATH=/usr/local/lib/cmake/gnuradio4
 
+//The directory containing a CMake configuration file for nlohmann_json.
+nlohmann_json_DIR:PATH=/usr/share/cmake/nlohmann_json
+
 //Path to a library.
 pkgcfg_lib_PC_CURL_curl:FILEPATH=/usr/lib/x86_64-linux-gnu/libcurl.so
 
@@ -669,6 +675,8 @@ FIND_PACKAGE_MESSAGE_DETAILS_PkgConfig:INTERNAL=[/usr/bin/pkg-config][v1.8.1()]
 FIND_PACKAGE_MESSAGE_DETAILS_Threads:INTERNAL=[TRUE][v()]
 //Details about finding ZeroMQ
 FIND_PACKAGE_MESSAGE_DETAILS_ZeroMQ:INTERNAL=[/usr/lib/x86_64-linux-gnu/libzmq.so][/usr/include][v()]
+//Details about finding nlohmann_json
+FIND_PACKAGE_MESSAGE_DETAILS_nlohmann_json:INTERNAL=[/usr/share/cmake/nlohmann_json/nlohmann_jsonConfig.cmake][v3.11.3()]
 //ADVANCED property for variable: GIT_EXECUTABLE
 GIT_EXECUTABLE-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: MAKECOMMAND

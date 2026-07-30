@@ -1,15 +1,10 @@
-/*
-This outline is for running a dynamic flowgraph pushing to a Web UI.
-It acts as the Coordinator, connecting the Source, Throttle, and Dashboard Blocks,
-and routing ZeroMQ widget commands back to the Source.
-*/
-
 #include <gnuradio-4.0/Graph.hpp>
 #include <gnuradio-4.0/Scheduler.hpp>
 #include <gnuradio-4.0/basic/SignalGenerator.hpp> 
 #include <gnuradio-4.0/testing/NullSources.hpp>
 #include <gnuradio-4.0/dashboard_blocks/dep_imGUI_timeSeries.hpp>
 #include <gnuradio-4.0/dashboard_blocks/dep_imGUI_slider.hpp>
+#include <gnuradio-4.0/dashboard_blocks/frequency_modulator.hpp>
 
 namespace basicBlocks = gr::basic;
 namespace testing = gr::testing;
@@ -25,6 +20,9 @@ int main() {
     - dep_imGUI_timeSeries: Captures DSP frames and broadcasts them to ZMQ Port 5555
     - dep_imGUI_slider: Subscribes to ZMQ Port 5556 for UI slider clicks
     - NullSink: Drains the slider block so the GR4 scheduler actively polls it
+
+    added a periodic multipler to change the value 
+
     */
 
     // 1. Single generator
@@ -42,6 +40,9 @@ int main() {
     throttle.target_throughput = 48000.f; 
     throttle.busy_wait = false;           
 
+    // 2. The modulator 
+    auto& modulator = graph.emplaceBlock<dashboardBlocks::frequency_modulator<float>>();
+
     // 3. Downlink Telemetry Streamer 
     auto& ts_sink = graph.emplaceBlock<dashboardBlocks::dep_imGUI_timeSeries<float>>();
     ts_sink.topic_id = "plot_1";
@@ -49,10 +50,27 @@ int main() {
     // 4. Uplink Command Listener 
     auto& slider_src = graph.emplaceBlock<dashboardBlocks::dep_imGUI_slider<float>>();
     slider_src.widget_id = "slider_freq";
+    slider_src.current_val = source.frequency;
 
     // 5. Dummy drain
     auto& drain = graph.emplaceBlock<testing::NullSink<float>>();
 
+
+    //MODULE LAMDAs
+    modulator.get_freq = [&source]() -> float {
+        return source.frequency;
+    };
+    modulator.set_freq = [&source](float new_freq) {
+        gr::property_map old_props;
+        old_props["frequency"] = source.frequency;
+        
+        gr::property_map new_props;
+        new_props["frequency"] = new_freq;
+
+        source.frequency = new_freq;
+        // This is the crucial notification the raw pointer was missing!
+        source.settingsChanged(old_props, new_props); 
+    };
 
     // Updating frequency of sine wave when slider moves on Web UI
     slider_src.on_val_update = [&source](float new_freq) {
@@ -67,7 +85,9 @@ int main() {
 
         std::cout << "[Coordinator] Frequency shifted to: " << new_freq << " Hz" << std::endl;
     };
-
+    slider_src.get_external_val = [&source]() ->float {
+        return  source.frequency;
+    };
 
     /*
     Connect Downlink: Source -> Throttle -> dep_imGUI_timeSeries
@@ -75,8 +95,11 @@ int main() {
     auto source_to_throttle = graph.connect<"out", "in">(source, throttle);
     if (!source_to_throttle.has_value()) { return 1; }
 
-    auto throttle_to_sink = graph.connect<"out", "in">(throttle, ts_sink);    
+    auto throttle_to_sink = graph.connect<"out", "in">(throttle, modulator);    
     if (!throttle_to_sink.has_value()) { return 1; }
+
+    auto mod_to_sink = graph.connect<"out", "in">(modulator, ts_sink);
+    if(!mod_to_sink.has_value()) { return 1; }
 
     /*
     Connect Uplink: dep_imGUI_slider -> NullSink

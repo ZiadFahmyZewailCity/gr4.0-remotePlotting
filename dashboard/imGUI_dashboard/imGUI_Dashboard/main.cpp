@@ -1,4 +1,5 @@
 #include "imgui.h"
+#include "implot.h"
 // Hooks ImGui up to SDL2 (Window & Input)
 #include "backends/imgui_impl_sdl2.h" 
 // Hooks ImGui up to OpenGL3 / WebGL (Graphics Rendering)
@@ -11,6 +12,9 @@
 // Required so we can use emscripten_set_main_loop()
 #include <emscripten.h> 
 #include <emscripten/websocket.h>
+
+
+
 
 #include <iostream>
 #include <math.h>
@@ -28,6 +32,21 @@ EMSCRIPTEN_WEBSOCKET_T g_WebSocket = 0;
 
 bool is_connected = false;
 bool recieved_config = false;
+
+//TO DO: Dont fully understand this 
+// Determines the WebSocket host at runtime from whatever address the browser
+// actually used to load this page (localhost, a LAN IP, a hostname, etc).
+// This means the same compiled .wasm works from any device on the network
+// without needing to hardcode/rebuild for a specific IP.
+EM_JS(char*, get_websocket_url, (), {
+    var host = window.location.hostname;
+    var url = "ws://" + host + ":9090";
+    var lengthBytes = lengthBytesUTF8(url) + 1;
+    var stringOnWasmHeap = _malloc(lengthBytes);
+    stringToUTF8(url, stringOnWasmHeap, lengthBytes);
+    return stringOnWasmHeap;
+});
+
 
 //Structs for dashboard elements 
 enum class dashboardElementType { TIME_SERIES, SLIDER, TEXT_LABEL};
@@ -62,41 +81,49 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
     nlohmann::json message;
     
     try {
+        // Parse the raw payload
         message = nlohmann::json::parse(payload);
-    } catch (...) {
-        std::cout << "Error parsing incoming JSON config." << std::endl;
-        return;
-    }
 
-    current_dashboard.clear();
+        current_dashboard.clear();
 
-    if (message.contains("panels")) {
-        for (auto& json_panel : message["panels"]) {
-            dashboardPanel newPanel;
-            newPanel.panel_name = json_panel["panel_name"];
+        if (message.contains("panels")) {
+            for (auto& json_panel : message["panels"]) {
+                dashboardPanel newPanel;
+                // Safely get the panel name, fallback to "Unnamed Panel" if missing
+                newPanel.panel_name = json_panel.value("panel_name", "Unnamed Panel");
 
-            for (auto& item : json_panel["dashboardElement"]) {
-                dashboardElement new_dashboardElement;
-                new_dashboardElement.id = item["id"];
-                new_dashboardElement.title = item["title"];
-                new_dashboardElement.data_source = item.value("data_source", "");
-            
-                if (item["type"] == "timeseries") {
-                    new_dashboardElement.type = dashboardElementType::TIME_SERIES;
-                    new_dashboardElement.databuffer.resize(100, 0.0f);
+                //Intalize
+                for (auto& item : json_panel["dashboardElement"]) {
+                    dashboardElement new_dashboardElement;
+                    
+                    //Extract ID, give a fallback if id not found
+                    new_dashboardElement.id = item.value("id", "unknown_id");
+                    //Extract title, give fallback if title not found
+                    new_dashboardElement.title = item.value("title", "Untitled Dashboard element");
+                    //Extract data source, give fallback if data_source not found
+                    new_dashboardElement.data_source = item.value("data_source", "");
+                
+                    if (item["type"] == "timeseries") {
+                        new_dashboardElement.type = dashboardElementType::TIME_SERIES;
+                        new_dashboardElement.databuffer.resize(100, 0.0f);
+                    }
+                    else if (item["type"] == "widget") {
+                        new_dashboardElement.type = dashboardElementType::SLIDER;
+                    }
+                    else if (item["type"] == "text") {
+                        new_dashboardElement.type = dashboardElementType::TEXT_LABEL;
+                    }
+                    newPanel.dashboardObjects.push_back(new_dashboardElement);
                 }
-                else if (item["type"] == "widget") {
-                    new_dashboardElement.type = dashboardElementType::SLIDER;
-                }
-                else if (item["type"] == "text") {
-                    new_dashboardElement.type = dashboardElementType::TEXT_LABEL;
-                }
-                newPanel.dashboardObjects.push_back(new_dashboardElement);
+                current_dashboard.push_back(newPanel);
             }
-            current_dashboard.push_back(newPanel);
+            recieved_config = true;
+            std::cout << "Dashboard UI Built from Backend Config!" << std::endl;
         }
-        recieved_config = true;
-        std::cout << "Dashboard UI Built from Backend Config!" << std::endl;
+    } catch (const std::exception& e) {
+        // Now catches ANY parsing or key-extraction errors without crashing WASM
+        std::cout << "Error parsing incoming JSON config: " << e.what() << std::endl;
+        return;
     }
 }
 
@@ -120,76 +147,127 @@ EM_BOOL callback_Close(int eventType, const EmscriptenWebSocketCloseEvent *webso
 
 EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *websocketEvent, void *userData) {
     
-    // --- BRANCH 1: TEXT DATA (Configuration) ---
-    if (websocketEvent->isText) {
-        return EM_TRUE;
-    } 
-    // --- BRANCH 2: BINARY DATA (Live DSP Telemetry) ---
-    else {
-        if (!recieved_config) return EM_TRUE; // Ignore data until UI is built
+            //Recived Text  
+            if (websocketEvent->isText) {
+                return EM_TRUE;
+            } 
+            //Binary Data
+            else {
+                //Any Data is ignored until the config file is recieved
+                if (!recieved_config) return EM_TRUE; 
 
-        // DIAGNOSTIC: Print every 60th frame to the console so we know data is arriving
-        static int frame_counter = 0;
-        if (frame_counter++ % 60 == 0) {
-            std::cout << "[Network] Binary telemetry received: " << websocketEvent->numBytes << " bytes" << std::endl;
-        }
+                //TO DO:Remove later this is for Debugging 
+                static int frame_counter = 0;
+                if (frame_counter++ % 60 == 0) {
+                    std::cout << "[Network] Binary telemetry received: " << websocketEvent->numBytes << " bytes" << std::endl;
+                }
 
-        // Update our plots with the new data
-        for (auto& panel : current_dashboard) {
-            for (auto& object : panel.dashboardObjects) {
-                
-                if (object.type == dashboardElementType::TIME_SERIES) { 
-                    
-                    size_t topic_len = object.id.size();
-                    
-                    // Match incoming binary packet header against this plot's topic ID
-                    if (websocketEvent->numBytes > topic_len && 
-                        std::strncmp((const char*)websocketEvent->data, object.id.c_str(), topic_len) == 0) {
+                // Update our plots with the new data
+                for (auto& panel : current_dashboard) {
+                    for (auto& object : panel.dashboardObjects) {
                         
-                        size_t data_offset = topic_len;
-                        // Advance pointer past common ASCII delimiters (: or \0 or space)
-                        if (data_offset < websocketEvent->numBytes && 
-                            (((const char*)websocketEvent->data)[data_offset] == ':' || 
-                             ((const char*)websocketEvent->data)[data_offset] == '\0' || 
-                             ((const char*)websocketEvent->data)[data_offset] == ' ')) {
-                            data_offset++;
-                        }
+                        if (object.type == dashboardElementType::TIME_SERIES) { 
+                            
+                            size_t topic_len = object.id.size();
+                            
+                            // Match incoming binary packet header against this plot's topic ID
+                            // Checks if buffer has more bytes than the length of the id
+                            // Then compare the first N bytes (Length of the ID) of the packet with the ID of the plot 
+                            if (websocketEvent->numBytes > topic_len && 
+                                std::strncmp((const char*)websocketEvent->data, object.id.c_str(), topic_len) == 0) {
+                                
 
-                        // WASM FIX: Safely copy bytes to prevent silent unaligned memory crashes
-                        int valid_payload_bytes = websocketEvent->numBytes - data_offset;
-                        int num_floats = valid_payload_bytes / sizeof(float);
+                                size_t data_offset = topic_len;
+                                // Move data offset past the delimter 
+                                // TO DO: Consider using reinterpret_cast instead of c-style cast
+                                if (data_offset < websocketEvent->numBytes && (((const char*)websocketEvent->data)[data_offset] == ':'))
+                                    data_offset++;
+                                
+                                
+                                //Calculate the length of bytes the data is stored in
+                                int valid_payload_bytes = websocketEvent->numBytes - data_offset;
+                                //Calculate the number of floats
+                                int num_floats = valid_payload_bytes / sizeof(float);
+                                
+                                //Copy the floats into a vector 
+                                if (num_floats > 0) {
+                                    std::vector<float> incoming_floats(num_floats);
+                                    std::memcpy(incoming_floats.data(), websocketEvent->data + data_offset, valid_payload_bytes);
+
+                                    //Push floats to buffer 
+                                    for (int i = 0; i < num_floats; i++) {
+                                        object.databuffer.push_back(incoming_floats[i]);
+                                    }
+                    
+                                    //Overwriting the oldest samples with newer samples 
+                                    int max_window_size = 9600;                
+                                    if (object.databuffer.size() > max_window_size) {
+                                        // Erase the oldest samples from the front of the vector
+                                        object.databuffer.erase(
+                                            object.databuffer.begin(), 
+                                            object.databuffer.begin() + (object.databuffer.size() - max_window_size)
+                                        );
+                                    }
+                                    
+                                    // Prevent ImGui crash on empty buffer
+                                    if (object.databuffer.empty()) {
+                                        object.databuffer.push_back(0.0f);
+                                    }
+                                }
+                                break; 
+                                }
+
+                        }          
+                        else if (object.type == dashboardElementType::SLIDER) {
+
+                            size_t topic_len = object.id.size();
+                            
+                            // Match incoming binary packet header against this plot's topic ID
+                            // Checks if buffer has more bytes than the length of the id
+                            // Then compare the first N bytes (Length of the ID) of the packet with the ID of the plot 
+                            if (websocketEvent->numBytes > topic_len && 
+                                std::strncmp((const char*)websocketEvent->data, object.id.c_str(), topic_len) == 0) {
+                                
+
+                                size_t data_offset = topic_len;
+                                // Move data offset past the delimter 
+                                // TO DO: Consider using reinterpret_cast instead of c-style cast
+                                if (data_offset < websocketEvent->numBytes && (((const char*)websocketEvent->data)[data_offset] == ':'))
+                                    data_offset++;
+                                
+
+                                    //Check length to see if its valid
+                                    int valid_payload_bytes = websocketEvent->numBytes - data_offset;
+                                    if(valid_payload_bytes >= sizeof(float)){
+
+                                        float slider_update = 0.0;
+                                        //Copy new value into slider update
+                                        memcpy(&slider_update, websocketEvent->data + data_offset ,sizeof(float));
+
+                                        //TO DO: Remove this is for debugging
+                                        std::cout << "[UI LOGIC] Matched Slider: '" << object.id 
+                                                << "' | Value parsed: " << slider_update 
+                                                << " | is_being_edited: " << (object.is_being_edited ? "TRUE (Blocked)" : "FALSE (Updating)") 
+                                                << std::endl;
+
+
+                                        if (!object.is_being_edited && object.edit_cooldown == 0) {
+                                            object.current_val = slider_update;
+                                        }
+
+                                    }
+
+                                break;
+
+
+                            }
                         
-                        if (num_floats > 0) {
-                            std::vector<float> incoming_floats(num_floats);
-                            std::memcpy(incoming_floats.data(), websocketEvent->data + data_offset, valid_payload_bytes);
-
-                            // Added a buffer for better plotting
-                            for (int i = 0; i < num_floats; i++) {
-                                object.databuffer.push_back(incoming_floats[i]);
-                            }
-            
-                            int max_window_size = 9600;
-                            
-                            if (object.databuffer.size() > max_window_size) {
-                                // Erase the oldest samples from the front of the vector
-                                object.databuffer.erase(
-                                    object.databuffer.begin(), 
-                                    object.databuffer.begin() + (object.databuffer.size() - max_window_size)
-                                );
-                            }
-                            
-                            // Prevent ImGui crash on empty buffer
-                            if (object.databuffer.empty()) {
-                                object.databuffer.push_back(0.0f);
-                            }
-                        }
-                        break; 
                     }
                 }
-            }
-        }
-    }
 
+            return EM_TRUE;
+        }
+            }
     return EM_TRUE;
 }
 
@@ -233,27 +311,36 @@ void main_loop(){
                     }
                     else if (object.type == dashboardElementType::TIME_SERIES){
                         
-                        //Force title draw for debugging
-                        ImGui::Text("%s", object.title.c_str()); 
-                        
                         //Check if we actually have data in the buffer
                         if (object.databuffer.size() > 0) {
                             
-                            // 
                             std::string hidden_id = "##" + object.id;
                             
-                            // Pass the hidden_id instead of ""
-                            ImGui::PlotLines(hidden_id.c_str(), object.databuffer.data(), (int)object.databuffer.size(), 0, NULL, -2.0f, 2.0f, ImVec2(400, 150));                    
-                        } else {
-                            //warning so we know the UI is working but waiting
+                            if (ImPlot::BeginPlot(object.title.c_str(), ImVec2(-1, 200))) {
+                                
+                                //Axis labels
+                                ImPlot::SetupAxes("Samples", "Amplitude");
+                                //Zooming in and out
+                                ImPlot::SetupAxisLimits(ImAxis_Y1, -2.0, 2.0, ImPlotCond_Once);
+                                
+                                // We keep X locked to the buffer size so it acts like a live oscilloscope screen
+                                ImPlot::SetupAxisLimits(ImAxis_X1, 0, (double)object.databuffer.size(), ImPlotCond_Always);
+                                
+                                ImPlot::PlotLine(hidden_id.c_str(), object.databuffer.data(), (int)object.databuffer.size());
+                                ImPlot::EndPlot();                        
+                            } 
+                        } 
+                        else {
+                            // FIXED BUG: This is now correctly attached to the buffer size check
+                            // warning so we know the UI is working but waiting
                             ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Waiting for DSP telemetry stream...");
                         }
                     }
-                    else if (object.type == dashboardElementType::SLIDER) {   
+                    else if (object.type == dashboardElementType::SLIDER) { 
                         
                         if (ImGui::SliderFloat(object.title.c_str(), &object.current_val, 0.1f, 100.0f)) {
                             
-                            // Package the ID and the value into a JSON object
+                            // Package the ID of the widget and the value into a JSON object
                             nlohmann::json command_msg;
                             command_msg["target"] = object.id;          
                             command_msg["value"]  = object.current_val; 
@@ -311,6 +398,8 @@ void imGUI_contextSetup(){
     IMGUI_CHECKVERSION();
     //This context is what essentailly tracks everything, its 
     ImGui::CreateContext();
+    //ImPlot Context
+    ImPlot::CreateContext();
     ImGui_ImplSDL2_InitForOpenGL(g_Window, g_GLContext);
     ImGui_ImplOpenGL3_Init("#version 300 es");
 }
@@ -354,9 +443,19 @@ int main(){
 
     emscripten_async_wget_data("/config.json", NULL, callback_configLoaded, callback_configFailed);
 
+
+    //TO DO: Dont fully understand how this works, got it from somewhere on the internet
+    // Build the websocket URL from the page's own host instead of a hardcoded
+    // IP, so this works whether the page was loaded via localhost or a LAN IP.
+    char* ws_url_raw = get_websocket_url();
+    std::string ws_url(ws_url_raw);
+    free(ws_url_raw);
+    std::cout << "Connecting to WebSocket at: " << ws_url << std::endl;
+
+
     // Assign the return value directly to g_WebSocket
     g_WebSocket = emscripten_socketSetup(
-        "ws://127.0.0.1:9090",
+        ws_url,
         callback_succefulConnect,
         callback_Close,
         callback_Run
