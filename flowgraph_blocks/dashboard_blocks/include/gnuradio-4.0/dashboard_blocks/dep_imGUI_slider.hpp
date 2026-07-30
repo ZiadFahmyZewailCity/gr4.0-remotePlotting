@@ -107,7 +107,7 @@ namespace gr::dashboard_blocks {
 
             //unregistering from singleton
             imGUI_DashboardRegistry::getInstance().unregisterBlockAndTeardown();
-        }
+        
 
             //Joining threads
             thread_running = false;

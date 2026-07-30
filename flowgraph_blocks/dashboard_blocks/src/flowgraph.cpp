@@ -5,6 +5,7 @@
 #include <gnuradio-4.0/dashboard_blocks/dep_imGUI_timeSeries.hpp>
 #include <gnuradio-4.0/dashboard_blocks/dep_imGUI_slider.hpp>
 #include <gnuradio-4.0/dashboard_blocks/frequency_modulator.hpp>
+#include <gnuradio-4.0/dashboard_blocks/imGUI_frequencySink.hpp>
 
 namespace basicBlocks = gr::basic;
 namespace testing = gr::testing;
@@ -18,6 +19,7 @@ int main() {
     - Source: Generates the base sine wave
     - Throttle: Keeps the CPU from crashing the browser by limiting throughput
     - dep_imGUI_timeSeries: Captures DSP frames and broadcasts them to ZMQ Port 5555
+    - imGUI_frequencySink
     - dep_imGUI_slider: Subscribes to ZMQ Port 5556 for UI slider clicks
     - NullSink: Drains the slider block so the GR4 scheduler actively polls it
 
@@ -46,6 +48,13 @@ int main() {
     // 3. Downlink Telemetry Streamer 
     auto& ts_sink = graph.emplaceBlock<dashboardBlocks::dep_imGUI_timeSeries<float>>();
     ts_sink.topic_id = "plot_1";
+
+    // 3.5 Downlink Frequency Sink 
+    auto& freq_sink = graph.emplaceBlock<dashboardBlocks::imGUI_frequencySink<float>>();
+    freq_sink.title = "freq_plot_1";
+    freq_sink.sampleRate = 48000.0f; // Must match the source signal generator
+    freq_sink.windowSize = 1024;
+    
 
     // 4. Uplink Command Listener 
     auto& slider_src = graph.emplaceBlock<dashboardBlocks::dep_imGUI_slider<float>>();
@@ -100,6 +109,9 @@ int main() {
 
     auto mod_to_sink = graph.connect<"out", "in">(modulator, ts_sink);
     if(!mod_to_sink.has_value()) { return 1; }
+
+    auto mod_to_freq = graph.connect<"out", "in">(modulator, freq_sink);
+    if(!mod_to_freq.has_value()) { return 1; }
 
     /*
     Connect Uplink: dep_imGUI_slider -> NullSink

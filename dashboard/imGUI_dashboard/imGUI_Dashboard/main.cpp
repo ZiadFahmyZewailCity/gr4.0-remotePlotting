@@ -49,7 +49,7 @@ EM_JS(char*, get_websocket_url, (), {
 
 
 //Structs for dashboard elements 
-enum class dashboardElementType { TIME_SERIES, SLIDER, TEXT_LABEL};
+enum class dashboardElementType { TIME_SERIES, SLIDER, TEXT_LABEL, FREQUENCY_SINK};
 
 //Simplified dashboard element struct
 struct dashboardElement {
@@ -62,10 +62,19 @@ struct dashboardElement {
     std::string data_source;
     std::vector<float> databuffer;
     float current_val = 0.0f;
-    
+
+    //These are dashboard element specific, it may be a good idea to make this a bit cleaner in the future, its very little overhead 
+
     // Tracks if the user is holding down the mouse on this widget
     bool is_being_edited = false; 
     int edit_cooldown = 0;
+
+    // FREQUENCY SINK PARAMS
+    int windowSize = 1024;
+    float sample_rate = 1.0f;
+    double start_freq = 0.0;
+    double step_freq = 1.0;
+
 };
 
 //Each window contains a set of widgets
@@ -112,6 +121,27 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
                     }
                     else if (item["type"] == "text") {
                         new_dashboardElement.type = dashboardElementType::TEXT_LABEL;
+                    }
+                    else if (item["type"] == "frequencySink"){
+
+                        new_dashboardElement.type = dashboardElementType::FREQUENCY_SINK;
+                       
+                        //Allocating the memory
+                        try{
+                            new_dashboardElement.windowSize = std::stoi(item.value("windowSize", "1024"));
+                            new_dashboardElement.sample_rate = std::stof(item.value("samplingFreq", "1.0"));
+
+                            //The start and end of the frequency graph
+                            new_dashboardElement.start_freq = -(double)new_dashboardElement.sample_rate / 2.0;
+                            new_dashboardElement.step_freq  = (double)new_dashboardElement.sample_rate / (double)new_dashboardElement.windowSize;
+
+                        } catch (...){
+                            //TO DO: debugging message
+                            std::cout << "Failed to parse window size on intialization";
+                        }
+                        new_dashboardElement.databuffer.resize(new_dashboardElement.windowSize, 0.0f);
+
+
                     }
                     newPanel.dashboardObjects.push_back(new_dashboardElement);
                 }
@@ -166,7 +196,7 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
                 for (auto& panel : current_dashboard) {
                     for (auto& object : panel.dashboardObjects) {
                         
-                        if (object.type == dashboardElementType::TIME_SERIES) { 
+                        if (object.type == dashboardElementType::TIME_SERIES || object.type == dashboardElementType::FREQUENCY_SINK) { 
                             
                             size_t topic_len = object.id.size();
                             
@@ -194,6 +224,9 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
                                     std::vector<float> incoming_floats(num_floats);
                                     std::memcpy(incoming_floats.data(), websocketEvent->data + data_offset, valid_payload_bytes);
 
+                                    if(object.type == dashboardElementType::TIME_SERIES){
+
+                                        
                                     //Push floats to buffer 
                                     for (int i = 0; i < num_floats; i++) {
                                         object.databuffer.push_back(incoming_floats[i]);
@@ -213,9 +246,17 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
                                     if (object.databuffer.empty()) {
                                         object.databuffer.push_back(0.0f);
                                     }
+
+                                    }
+                                    //Frequency spectrum isnt a rolling buffer. Just replace previous buffr
+                                    else if(object.type == dashboardElementType::FREQUENCY_SINK){
+                                        object.databuffer = std::move(incoming_floats);
+                                    }
+
                                 }
                                 break; 
-                                }
+                            }
+
 
                         }          
                         else if (object.type == dashboardElementType::SLIDER) {
@@ -268,6 +309,7 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
             return EM_TRUE;
         }
             }
+
     return EM_TRUE;
 }
 
@@ -324,16 +366,39 @@ void main_loop(){
                                 ImPlot::SetupAxisLimits(ImAxis_Y1, -2.0, 2.0, ImPlotCond_Once);
                                 
                                 // We keep X locked to the buffer size so it acts like a live oscilloscope screen
-                                ImPlot::SetupAxisLimits(ImAxis_X1, 0, (double)object.databuffer.size(), ImPlotCond_Always);
+                                ImPlot::SetupAxisLimits(ImAxis_X1, 0, (double)object.databuffer.size(), ImPlotCond_Once);
                                 
                                 ImPlot::PlotLine(hidden_id.c_str(), object.databuffer.data(), (int)object.databuffer.size());
                                 ImPlot::EndPlot();                        
                             } 
                         } 
                         else {
-                            // FIXED BUG: This is now correctly attached to the buffer size check
-                            // warning so we know the UI is working but waiting
+
                             ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Waiting for DSP telemetry stream...");
+                        }
+                    }
+                    else if (object.type == dashboardElementType::FREQUENCY_SINK){
+                        
+                        if(object.databuffer.size() > 0){
+                            std::string hidden_id = "##" + object.id;
+
+                            if(ImPlot::BeginPlot(object.title.c_str(), ImVec2(-1, 300))){
+
+                                ImPlot::SetupAxes("Frequency (Hz)", "Magnitude (dB)");
+                                
+
+                                
+                                ImPlot::SetupAxisLimits(ImAxis_X1, object.start_freq, object.start_freq + object.sample_rate, ImPlotCond_Once);
+                                ImPlot::SetupAxisLimits(ImAxis_Y1, -140.0, 20.0, ImPlotCond_Once);
+                                
+                                //Create plotline
+                                ImPlot::PlotLine(hidden_id.c_str(), object.databuffer.data(), (int)object.databuffer.size(), object.step_freq, object.start_freq);
+                                ImPlot::EndPlot();
+                            }
+
+                        }
+                        else{
+                            ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Waiting for FFT telemetry stream...");
                         }
                     }
                     else if (object.type == dashboardElementType::SLIDER) { 

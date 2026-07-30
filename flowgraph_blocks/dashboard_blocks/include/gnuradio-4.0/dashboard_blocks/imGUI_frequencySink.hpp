@@ -8,13 +8,18 @@
 #include <cstddef>
 #include <gnuradio-4.0/Block.hpp>
 #include <gnuradio-4.0/BlockRegistry.hpp>
+#include <gnuradio-4.0/DataSet.hpp>
 #include <gnuradio-4.0/annotated.hpp>
 #include <gnuradio-4.0/meta/reflection.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_management.hpp>
 #include <gnuradio-4.0/fourier/fft.hpp>
 #include <gnuradio-4.0/algorithm/fourier/window.hpp>
 //External dependecies
+#include <gnuradio-4.0/meta/utils.hpp>
 #include <magic_enum.hpp>
+#include <span>
+#include <type_traits>
+#include <vector>
 #include <zmq.hpp>
 #include <string>
 #include <cstring>
@@ -53,9 +58,9 @@ namespace gr::dashboard_blocks {
         //TO DO: Any reason to default to something in specific, currently default to Hann
         gr::Annotated<gr::algorithm::window::Type, "Window Type", gr::Visible> windowType = gr::algorithm::window::Type::Hann;
         //CURRENTLY PLACEHOLDER DOESNT DO ANYTHING
-        gr::Annotated<triggerType, "Trigger Type", gr::Visible> triggerType;
+        gr::Annotated<triggerType, "Trigger Type", gr::Visible> typeOfTrigger;
         //CURRENTLY PLACE HOLDER DOESNT DO ANYTHING
-        gr::Annotated<averagingType, "Averaging Type",gr::Visible> averagingType;
+        gr::Annotated<averagingType, "Averaging Type",gr::Visible> typeOfAveraging;
         gr::Annotated<float, "Sample Rate", gr::Visible, gr::Unit<"Hz">> sampleRate = 1.0f;
         gr::Annotated<bool, "Output in dB", gr::Visible> outputInDb = true;
 
@@ -76,23 +81,23 @@ namespace gr::dashboard_blocks {
                 json_data += "\"id\": \"" + this->title.value + "\", ";
                 json_data += "\"type\": \"frequencySink\", ";
                 json_data += "\"title\": \"" + this->title.value + "\", ";
-                json_data += "\"frequencySink_dataSource\": \"Magnitudes\"";
+                json_data += "\"windowSize\": \"" + std::to_string(this->windowSize.value) + "\", ";
+                json_data += "\"samplingFreq\": \"" + std::to_string(this->sampleRate.value) + "\", ";
+                json_data += "\"frequencySink_dataSource\": \"Magnitudes\" ";
                 json_data += "}";
                 return json_data;
             });
         }
 
-        GR_MAKE_REFLECTABLE(imGUI_frequencySink, in, title, windowSize, sampleRate, windowType, outputInDb, triggerType, averagingType, endpoint);
+        GR_MAKE_REFLECTABLE(imGUI_frequencySink, in, title, windowSize, sampleRate, windowType, outputInDb, typeOfTrigger, typeOfAveraging, endpoint);
 
         void start() {
 
             publisher = zmq::socket_t(zmq_ctx, zmq::socket_type::pub);
             publisher.connect(endpoint.value);
 
-
-            
-
-            FFTblock.fftSize = this->fftSize;
+            //Configuring FFT block
+            FFTblock.fftSize = this->windowSize;
             FFTblock.sample_rate = this->sampleRate;
             FFTblock.window = std::string(magic_enum::enum_name(this->windowType.value));
             FFTblock.outputInDb = this->outputInDb;
@@ -111,33 +116,43 @@ namespace gr::dashboard_blocks {
         }
 
         [[nodiscard]] gr::work::Status processBulk(gr::InputSpanLike auto& input) {
-            const std::size_t nSamples = input.size();
-            if (nSamples == 0) return gr::work::Status::INSUFFICIENT_INPUT_ITEMS;
+            
+            //Check if we have enough samples for
+            if (input.size() < this->windowSize) { return gr::work::Status::INSUFFICIENT_INPUT_ITEMS; }
 
+            const std::size_t nSamples = this->windowSize;
+
+            std::span<const T> samples_frame(input.data() , nSamples);
+            
             if (publisher) {
 
 
                 //Compute the FFT for the given samples 
+                using floattype = std::conditional_t<gr::meta::complex_like<T>, typename T::value_type, T>;
+                std::vector<gr::DataSet<floattype>> FFT_output(1);
 
+                FFTblock.processBulk(samples_frame, std::span{FFT_output});
 
-                //Output will be a set of complex pairs
+                //Output the magnitudes
+                auto& dataset = FFT_output[0];
+                std::size_t num_bins = dataset.extents[0]; 
+                auto* magnitudes_ptr = dataset.signal_values.data();
 
-
-                //Apply averaging
+                //TO DO: Add averaging
 
 
                 //Send over ZMQ to the server
 
                 //1) Apply header
                 std::string header = title.value + ":";
-                std::size_t payload_size = header.size() + (nSamples * sizeof(T));
+                std::size_t payload_size = header.size() + (num_bins * sizeof(floattype));
 
                 //2) Message core
                 zmq::message_t z_msg(payload_size);
 
                 //3) Cpy into zmq message buffer
                 std::memcpy(z_msg.data(), header.data(), header.size());
-                std::memcpy(static_cast<char*>(z_msg.data()) + header.size(), input.data(), nSamples * sizeof(T));
+                std::memcpy(static_cast<char*>(z_msg.data()) + header.size(), magnitudes_ptr, num_bins * sizeof(floattype));
 
                 //4) Send
                 publisher.send(z_msg, zmq::send_flags::dontwait);
@@ -150,6 +165,5 @@ namespace gr::dashboard_blocks {
 
 } // namespace gr::dashboard_blocks
 
-GR_REGISTER_BLOCK("gr::dashboard_blocks::imGUI_frequencySink", gr::dashboard_blocks::imGUI_frequencySink, [float])
-
+GR_REGISTER_BLOCK("gr::dashboard_blocks::imGUI_frequencySink", gr::dashboard_blocks::imGUI_frequencySink, [float, std::complex<float>])
 #endif
