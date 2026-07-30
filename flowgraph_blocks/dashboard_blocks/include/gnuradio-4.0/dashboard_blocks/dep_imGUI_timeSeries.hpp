@@ -85,3 +85,5 @@ namespace gr::dashboard_blocks {
 } // namespace gr::dashboard_blocks
 
 GR_REGISTER_BLOCK("gr::dashboard_blocks::dep_imGUI_timeSeries", gr::dashboard_blocks::dep_imGUI_timeSeries, [float])
+
+#endif

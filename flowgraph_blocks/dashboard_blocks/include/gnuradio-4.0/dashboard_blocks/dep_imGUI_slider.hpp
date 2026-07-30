@@ -1,7 +1,6 @@
 #ifndef GNURADIO_DASHBOARDBLOCKS_DEP_IMGUI_SLIDER_HPP
 #define GNURADIO_DASHBOARDBLOCKS_DEP_IMGUI_SLIDER_HPP
 
-#include <chrono>
 #include <cstring>
 #include <exception>
 #include <gnuradio-4.0/Block.hpp>
@@ -272,3 +271,5 @@ namespace gr::dashboard_blocks {
 } // namespace gr::dashboard_blocks
 
 GR_REGISTER_BLOCK("gr::dashboard_blocks::dep_imGUI_slider", gr::dashboard_blocks::dep_imGUI_slider, [float])
+
+#endif
