@@ -142,7 +142,6 @@ void DashboardServer::on_message(connection_hdl hdl, server::message_ptr msg){
     catch (const std::exception& e) {
         std::cerr << "[Server Error] Unexpected error in on_message: " << e.what() << "\n";
     }
-
 }
 
 void DashboardServer::set_ZMQ_context(zmq::context_t &context){

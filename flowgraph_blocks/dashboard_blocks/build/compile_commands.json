@@ -1,0 +1,32 @@
+[
+{
+  "directory": "/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/build",
+  "command": "/usr/bin/g++-14 -DASIO_STANDALONE -DZMQ_BUILD_DRAFT_API=1 -I/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include -I/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/src -std=c++17 -o CMakeFiles/dashboard_daemon.dir/src/dashBoard_daemon.cpp.o -c /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/src/dashBoard_daemon.cpp",
+  "file": "/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/src/dashBoard_daemon.cpp",
+  "output": "CMakeFiles/dashboard_daemon.dir/src/dashBoard_daemon.cpp.o"
+},
+{
+  "directory": "/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/build",
+  "command": "/usr/bin/g++-14 -DASIO_STANDALONE -DZMQ_BUILD_DRAFT_API=1 -I/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include -I/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/src -std=c++17 -o CMakeFiles/dashboard_daemon.dir/src/dashBoard_server.cpp.o -c /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/src/dashBoard_server.cpp",
+  "file": "/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/src/dashBoard_server.cpp",
+  "output": "CMakeFiles/dashboard_daemon.dir/src/dashBoard_server.cpp.o"
+},
+{
+  "directory": "/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/build",
+  "command": "/usr/bin/g++-14 -DASIO_STANDALONE -DFMT_SHARED -DZMQ_BUILD_DRAFT_API=1 -D_GLIBCXX_USE_TBB_PAR_BACKEND=0 -I/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include -I/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/src -std=c++23 -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wold-style-cast -Wcast-align -Wunused -Woverloaded-virtual -Wpedantic -Wconversion -Wsign-conversion -Wnull-dereference -Wdouble-promotion -Wformat=2 -Wno-unknown-pragmas -Wno-unused-command-line-argument -Werror -Wno-dangling-reference -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wlogical-op -Wuseless-cast -Wno-interference-size -Wno-maybe-uninitialized -Wno-tautological-compare -fconcepts-diagnostics-depth=3 -Wno-missing-field-initializers -o CMakeFiles/flowgraph.dir/src/flowgraph.cpp.o -c /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/src/flowgraph.cpp",
+  "file": "/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/src/flowgraph.cpp",
+  "output": "CMakeFiles/flowgraph.dir/src/flowgraph.cpp.o"
+},
+{
+  "directory": "/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/build/tests",
+  "command": "/usr/bin/g++-14 -DASIO_STANDALONE -DZMQ_BUILD_DRAFT_API=1 -I/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/tests/../include -I/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/tests/../src -I/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/build/_deps/boost_ut-src/include -std=c++23 -o CMakeFiles/qa_dashBoardServer.dir/qa_dashBoardServer.cpp.o -c /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/tests/qa_dashBoardServer.cpp",
+  "file": "/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/tests/qa_dashBoardServer.cpp",
+  "output": "tests/CMakeFiles/qa_dashBoardServer.dir/qa_dashBoardServer.cpp.o"
+},
+{
+  "directory": "/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/build/tests",
+  "command": "/usr/bin/g++-14 -DASIO_STANDALONE -DZMQ_BUILD_DRAFT_API=1 -I/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/tests/../include -I/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/tests/../src -I/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/build/_deps/boost_ut-src/include -std=c++23 -o CMakeFiles/qa_dashBoardServer.dir/__/src/dashBoard_server.cpp.o -c /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/src/dashBoard_server.cpp",
+  "file": "/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/src/dashBoard_server.cpp",
+  "output": "tests/CMakeFiles/qa_dashBoardServer.dir/__/src/dashBoard_server.cpp.o"
+}
+]

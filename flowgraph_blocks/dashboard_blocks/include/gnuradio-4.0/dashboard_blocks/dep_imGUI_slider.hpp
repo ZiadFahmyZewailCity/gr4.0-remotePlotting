@@ -109,10 +109,17 @@ namespace gr::dashboard_blocks {
             imGUI_DashboardRegistry::getInstance().unregisterBlockAndTeardown();
         }
 
-        [[nodiscard]] gr::work::Status processBulk(gr::OutputSpanLike auto& output) {
-            const std::size_t nSamples = output.size();
-            if (nSamples == 0) return gr::work::Status::INSUFFICIENT_OUTPUT_ITEMS;
+            //Joining threads
+            thread_running = false;
+            if(zmq_thread.joinable()) { zmq_thread.join(); }
+            
+            //Closing SUB & PUB
+            if (subscriber) { subscriber.close(); };
+            if (publisher) { publisher.close(); }
+        }
 
+        void zmq_polling_widget(){
+            
             zmq::message_t rx_frame;
             while (subscriber && subscriber.recv(rx_frame, zmq::recv_flags::dontwait)) {
                 
@@ -263,9 +270,8 @@ namespace gr::dashboard_blocks {
 
             std::fill_n(output.data(), nSamples, current_val.value);
 
-            output.publish(nSamples);
-            return gr::work::Status::OK;
         }
+
     };
 
 } // namespace gr::dashboard_blocks
