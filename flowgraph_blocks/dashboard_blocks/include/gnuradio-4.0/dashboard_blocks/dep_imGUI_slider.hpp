@@ -34,7 +34,7 @@ namespace gr::dashboard_blocks {
         gr::Annotated<std::string, "zmq_endpoint"> endpoint = "tcp://127.0.0.1:5556";
         //Variable for the SUB socket in the dashboard_server
         gr::Annotated<std::string, "zmq_SUB_dashboard_server",gr::Visible> dashboard_server = "tcp://127.0.0.1:5555";
-        
+
         //This is the current value of the widget
         gr::Annotated<T, "current_val", gr::Visible> current_val = static_cast<T>(1.0);
 
@@ -54,13 +54,14 @@ namespace gr::dashboard_blocks {
         zmq::socket_t publisher;
         //Instantiate the ZMQ socket
         zmq::socket_t subscriber;
-      
+
         //These variables dont really need to be know by a developer or the flowgraph, so setting to private
         private:
         //Set last published value to the default
         T lastPublishedValue = current_val.value;
 
         public:
+
         dep_imGUI_slider(gr::property_map initial_settings = {})
             : gr::Block<dep_imGUI_slider<T>>(initial_settings) 
         {
@@ -75,7 +76,7 @@ namespace gr::dashboard_blocks {
             });
         }
 
-        //No ports
+        
         //Widgets are meant to vary already existing variables 
         GR_MAKE_REFLECTABLE(dep_imGUI_slider,out  ,widget_id, target_property, endpoint, dashboard_server, current_val);
 
@@ -97,7 +98,7 @@ namespace gr::dashboard_blocks {
 
             //Which ever block reaches this first will start dashboard server
             imGUI_DashboardRegistry::getInstance().boot_dashboardServer_Once();
-            
+
         }
 
         void stop() {
@@ -109,47 +110,40 @@ namespace gr::dashboard_blocks {
             imGUI_DashboardRegistry::getInstance().unregisterBlockAndTeardown();
         }
 
-            //Joining threads
-            thread_running = false;
-            if(zmq_thread.joinable()) { zmq_thread.join(); }
-            
-            //Closing SUB & PUB
-            if (subscriber) { subscriber.close(); };
-            if (publisher) { publisher.close(); }
-        }
+        [[nodiscard]] gr::work::Status processBulk(gr::OutputSpanLike auto& output) {
+            const std::size_t nSamples = output.size();
+            if (nSamples == 0) return gr::work::Status::INSUFFICIENT_OUTPUT_ITEMS;
 
-        void zmq_polling_widget(){
-            
             zmq::message_t rx_frame;
             while (subscriber && subscriber.recv(rx_frame, zmq::recv_flags::dontwait)) {
-                
+
 
                 //Take message, put it in a string container, find ":" delimter
                 std::string raw_dashBoard_server_message = rx_frame.to_string();
                 auto delim = raw_dashBoard_server_message.find(":");
 
                 if(delim != std::string::npos){
-                    
+
                     //Extract the target
                     std::string target = raw_dashBoard_server_message.substr(0,delim);
-                    
+
                     //The second part of the cmd message is technically not needed, we could technically just remove the value part
                     //However the overhead is insignificant and this leaves room to use this communication path later on with other 
                     //messages from the server
 
                     //Send the latest value of the variable to the dashboard_server via the ZMQ PUB
                     if(target == "SERVER"){
-                        
+
                         std::cout << "I Have recieved a server message" << "\n";
                         if(publisher){
-                            
+
                             //Define the total payload size
                             std::string header = widget_id.value + ":";
                             std::size_t payload_size = header.size() + sizeof(current_val.value);
 
                             //Create the ZMQ message
                             zmq::message_t z_msg(payload_size);
-                            
+
                             //Copy the header into the front of the buffer (Header is ASCII)
                             std::memcpy(z_msg.data(), header.data(), header.size());
                             //Copy the current value after the header in the buffer (Payload is binary bytes)
@@ -163,8 +157,8 @@ namespace gr::dashboard_blocks {
 
                             std::cout << "Message has been published to the dashboard_server" << "\n";
 
-                            
-                    
+
+
                         }
 
                     }
@@ -175,14 +169,14 @@ namespace gr::dashboard_blocks {
                     */
                     //Take the new value of the widget and update the variable in the flowgraph
                     else if (target == widget_id.value) {
-                        
+
                         try{
                             //Update the variable in the flowgraph
                             //Getting the payload
                             std::string payload = raw_dashBoard_server_message.substr(delim + 1, raw_dashBoard_server_message.length());
                             //casting it to the type of the variable being controlled by the widget
                             T parsed_val = static_cast<T>(std::stof(payload));
-                            
+
                             //This should be the method by which we update the varible in the overall flowgraph
                             if(this->on_val_update){
                                 this->on_val_update(parsed_val);
@@ -190,11 +184,11 @@ namespace gr::dashboard_blocks {
 
                             //Update the variable in the block itself 
                             current_val.value = parsed_val;
-                            
+
 
                             //Send new widget value over ZMQ PUB to other dashboards
                             //TO DO: Use this to trigger an update if a change to the frequency value occurs within the flowgraph
-                            
+
                             //TO DO:This is the same exact code that triggers on SYNC, consider putting into some kind of function
                             //Define the total payload size, question for mentors, is it normal to add a helper function in the private section of the block
                             std::string header = widget_id.value + ":";
@@ -202,7 +196,7 @@ namespace gr::dashboard_blocks {
 
                             //Create the ZMQ message
                             zmq::message_t z_msg(payload_size);
-                            
+
                             //Copy the header into the front of the buffer (Header is ASCII)
                             std::memcpy(z_msg.data(), header.data(), header.size());
                             //Copy the current value after the header in the buffer (Payload is binary bytes)
@@ -218,14 +212,14 @@ namespace gr::dashboard_blocks {
 
                         }
                         catch(const std::exception& e){
-                            
+
                         }
 
                     }
 
 
                 }
-                
+
 
 
             }
@@ -242,7 +236,7 @@ namespace gr::dashboard_blocks {
 
             }
             else{
-                
+
             }
 
             if(current_val.value != lastPublishedValue){
@@ -253,7 +247,7 @@ namespace gr::dashboard_blocks {
 
                 //Create the ZMQ message
                 zmq::message_t z_msg(payload_size);
-                
+
                 //Copy the header into the front of the buffer (Header is ASCII)
                 std::memcpy(z_msg.data(), header.data(), header.size());
                 //Copy the current value after the header in the buffer (Payload is binary bytes)
@@ -264,18 +258,17 @@ namespace gr::dashboard_blocks {
                 publisher.send(z_msg, zmq::send_flags::dontwait);
                 //Always update the last published value after a publish
                 lastPublishedValue = current_val.value;
-                
+
             }
 
 
             std::fill_n(output.data(), nSamples, current_val.value);
 
+            output.publish(nSamples);
+            return gr::work::Status::OK;
         }
-
     };
 
 } // namespace gr::dashboard_blocks
 
 GR_REGISTER_BLOCK("gr::dashboard_blocks::dep_imGUI_slider", gr::dashboard_blocks::dep_imGUI_slider, [float])
-
-#endif
