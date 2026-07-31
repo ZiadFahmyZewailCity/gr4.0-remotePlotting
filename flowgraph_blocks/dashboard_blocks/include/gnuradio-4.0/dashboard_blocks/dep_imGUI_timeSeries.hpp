@@ -15,13 +15,13 @@ namespace gr::dashboard_blocks {
     template <typename T>
     struct dep_imGUI_timeSeries : gr::Block<dep_imGUI_timeSeries<T>> {
 
-        
+
         using Description = gr::Doc<R""(Ingests live DSP sample streams and broadcasts them over ZeroMQ. Preapends a topic header matching the frontend ImGui config ID.)"">;
 
         gr::PortIn<T> in;
 
         gr::Annotated<std::string, "topic_id", gr::Visible> topic_id = "plot_1";
-        
+
         gr::Annotated<std::string, "zmq_endpoint"> endpoint = "tcp://127.0.0.1:5555";
 
         zmq::context_t zmq_ctx{1};
@@ -70,7 +70,7 @@ namespace gr::dashboard_blocks {
                 std::size_t payload_size = header.size() + (nSamples * sizeof(T));
 
                 zmq::message_t z_msg(payload_size);
-                
+
                 std::memcpy(z_msg.data(), header.data(), header.size());
                 std::memcpy(static_cast<char*>(z_msg.data()) + header.size(), input.data(), nSamples * sizeof(T));
 

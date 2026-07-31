@@ -132,7 +132,7 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
                             new_dashboardElement.sample_rate = std::stof(item.value("samplingFreq", "1.0"));
 
                             //The start and end of the frequency graph
-                            new_dashboardElement.start_freq = -(double)new_dashboardElement.sample_rate / 2.0;
+                            new_dashboardElement.start_freq = 0;
                             new_dashboardElement.step_freq  = (double)new_dashboardElement.sample_rate / (double)new_dashboardElement.windowSize;
 
                         } catch (...){
@@ -250,6 +250,17 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
                                     }
                                     //Frequency spectrum isnt a rolling buffer. Just replace previous buffr
                                     else if(object.type == dashboardElementType::FREQUENCY_SINK){
+
+                                            //TO DO: Remove this is for debugging
+                                            static int dbg_counter = 0;
+                                            if (dbg_counter++ % 60 == 0) {
+                                                std::cout << "[FREQ_SINK MATCH] id='" << object.id
+                                                        << "' num_floats=" << num_floats
+                                                        << " first8: ";
+                                                for (int i = 0; i < std::min(num_floats, 8); i++)
+                                                    std::cout << incoming_floats[i] << " ";
+                                                std::cout << std::endl;
+                                            }
                                         object.databuffer = std::move(incoming_floats);
                                     }
 
@@ -386,9 +397,8 @@ void main_loop(){
 
                                 ImPlot::SetupAxes("Frequency (Hz)", "Magnitude (dB)");
                                 
-
-                                
-                                ImPlot::SetupAxisLimits(ImAxis_X1, object.start_freq, object.start_freq + object.sample_rate, ImPlotCond_Once);
+                                double freq_span = (double)object.databuffer.size() * object.step_freq;
+                                ImPlot::SetupAxisLimits(ImAxis_X1, object.start_freq, object.start_freq + freq_span, ImPlotCond_Always);
                                 ImPlot::SetupAxisLimits(ImAxis_Y1, -140.0, 20.0, ImPlotCond_Once);
                                 
                                 //Create plotline

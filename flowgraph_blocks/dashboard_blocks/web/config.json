@@ -5,10 +5,12 @@
       "panel_name": "GNU Radio 4.0 Live DSP",
       "dashboardElement": [
         {
-          "id": "plot_1",
-          "type": "timeseries",
-          "title": "Real-Time Signal",
-          "data_source": "live_data"
+          "id": "freq_plot_1",
+          "type": "frequencySink",
+          "title": "freq_plot_1",
+          "windowSize": "1024",
+          "samplingFreq": "48000.000000",
+          "frequencySink_dataSource": "Magnitudes"
         },
         {
           "id": "slider_freq",

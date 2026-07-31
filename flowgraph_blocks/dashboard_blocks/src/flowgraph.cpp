@@ -30,7 +30,7 @@ int main() {
     // 1. Single generator
     auto& source = graph.emplaceBlock<basicBlocks::SignalGenerator<float>>();
     source.sample_rate = 48000.f;
-    source.frequency   = 50.0f; 
+    source.frequency   = 2343.75f; 
     source.amplitude   = 1.0f;
     source.offset      = 0.0f;
     source.phase       = 0.0f;
@@ -42,17 +42,10 @@ int main() {
     throttle.target_throughput = 48000.f; 
     throttle.busy_wait = false;           
 
-    // 2. The modulator 
-    auto& modulator = graph.emplaceBlock<dashboardBlocks::frequency_modulator<float>>();
-
-    // 3. Downlink Telemetry Streamer 
-    auto& ts_sink = graph.emplaceBlock<dashboardBlocks::dep_imGUI_timeSeries<float>>();
-    ts_sink.topic_id = "plot_1";
-
     // 3.5 Downlink Frequency Sink 
     auto& freq_sink = graph.emplaceBlock<dashboardBlocks::imGUI_frequencySink<float>>();
     freq_sink.title = "freq_plot_1";
-    freq_sink.sampleRate = 48000.0f; // Must match the source signal generator
+    freq_sink.sampleRate = 48000.0f; 
     freq_sink.windowSize = 1024;
     
 
@@ -65,21 +58,7 @@ int main() {
     auto& drain = graph.emplaceBlock<testing::NullSink<float>>();
 
 
-    //MODULE LAMDAs
-    modulator.get_freq = [&source]() -> float {
-        return source.frequency;
-    };
-    modulator.set_freq = [&source](float new_freq) {
-        gr::property_map old_props;
-        old_props["frequency"] = source.frequency;
-        
-        gr::property_map new_props;
-        new_props["frequency"] = new_freq;
 
-        source.frequency = new_freq;
-        // This is the crucial notification the raw pointer was missing!
-        source.settingsChanged(old_props, new_props); 
-    };
 
     // Updating frequency of sine wave when slider moves on Web UI
     slider_src.on_val_update = [&source](float new_freq) {
@@ -104,13 +83,8 @@ int main() {
     auto source_to_throttle = graph.connect<"out", "in">(source, throttle);
     if (!source_to_throttle.has_value()) { return 1; }
 
-    auto throttle_to_sink = graph.connect<"out", "in">(throttle, modulator);    
-    if (!throttle_to_sink.has_value()) { return 1; }
 
-    auto mod_to_sink = graph.connect<"out", "in">(modulator, ts_sink);
-    if(!mod_to_sink.has_value()) { return 1; }
-
-    auto mod_to_freq = graph.connect<"out", "in">(modulator, freq_sink);
+    auto mod_to_freq = graph.connect<"out", "in">(throttle, freq_sink);
     if(!mod_to_freq.has_value()) { return 1; }
 
     /*

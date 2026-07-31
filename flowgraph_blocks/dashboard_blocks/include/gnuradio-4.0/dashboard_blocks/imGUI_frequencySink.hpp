@@ -16,6 +16,7 @@
 #include <gnuradio-4.0/algorithm/fourier/window.hpp>
 //External dependecies
 #include <gnuradio-4.0/meta/utils.hpp>
+#include <iostream>
 #include <magic_enum.hpp>
 #include <span>
 #include <type_traits>
@@ -27,6 +28,12 @@
 
 
 namespace gr::dashboard_blocks {
+
+    template <typename T>
+    struct extract_real { using type = T; };
+
+    template <typename T>
+    struct extract_real<std::complex<T>> { using type = T; };
 
 
     // TO DO: Figure out what type of triggers i want to implement
@@ -117,6 +124,8 @@ namespace gr::dashboard_blocks {
 
         [[nodiscard]] gr::work::Status processBulk(gr::InputSpanLike auto& input) {
             
+            
+
             //Check if we have enough samples for
             if (input.size() < this->windowSize) { return gr::work::Status::INSUFFICIENT_INPUT_ITEMS; }
 
@@ -126,17 +135,29 @@ namespace gr::dashboard_blocks {
             
             if (publisher) {
 
+                static int dbg = 0;
 
-                //Compute the FFT for the given samples 
-                using floattype = std::conditional_t<gr::meta::complex_like<T>, typename T::value_type, T>;
+                using floattype = typename extract_real<T>::type;
                 std::vector<gr::DataSet<floattype>> FFT_output(1);
 
-                FFTblock.processBulk(samples_frame, std::span{FFT_output});
+                const gr::work::Status fftStatus = FFTblock.processBulk(samples_frame, std::span{FFT_output});
+                if (fftStatus != gr::work::Status::OK) {
+                    return fftStatus;
+                }
 
                 //Output the magnitudes
                 auto& dataset = FFT_output[0];
-                std::size_t num_bins = dataset.extents[0]; 
+                std::size_t num_bins = static_cast<std::size_t>(dataset.extents[0]); 
                 auto* magnitudes_ptr = dataset.signal_values.data();
+
+                //TO DO: Remove for debugging 
+                if (dbg++ % 60 == 0) {
+                    std::cout << "RAW: ";
+                    for (std::size_t i = 0; i < 8; i++) std::cout << samples_frame[i] << " ";
+                    std::cout << "\nMAG: ";
+                    for (std::size_t i = 0; i < 8; i++) std::cout << magnitudes_ptr[i] << " ";
+                    std::cout << std::endl;
+                }
 
                 //TO DO: Add averaging
 
