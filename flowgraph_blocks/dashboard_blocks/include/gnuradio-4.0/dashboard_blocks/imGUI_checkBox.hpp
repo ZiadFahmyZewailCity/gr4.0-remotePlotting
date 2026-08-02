@@ -1,5 +1,5 @@
-#ifndef GNURADIO_DASHBOARDBLOCKS_DEP_IMGUI_BUTTON_HPP
-#define GNURADIO_DASHBOARDBLOCKS_DEP_IMGUI_BUTTON_HPP
+#ifndef GNURADIO_DASHBOARDBLOCKS_DEP_IMGUI_CHECKBOX_HPP
+#define GNURADIO_DASHBOARDBLOCKS_DEP_IMGUI_CHECKBOX_HPP
 
 #include <cstring>
 #include <exception>
@@ -24,21 +24,21 @@ namespace gr::dashboard_blocks {
         using Description = gr::Doc<R""()"">;
 
         //Widget ID (Must be given a unique id by user)
-        gr::Annotated<std::string, "widget_id", gr::Visible> widget_id = "imGUI_button";
+        gr::Annotated<std::string, "widget_id", gr::Visible> widget_id = "imGUI_checkBox";
         gr::Annotated<std::string, "target_property", gr::Visible> target_property = "current_val";
 
         gr::Annotated<std::string, "zmq_endpoint"> endpoint = "tcp://127.0.0.1:5556";
         gr::Annotated<std::string, "zmq_SUB_dashboard_server", gr::Visible> dashboard_server = "tcp://127.0.0.1:5555";
 
-        //Button has no persisted state, this is just the payload sent out on a press
-        gr::Annotated<bool, "current_val"> current_val = true;
+        gr::Annotated<bool, "current_val", gr::Visible> current_val = true;
 
         gr::PortOut<bool> out;
 
         //Lamdas for updating variable being controlled
-        //Lamda for updating value, this is the only thing that actually ties the button to the flowgraph
+        //Lamda for updating value
         std::function<void(bool)> on_val_update = nullptr;
-        //NOTE: No get_external_val here, a pulse button has no state to reconcile against
+        //Lamda for getting value from flowgraph
+        std::function<bool()> get_external_val = nullptr;
 
         //ZMQ related variables
         zmq::context_t zmq_ctx{1};
@@ -46,7 +46,10 @@ namespace gr::dashboard_blocks {
         zmq::socket_t subscriber;
 
         private:
-        //Helper function for publishing the press pulse out to other dashboard instances
+        //Track whats the last value that has been published
+        bool lastPublishedValue = current_val.value;
+
+        //Helper function for publishing variable
         void publishCurrentVal() {
             
             //Append unique identifier for widget packets (For widgets its directly their widgets ID)
@@ -62,6 +65,8 @@ namespace gr::dashboard_blocks {
             
             //Publish
             publisher.send(z_msg, zmq::send_flags::dontwait);
+            //Update last published value
+            lastPublishedValue = current_val.value;
         }
 
         public:
@@ -72,7 +77,7 @@ namespace gr::dashboard_blocks {
             imGUI_DashboardRegistry::getInstance().register_imGUI_block([this]() -> std::string {
                 std::string json_data = "{";
                 json_data += "\"id\": \"" + this->widget_id.value + "\", ";
-                json_data += "\"type\": \"button\", ";           
+                json_data += "\"type\": \"checkBox\", ";           
                 json_data += "\"target\": \"" + this->target_property.value + "\"";
                 json_data += "}";
                 return json_data;
@@ -128,36 +133,58 @@ namespace gr::dashboard_blocks {
                 if (delim != std::string::npos) {
 
                     std::string target = raw_dashBoard_server_message.substr(0, delim);
-
-                    //A pulse button has nothing to sync, so no SERVER branch here, only reacts to its own presses
-                    if (target == widget_id.value) {
+                    //Check if its a SERVER sync message 
+                    if (target == "SERVER") {
+                        //TO DO: Remove Debug Message
+                        std::cout << "I Have recieved a server message" << "\n";
+                        if (publisher) {
+                            publishCurrentVal();
+                            //TO DO: Remove Debug Message
+                            std::cout << "Message has been published to the dashboard_server" << "\n";
+                        }
+                    }
+                    //Check if its just an update from the flowgraph
+                    else if (target == widget_id.value) {
                         try {
                             std::string payload = raw_dashBoard_server_message.substr(delim + 1, raw_dashBoard_server_message.length());
 
-                            //TO DO: Anything other than exactly "true" is treated as not a press and ignored
-                            if (payload == "true") {
+                            //TO DO: This may be an issue, since any malformed payload would also default to false
+                            //Hopefully unlikely issue but should be checked up on
+                            bool parsed_val = (payload == "true");
 
-                                //TO DO: Remove Debug Message
-                                std::cout << "I Have recieved a button press" << "\n";
 
-                                //Update value in the flowgraph through lamda, this is the only real effect of the button
-                                if (this->on_val_update) {
-                                    this->on_val_update(true);
-                                }
-
-                                //Let every other dashboard instance know a press happened
-                                if (publisher) {
-                                    publishCurrentVal();
-                                }
-
-                                //TO DO: Remove Debug Message
-                                std::cout << "Message has been published to the dashboard_server" << "\n";
+                            
+                            //Update value in the flowgraph through lamda
+                            if (this->on_val_update) {
+                                this->on_val_update(parsed_val);
                             }
+
+                            //Update the current value of the parameter in the widget 
+                            current_val.value = parsed_val;
+                            //Update all flowgraph instances
+                            //TO DO: This function call is technically not necessary as it would be caught bu the publishCurrent value in the if statement below
+                            publishCurrentVal();
+
+                            //TO DO: Remove Debug Message
+                            std::cout << "Message has been published to the dashboard_server" << "\n";
                         }
                         catch (const std::exception& e) {
                         }
                     }
                 }
+            }
+
+            //This if statement is for checking updates coming from the flowgraph itself
+            //Check the current state of the variable in the flowgraph
+            if (this->get_external_val) {
+                bool current_flowgraph_val = this->get_external_val();
+                if (current_flowgraph_val != current_val.value) { current_val.value = current_flowgraph_val; }
+            }
+
+            //This piece of code will only be
+            //Catches an difference between the current value and the published value
+            if (current_val.value != lastPublishedValue) {
+                publishCurrentVal();
             }
 
             std::fill_n(output.data(), nSamples, current_val.value);
@@ -169,6 +196,6 @@ namespace gr::dashboard_blocks {
 } // namespace gr::dashboard_blocks
 
 
-GR_REGISTER_BLOCK("gr::dashboard_blocks::dep_imGUI_button", gr::dashboard_blocks::dep_imGUI_button, [bool])
+GR_REGISTER_BLOCK("gr::dashboard_blocks::dep_imGUI_checkBox", gr::dashboard_blocks::dep_imGUI_checkBox, [bool])
 
 #endif
