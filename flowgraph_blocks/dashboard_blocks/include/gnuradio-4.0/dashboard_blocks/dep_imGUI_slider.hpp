@@ -68,7 +68,7 @@ namespace gr::dashboard_blocks {
             imGUI_DashboardRegistry::getInstance().register_imGUI_block([this]() -> std::string {
                 std::string json_data = "{";
                 json_data += "\"id\": \"" + this->widget_id.value + "\", ";
-                json_data += "\"type\": \"widget\", ";
+                json_data += "\"type\": \"slider\", ";
                 json_data += "\"target\": \"" + this->target_property.value + "\"";
                 json_data += "}";
                 return json_data;
