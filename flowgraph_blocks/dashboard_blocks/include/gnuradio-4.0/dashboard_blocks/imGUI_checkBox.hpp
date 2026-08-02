@@ -32,7 +32,7 @@ namespace gr::dashboard_blocks {
 
         gr::Annotated<bool, "current_val", gr::Visible> current_val = true;
 
-        gr::PortOut<bool> out;
+        gr::PortOut<uint8_t> out;
 
         //Lamdas for updating variable being controlled
         //Lamda for updating value
@@ -148,9 +148,12 @@ namespace gr::dashboard_blocks {
                         try {
                             std::string payload = raw_dashBoard_server_message.substr(delim + 1, raw_dashBoard_server_message.length());
 
+                            //TO DO: Remove Debug Message
+                            std::cout << "[CheckBox] Raw payload received: '" << payload << "'" << std::endl;
                             //TO DO: This may be an issue, since any malformed payload would also default to false
                             //Hopefully unlikely issue but should be checked up on
-                            bool parsed_val = (payload == "true");
+                            float raw_val = std::stof(payload);
+                            bool parsed_val = (raw_val != 0.0f);
 
 
                             
@@ -187,7 +190,7 @@ namespace gr::dashboard_blocks {
                 publishCurrentVal();
             }
 
-            std::fill_n(output.data(), nSamples, current_val.value);
+            std::fill_n(output.data(), nSamples, static_cast<std::uint8_t>(current_val.value));
             output.publish(nSamples);
             return gr::work::Status::OK;
         }

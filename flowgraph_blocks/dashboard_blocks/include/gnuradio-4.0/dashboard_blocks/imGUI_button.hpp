@@ -33,7 +33,7 @@ namespace gr::dashboard_blocks {
         //Button has no persisted state, this is just the payload sent out on a press
         gr::Annotated<bool, "current_val"> current_val = true;
 
-        gr::PortOut<bool> out;
+        gr::PortOut<uint8_t> out;
 
         //Lamdas for updating variable being controlled
         //Lamda for updating value, this is the only thing that actually ties the button to the flowgraph
@@ -134,8 +134,12 @@ namespace gr::dashboard_blocks {
                         try {
                             std::string payload = raw_dashBoard_server_message.substr(delim + 1, raw_dashBoard_server_message.length());
 
+                            //TO DO: Remove Debug Message
+                            std::cout << "[CheckBox] Raw payload received: '" << payload << "'" << std::endl;
+                            float raw_val = std::stof(payload);
+
                             //TO DO: Anything other than exactly "true" is treated as not a press and ignored
-                            if (payload == "true") {
+                            if (raw_val != 0.0f) {
 
                                 //TO DO: Remove Debug Message
                                 std::cout << "I Have recieved a button press" << "\n";
@@ -160,7 +164,7 @@ namespace gr::dashboard_blocks {
                 }
             }
 
-            std::fill_n(output.data(), nSamples, current_val.value);
+            std::fill_n(output.data(), nSamples, static_cast<std::uint8_t>(current_val.value));
             output.publish(nSamples);
             return gr::work::Status::OK;
         }

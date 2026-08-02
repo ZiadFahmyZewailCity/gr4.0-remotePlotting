@@ -107,7 +107,7 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
                     //Extract ID, give a fallback if id not found
                     new_dashboardElement.id = item.value("id", "unknown_id");
                     //Extract title, give fallback if title not found
-                    new_dashboardElement.title = item.value("title", "Untitled Dashboard element");
+                    new_dashboardElement.title = new_dashboardElement.id;
                     //Extract data source, give fallback if data_source not found
                     new_dashboardElement.data_source = item.value("data_source", "");
                 
