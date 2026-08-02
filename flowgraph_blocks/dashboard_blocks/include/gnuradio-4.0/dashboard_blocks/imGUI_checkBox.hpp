@@ -18,7 +18,7 @@
 namespace gr::dashboard_blocks {
 
     template <typename T>
-    struct dep_imGUI_button : gr::Block<dep_imGUI_button<T>> {
+    struct dep_imGUI_checkBox : gr::Block<dep_imGUI_checkBox<T>> {
 
         //TO DO: Add a proper description
         using Description = gr::Doc<R""()"">;
@@ -71,8 +71,8 @@ namespace gr::dashboard_blocks {
 
         public:
 
-        dep_imGUI_button(gr::property_map initial_settings = {})
-            : gr::Block<dep_imGUI_button<T>>(initial_settings)
+        dep_imGUI_checkBox(gr::property_map initial_settings = {})
+            : gr::Block<dep_imGUI_checkBox<T>>(initial_settings)
         {
             imGUI_DashboardRegistry::getInstance().register_imGUI_block([this]() -> std::string {
                 std::string json_data = "{";
@@ -85,7 +85,7 @@ namespace gr::dashboard_blocks {
         }
 
         
-        GR_MAKE_REFLECTABLE(dep_imGUI_button, out, widget_id, target_property, endpoint, dashboard_server, current_val);
+        GR_MAKE_REFLECTABLE(dep_imGUI_checkBox, out, widget_id, target_property, endpoint, dashboard_server, current_val);
 
         //ZMQ subscriber to the ZMQ publisher in the dashboard_server graph for updating widgets
         void start() {

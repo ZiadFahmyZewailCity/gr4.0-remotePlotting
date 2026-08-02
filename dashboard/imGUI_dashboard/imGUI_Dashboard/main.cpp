@@ -14,11 +14,8 @@
 #include <emscripten/websocket.h>
 
 
-
-
 #include <iostream>
 #include <math.h>
-#include <nlohmann/detail/input/parser.hpp>
 #include <string>
 #include <vector>
 #include <cstring> // Added for std::memcpy
@@ -50,7 +47,7 @@ EM_JS(char*, get_websocket_url, (), {
 
 
 //Structs for dashboard elements 
-enum class dashboardElementType { TIME_SERIES, SLIDER, TEXT_LABEL, FREQUENCY_SINK, BUTTON };
+enum class dashboardElementType { TIME_SERIES, SLIDER, TEXT_LABEL, FREQUENCY_SINK, BUTTON, CHECKBOX };
 
 //Simplified dashboard element struct
 struct dashboardElement {
@@ -146,6 +143,9 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
                     }
                     else if (item["type"] == "button") {
                         new_dashboardElement.type = dashboardElementType::BUTTON;
+                    }
+                    else if (item["type"] == "checkBox") {
+                        new_dashboardElement.type = dashboardElementType::CHECKBOX;
                     }
                     //Text
                     else if (item["type"] == "text") {
@@ -305,7 +305,7 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
                                         memcpy(&slider_update, websocketEvent->data + data_offset ,sizeof(float));
 
                                         //TO DO: Remove this is for debugging
-                                        std::cout << "[UI LOGIC] Matched Button: '" << object.id 
+                                        std::cout << "[UI LOGIC] Matched Slider: '" << object.id 
                                                 << "' | Value parsed: " << slider_update 
                                                 << " | is_being_edited: " << (object.is_being_edited ? "TRUE (Blocked)" : "FALSE (Updating)") 
                                                 << std::endl;
@@ -346,16 +346,51 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
                                         bool button_update = false;
                                         //Copy new value into slider update
                                         memcpy(&button_update, websocketEvent->data + data_offset ,sizeof(bool));
+                                        
+                                        //Button has no persisted state, this is just notification to say that another dashboard 
+                                        //instance has pressed the button
+                                        std::cout << "[UI LOGIC] Button pressed elsewhere: '" << object.id << "'" << std::endl;
+
+                                    }
+
+                                break;
+
+
+                            }
+                        }
+                        else if (object.type == dashboardElementType::CHECKBOX){
+
+                            size_t topic_len = object.id.size();
+                            // Match incoming binary packet header against this plot's topic ID
+                            // Checks if buffer has more bytes than the length of the id
+                            // Then compare the first N bytes (Length of the ID) of the packet with the ID of the plot 
+                            if (websocketEvent->numBytes > topic_len && 
+                                std::strncmp((const char*)websocketEvent->data, object.id.c_str(), topic_len) == 0) {
+                                
+
+                                size_t data_offset = topic_len;
+                                // Move data offset past the delimter 
+                                // TO DO: Consider using reinterpret_cast instead of c-style cast
+                                if (data_offset < websocketEvent->numBytes && (((const char*)websocketEvent->data)[data_offset] == ':'))
+                                    data_offset++;
+                                
+                                    //Check length to see if its valid
+                                    int valid_payload_bytes = websocketEvent->numBytes - data_offset;
+                                    if(valid_payload_bytes >= sizeof(bool)){
+                                              
+                                        bool checkBox_update = false;
+                                       //Copy new value into checkbox update
+                                        memcpy(&checkBox_update, websocketEvent->data + data_offset ,sizeof(bool));
 
                                         //TO DO: Remove this is for debugging
-                                        std::cout << "[UI LOGIC] Matched Slider: '" << object.id 
-                                                << "' | Value parsed: " << button_update 
+                                        std::cout << "[UI LOGIC] Matched CheckBox: '" << object.id 
+                                                << "' | Value parsed: " << checkBox_update 
                                                 << " | is_being_edited: " << (object.is_being_edited ? "TRUE (Blocked)" : "FALSE (Updating)") 
                                                 << std::endl;
 
 
                                         if (!object.is_being_edited && object.edit_cooldown == 0) {
-                                            object.current_val_bool = button_update;
+                                            object.current_val_bool = checkBox_update;
                                         }
 
                                     }
@@ -364,6 +399,8 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
 
 
                             }
+
+                            
                         }
                 }
 
@@ -487,8 +524,24 @@ void main_loop(){
                     }
                     else if (object.type == dashboardElementType::BUTTON) {
                         //No checkbox specific to implot so use ImGui here
-                        if(ImGuI::CheckBox(Object.title.c_str(), &object.current_val_bool)){
+                        if(ImGui::Button(object.title.c_str())){
                             
+                            // Package the ID of the widget and the value into a JSON object
+                            nlohmann::json command_msg;
+                            command_msg["target"] = object.id;          
+                            command_msg["value"]  = true; 
+                            
+                            // Convert to string and send
+                            std::string payload = command_msg.dump();
+                            emscripten_websocket_send_utf8_text(g_WebSocket, payload.c_str());
+                            
+                        }
+
+                    }
+                    else if (object.type == dashboardElementType::CHECKBOX){
+                        //No checkbox specific to implot so just use the one which comes from ImGui
+                        if(ImGui::Checkbox(object.title.c_str(), &object.current_val_bool)){
+                        
                             // Package the ID of the widget and the value into a JSON object
                             nlohmann::json command_msg;
                             command_msg["target"] = object.id;          
@@ -497,21 +550,20 @@ void main_loop(){
                             // Convert to string and send
                             std::string payload = command_msg.dump();
                             emscripten_websocket_send_utf8_text(g_WebSocket, payload.c_str());
-                            
                         }
-
-                        //To avoid flickering of the button
+ 
+                        //Debouncing
                         object.is_being_edited = ImGui::IsItemActive();
                         if (object.is_being_edited) {
                             object.edit_cooldown = 60;
                         }
-                        
+ 
                         if (!object.is_being_edited && object.edit_cooldown > 0) {
                             object.edit_cooldown--;
-                        }
+                        }   
 
+                        
                     }
-                    
                     ImGui::Spacing();
                 }
             }
