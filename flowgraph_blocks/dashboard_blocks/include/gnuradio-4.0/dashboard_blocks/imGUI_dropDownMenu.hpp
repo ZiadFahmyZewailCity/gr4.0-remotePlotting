@@ -62,7 +62,7 @@ namespace gr::dashboard_blocks {
 
         private:
         //Track whats the last value that has been published
-        int lastPublishedValue = current_val.value;
+        uint8_t lastPublishedValue = current_val.value;
 
         //Helper function for publishing variable
         void publishCurrentVal() {
@@ -92,8 +92,8 @@ namespace gr::dashboard_blocks {
             imGUI_DashboardRegistry::getInstance().register_imGUI_block([this]() -> std::string {
                 std::string json_data = "{";
                 json_data += "\"id\": \"" + this->widget_id.value + "\", ";
-                json_data += "\"type\": \"dropDownMenu\", ";           // TODO: confirm widget type tag matches frontend
-                json_data += "\"target\": \"" + this->target_property.value + "\"";
+                json_data += "\"type\": \"dropdown\", ";           // TODO: confirm widget type tag matches frontend
+                json_data += "\"target\": \"" + this->target_property.value + "\",";
                 
                 //Create a list of options 
                 json_data += "\"options\": [";
@@ -182,11 +182,16 @@ namespace gr::dashboard_blocks {
                             //TO DO: Remove Debug Message
                             std::cout << "Selected_index" << ":" << selected_index << "\n";
 
-                            if (this->on_val_update) {
-                                this->on_val_update(options.value[selected_index]);
+                            if (selected_index < 0 || static_cast<std::size_t>(selected_index) >= options.value.size()){
+                                //Ignore 
+                            } 
+                            else {
+                                this->on_val_update(options.value[static_cast<std::size_t>(selected_index)]);
+                                current_val.value = static_cast<uint8_t>(selected_index);
+                                publishCurrentVal();
                             }
 
-                            current_val.value = selected_index;
+                            current_val.value = static_cast<uint8_t>(selected_index);
                             publishCurrentVal();
 
                             //TO DO: Remove Debug Message
@@ -210,7 +215,7 @@ namespace gr::dashboard_blocks {
                     if (options.value[i] == current_flowgraph_val) {
                         
                         //If they dont match, set the current value to this index
-                        if (static_cast<int>(i) != current_val.value) { current_val.value = static_cast<int>(i); }
+                        if (static_cast<int>(i) != current_val.value) { current_val.value = static_cast<uint8_t>(i); }
                         break;
                     }
                 }
@@ -231,6 +236,6 @@ namespace gr::dashboard_blocks {
 } // namespace gr::dashboard_blocks
 
 // TODO: rename registration, set correct type list (e.g. [float], [bool], [int])
-GR_REGISTER_BLOCK("gr::dashboard_blocks::dep_imGUI_<<widget_name>>", gr::dashboard_blocks::dep_imGUI_<<widget_name>>, [float])
+GR_REGISTER_BLOCK("gr::dashboard_blocks::imGUI_dropDownMenu", gr::dashboard_blocks::imGUI_dropDownMenu>>, [float])
 
 #endif

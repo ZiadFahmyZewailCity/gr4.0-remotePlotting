@@ -6,6 +6,7 @@
 #include <gnuradio-4.0/dashboard_blocks/imGUI_button.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_checkBox.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_frequencySink.hpp>
+#include <gnuradio-4.0/dashboard_blocks/imGUI_dropDownMenu.hpp>
 
 namespace basicBlocks = gr::basic;
 namespace testing = gr::testing;
@@ -70,6 +71,15 @@ int main() {
     auto& checkBox_drain = graph.emplaceBlock<testing::NullSink<uint8_t>>();
     auto& button_drain   = graph.emplaceBlock<testing::NullSink<uint8_t>>();
 
+    auto& dropdown_src = graph.emplaceBlock<dashboardBlocks::imGUI_dropDownMenu<uint8_t>>();
+    dropdown_src.widget_id = "freq_dropdown";
+    dropdown_src.target_property = "frequency";
+    dropdown_src.options = std::vector<std::string>{"Low", "High"};
+
+
+    // 8. Dummy drain for the dropdown, same reason as checkbox/button drains
+    auto& dropdown_drain = graph.emplaceBlock<testing::NullSink<uint8_t>>();
+
     // Shared state that both widgets drive - true = FREQ_HIGH, false = FREQ_LOW
     bool freq_toggle_state = false;
 
@@ -103,6 +113,15 @@ int main() {
         apply_freq_toggle(freq_toggle_state);
     };
 
+    // Drop Down menu testing
+    dropdown_src.on_val_update = [&freq_toggle_state, apply_freq_toggle](std::string selected_option) {
+        freq_toggle_state = (selected_option == "High");
+        apply_freq_toggle(freq_toggle_state);
+    };
+    dropdown_src.get_external_val = [&freq_toggle_state]() -> std::string {
+        return freq_toggle_state ? "High" : "Low";
+    };
+
     /*
     Connect Downlink: Source -> Throttle -> imGUI_frequencySink
     */
@@ -121,6 +140,8 @@ int main() {
     auto button_to_drain = graph.connect<"out", "in">(button_src, button_drain);
     if (!button_to_drain.has_value()) { return 1; }
 
+    auto dropdown_to_drain = graph.connect<"out", "in">(dropdown_src, dropdown_drain);
+    if (!dropdown_to_drain.has_value()) { return 1; }
 
     /*
     Pass the graph to the scheduler and run indefinitely.

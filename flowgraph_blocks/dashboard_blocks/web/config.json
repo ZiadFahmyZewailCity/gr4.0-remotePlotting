@@ -21,6 +21,15 @@
           "id": "freq_button",
           "type": "button",
           "target": "current_val"
+        },
+        {
+          "id": "freq_dropdown",
+          "type": "dropdown",
+          "target": "frequency",
+          "options": [
+            "Low",
+            "High"
+          ]
         }
       ]
     }
