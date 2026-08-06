@@ -18,9 +18,6 @@
 #include <functional>
 
 
-//TEMPLATE MADE FOR HELPING CREATE WIDGETS FASTER
-
-
 
 namespace gr::dashboard_blocks {
 

@@ -47,7 +47,7 @@ EM_JS(char*, get_websocket_url, (), {
 
 
 //Structs for dashboard elements 
-enum class dashboardElementType { TIME_SERIES, SLIDER, TEXT_LABEL, FREQUENCY_SINK, BUTTON, CHECKBOX, DROPDOWN };
+enum class dashboardElementType { TIME_SERIES, SLIDER, TEXT_LABEL, FREQUENCY_SINK, BUTTON, CHECKBOX, DROPDOWN, TEXTBOX };
 
 //Simplified dashboard element struct
 struct dashboardElement {
@@ -78,6 +78,10 @@ struct dashboardElement {
     float sample_rate = 1.0f;
     double start_freq = 0.0;
     double step_freq = 1.0;
+
+    //String Data for textLabel and textBox
+    std::string string_current_text = " ";
+    char text_buffer[512] = {0};
 
 };
 
@@ -167,6 +171,9 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
                                 std::cout << option_str << "\n";
                             }
                         }
+                    }
+                    else if (item["type"] == "textBox"){
+                        new_dashboardElement.type = dashboardElementType::TEXTBOX;
                     }
                     //Text
                     else if (item["type"] == "text") {
@@ -658,12 +665,28 @@ void main_loop(){
                         }
 
                     }
+                    else if (object.type == dashboardElementType::TEXTBOX){
+                        
+                        //Returns true when user presses enter
+                        if (ImGui::InputText(object.title.c_str(), object.text_buffer, sizeof(object.text_buffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
+                            
+                            object.string_current_text = std::string(object.text_buffer);
+                            
+                            nlohmann::json command_msg;
+                            command_msg["target"] = object.id;          
+                            command_msg["value"]  = object.string_current_text; 
+                            
+                            std::string payload = command_msg.dump();
+                            emscripten_websocket_send_utf8_text(g_WebSocket, payload.c_str());
+                        }
+                    }
+                    }
                     ImGui::Spacing();
                 }
             }
             ImGui::End();
         }
-    }
+    
 
     // Render the graphics
     ImGui::Render();

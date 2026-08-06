@@ -13,23 +13,13 @@
           "frequencySink_dataSource": "Magnitudes"
         },
         {
-          "id": "freq_checkBox",
-          "type": "checkBox",
+          "id": "slider_freq",
+          "type": "slider",
           "target": "current_val"
         },
         {
-          "id": "freq_button",
-          "type": "button",
-          "target": "current_val"
-        },
-        {
-          "id": "freq_dropdown",
-          "type": "dropdown",
-          "target": "frequency",
-          "options": [
-            "Low",
-            "High"
-          ]
+          "id": "text_input_1",
+          "type": "textBox"
         }
       ]
     }
