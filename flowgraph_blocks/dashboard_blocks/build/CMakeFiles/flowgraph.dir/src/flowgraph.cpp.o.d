@@ -545,8 +545,8 @@ CMakeFiles/flowgraph.dir/src/flowgraph.cpp.o: \
  /usr/include/x86_64-linux-gnu/bits/types/struct_sigstack.h \
  /usr/include/x86_64-linux-gnu/bits/sigthread.h \
  /usr/include/x86_64-linux-gnu/bits/signal_ext.h \
- /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/dep_imGUI_slider.hpp \
- /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/frequency_modulator.hpp \
+ /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_button.hpp \
+ /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_checkBox.hpp \
  /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_frequencySink.hpp \
  /usr/local/include/gnuradio-4.0/fourier/fft.hpp \
  /usr/include/c++/14/execution \
@@ -574,4 +574,5 @@ CMakeFiles/flowgraph.dir/src/flowgraph.cpp.o: \
  /usr/local/include/vir/simd_cvt.h /usr/local/include/vir/simdize.h \
  /usr/local/include/gnuradio-4.0/algorithm/fourier/fft_common.hpp \
  /usr/local/include/gnuradio-4.0/algorithm/fourier/window.hpp \
+ /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_dropDownMenu.hpp \
  /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_textBox.hpp

@@ -3,9 +3,10 @@
 
 CMakeFiles/flowgraph.dir/src/flowgraph.cpp.o
  /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/src/flowgraph.cpp
- /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/dep_imGUI_slider.hpp
  /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/dep_imGUI_timeSeries.hpp
- /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/frequency_modulator.hpp
+ /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_button.hpp
+ /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_checkBox.hpp
+ /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_dropDownMenu.hpp
  /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_frequencySink.hpp
  /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_management.hpp
  /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_textBox.hpp
