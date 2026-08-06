@@ -47,7 +47,7 @@ EM_JS(char*, get_websocket_url, (), {
 
 
 //Structs for dashboard elements 
-enum class dashboardElementType { TIME_SERIES, SLIDER, TEXT_LABEL, FREQUENCY_SINK, BUTTON, CHECKBOX };
+enum class dashboardElementType { TIME_SERIES, SLIDER, TEXT_LABEL, FREQUENCY_SINK, BUTTON, CHECKBOX, DROPDOWN };
 
 //Simplified dashboard element struct
 struct dashboardElement {
@@ -67,6 +67,11 @@ struct dashboardElement {
     // Tracks if the user is holding down the mouse on this widget
     bool is_being_edited = false; 
     int edit_cooldown = 0;
+
+    //DropDown widget options
+    std::vector<std::string> options;
+    int current_val_int = 0;
+
 
     // FREQUENCY SINK PARAMS
     int windowSize = 1024;
@@ -146,6 +151,22 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
                     }
                     else if (item["type"] == "checkBox") {
                         new_dashboardElement.type = dashboardElementType::CHECKBOX;
+                    }
+                    else if (item["type"] == "dropdown"){
+                        new_dashboardElement.type = dashboardElementType::DROPDOWN;
+
+                        //Attach list of options to the dropDown menu dashBoard element
+                        //To do, should create a fall back list
+                        if(item.contains("options")){
+                            //Iterate for the json objects in option
+                            for(auto& option : item["options"]){
+                                //Convert to a string
+                                std::string option_str = option.get<std::string>();
+                                new_dashboardElement.options.push_back(option_str);
+                                //TO DO: for debugging remove later
+                                std::cout << option_str << "\n";
+                            }
+                        }
                     }
                     //Text
                     else if (item["type"] == "text") {
@@ -402,13 +423,52 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
 
                             
                         }
+                        else if (object.type == dashboardElementType::DROPDOWN){
+ 
+                        size_t topic_len = object.id.size();
+                        // Match incoming binary packet header against this plot's topic ID
+                        // Checks if buffer has more bytes than the length of the id
+                        // Then compare the first N bytes (Length of the ID) of the packet with the ID of the plot 
+                        if (websocketEvent->numBytes > topic_len && 
+                            std::strncmp((const char*)websocketEvent->data, object.id.c_str(), topic_len) == 0) {
+                            
+
+                            size_t data_offset = topic_len;
+                            // Move data offset past the delimter 
+                            // TO DO: Consider using reinterpret_cast instead of c-style cast
+                            if (data_offset < websocketEvent->numBytes && (((const char*)websocketEvent->data)[data_offset] == ':'))
+                                data_offset++;
+                            
+                                //Check length to see if its valid
+                                int valid_payload_bytes = websocketEvent->numBytes - data_offset;
+                                if(valid_payload_bytes >= sizeof(int)){
+
+                                    int dropdown_update = 0;
+                                    //Copy new selected index into dropdown update
+                                    memcpy(&dropdown_update, websocketEvent->data + data_offset ,sizeof(int));
+
+                                    //TO DO: Remove this is for debugging
+                                    std::cout << "[UI LOGIC] Matched Dropdown: '" << object.id 
+                                            << "' | Index parsed: " << dropdown_update 
+                                            << " | is_being_edited: " << (object.is_being_edited ? "TRUE (Blocked)" : "FALSE (Updating)") 
+                                            << std::endl;
+
+                                    if (!object.is_being_edited && object.edit_cooldown == 0 &&
+                                        dropdown_update >= 0 && dropdown_update < (int)object.options.size()) {
+                                        object.current_val_int = dropdown_update;
+                                    }
+ 
+                            }
+                            
+                        }
                 }
 
             return EM_TRUE;
         }
-            }
+        }
 
     return EM_TRUE;
+}
 }
 
 //All function calls needed to create a frame call in the beginning 
@@ -563,6 +623,40 @@ void main_loop(){
                         }   
 
                         
+                    }
+                    else if (object.type == dashboardElementType::DROPDOWN){
+
+                        //Checks the options list was correctly created (Exists)
+                        if(!object.options.empty()){
+                            //The dashboard used ImGui combo which requires a const char* array, this is built each frame currently
+                            //should be a very negligiable amount of overhead
+                            std::vector<const char*> items;
+
+                            //Reserve the space required right away instead of having each push_back allocate it for a bit of optimization in the main loop
+                            items.reserve(object.options.size());
+
+
+                            //Converting each option to the const char* and placing in the vector
+                            for (auto& option: object.options) { 
+                                items.push_back(option.c_str()); 
+                            }
+
+                            if(ImGui::Combo(object.title.c_str(),&object.current_val_int, items.data(), (int)items.size())){
+
+                                // Package the ID of the widget and the selected INDEX into a JSON object
+                                nlohmann::json command_msg;
+                                command_msg["target"] = object.id;
+                                command_msg["value"]  = object.current_val_int;
+ 
+                                // Convert to string and send
+                                std::string payload = command_msg.dump();
+                                emscripten_websocket_send_utf8_text(g_WebSocket, payload.c_str());
+                            }
+                        }
+                        else {
+                                ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "No options configured for this dropdown");
+                        }
+
                     }
                     ImGui::Spacing();
                 }
