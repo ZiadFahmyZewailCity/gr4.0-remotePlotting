@@ -575,4 +575,5 @@ CMakeFiles/flowgraph.dir/src/flowgraph.cpp.o: \
  /usr/local/include/gnuradio-4.0/algorithm/fourier/fft_common.hpp \
  /usr/local/include/gnuradio-4.0/algorithm/fourier/window.hpp \
  /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_dropDownMenu.hpp \
- /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_textBox.hpp
+ /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_textBox.hpp \
+ /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_textLabel.hpp

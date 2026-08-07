@@ -20,7 +20,7 @@
         {
           "id": "freq_button",
           "type": "button",
-          "target": "current_val"
+          "target": "button_current_val"
         },
         {
           "id": "freq_dropdown",
@@ -34,6 +34,11 @@
         {
           "id": "text_input_1",
           "type": "textBox"
+        },
+        {
+          "id": "freq_label",
+          "type": "textLabel",
+          "target": "text_current_val"
         }
       ]
     }

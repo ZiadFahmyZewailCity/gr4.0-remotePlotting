@@ -8,6 +8,9 @@
 #include <gnuradio-4.0/dashboard_blocks/imGUI_frequencySink.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_dropDownMenu.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_textBox.hpp>
+#include <gnuradio-4.0/dashboard_blocks/imGUI_textLabel.hpp>
+#include <sstream>
+#include <iomanip>
 
 
 namespace basicBlocks = gr::basic;
@@ -86,6 +89,13 @@ int main() {
     //Dummy drain for TextBox
     auto& text_drain = graph.emplaceBlock<testing::NullSink<float>>();
 
+    // Text Label - displays whatever frequency is currently active, updated by the flowgraph
+    auto& freq_label = graph.emplaceBlock<dashboardBlocks::imGUI_textLabel<uint8_t>>();
+    freq_label.widget_id = "freq_label";
+
+    //Dummy drain for the text label, same reason as the other widget drains
+    auto& freq_label_drain = graph.emplaceBlock<testing::NullSink<uint8_t>>();
+
 
     // 8. Dummy drain for the dropdown, same reason as checkbox/button drains
     auto& dropdown_drain = graph.emplaceBlock<testing::NullSink<uint8_t>>();
@@ -112,6 +122,7 @@ int main() {
     checkBox_src.on_val_update = [&freq_toggle_state, apply_freq_toggle](bool new_state) {
         freq_toggle_state = new_state;
         apply_freq_toggle(freq_toggle_state);
+        std::cout << freq_toggle_state << "\n";
     };
     checkBox_src.get_external_val = [&freq_toggle_state]() -> bool {
         return freq_toggle_state;
@@ -119,8 +130,10 @@ int main() {
 
     // Button has no state of its own, a press just flips whatever the shared state currently is
     button_src.on_val_update = [&freq_toggle_state, apply_freq_toggle](bool) {
+        
         freq_toggle_state = !freq_toggle_state;
         apply_freq_toggle(freq_toggle_state);
+        std::cout << freq_toggle_state << "\n";
     };
 
     // Drop Down menu testing
@@ -137,6 +150,13 @@ int main() {
         std::cout << "\n========================================\n";
         std::cout << "[TextBox] User Input Received: " << msg << "\n";
         std::cout << "========================================\n" << std::endl;
+    };
+
+    // Text Label has no on_val_update, its display only - just reports whatever the source's frequency currently is
+    freq_label.get_external_val = [&source]() -> std::string {
+        std::ostringstream oss;
+        oss << "Current Frequency: " << std::fixed << std::setprecision(2) << source.frequency << " Hz";
+        return oss.str();
     };
 
     /*
@@ -162,6 +182,9 @@ int main() {
 
     auto text_to_drain = graph.connect<"out", "in">(text_box, text_drain);
     if (!text_to_drain.has_value()) { return 1; }
+
+    auto freq_label_to_drain = graph.connect<"out", "in">(freq_label, freq_label_drain);
+    if (!freq_label_to_drain.has_value()) { return 1; }
 
 
     /*

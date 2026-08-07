@@ -145,6 +145,12 @@ void DashboardServer::on_message(connection_hdl hdl, server::message_ptr msg){
             std::string str_val = json_cmd["value"].get<std::string>();
             zmq_frame += str_val;
         } 
+        else if (json_cmd["value"].is_boolean()) {
+
+            bool bool_val = json_cmd["value"].get<bool>();
+            zmq_frame += (bool_val ? "1" : "0");
+
+        }
 
 
         dispatch_internal_message(zmq_frame);

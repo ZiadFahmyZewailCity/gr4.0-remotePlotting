@@ -31,7 +31,7 @@ namespace gr::dashboard_blocks {
         gr::Annotated<std::string, "widget_id", gr::Visible> widget_id = "dropDownMenu_default";
 
         //Ptr to a vector of the names of the options
-        gr::Annotated<std::string, "target_property", gr::Visible> target_property = "current_val";
+        gr::Annotated<std::string, "target_property", gr::Visible> target_property = "box_current_val";
 
         gr::Annotated<std::string, "zmq_endpoint"> endpoint = "tcp://127.0.0.1:5556";
         gr::Annotated<std::string, "zmq_SUB_dashboard_server", gr::Visible> dashboard_server = "tcp://127.0.0.1:5555";

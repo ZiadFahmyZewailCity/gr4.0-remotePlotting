@@ -25,7 +25,7 @@ namespace gr::dashboard_blocks {
 
         //Widget ID (Must be given a unique id by user)
         gr::Annotated<std::string, "widget_id", gr::Visible> widget_id = "imGUI_button";
-        gr::Annotated<std::string, "target_property", gr::Visible> target_property = "current_val";
+        gr::Annotated<std::string, "target_property", gr::Visible> target_property = "button_current_val";
 
         gr::Annotated<std::string, "zmq_endpoint"> endpoint = "tcp://127.0.0.1:5556";
         gr::Annotated<std::string, "zmq_SUB_dashboard_server", gr::Visible> dashboard_server = "tcp://127.0.0.1:5555";
