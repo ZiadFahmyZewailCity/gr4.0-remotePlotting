@@ -5,12 +5,10 @@
       "panel_name": "GNU Radio 4.0 Live DSP",
       "dashboardElement": [
         {
-          "id": "freq_plot_1",
-          "type": "frequencySink",
-          "title": "freq_plot_1",
-          "windowSize": "1024",
-          "samplingFreq": "48000.000000",
-          "frequencySink_dataSource": "Magnitudes"
+          "id": "vector_plot_1",
+          "type": "vector",
+          "title": "vector_plot_1",
+          "vectorSize": "1024"
         },
         {
           "id": "freq_checkBox",

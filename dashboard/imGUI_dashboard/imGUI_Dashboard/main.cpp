@@ -47,7 +47,7 @@ EM_JS(char*, get_websocket_url, (), {
 
 
 //Structs for dashboard elements 
-enum class dashboardElementType { TIME_SERIES, SLIDER, TEXTLABEL, FREQUENCY_SINK, BUTTON, CHECKBOX, DROPDOWN, TEXTBOX };
+enum class dashboardElementType { TIME_SERIES, VECTOR_SINK , SLIDER, TEXTLABEL, FREQUENCY_SINK, BUTTON, CHECKBOX, DROPDOWN, TEXTBOX };
 
 //Simplified dashboard element struct
 struct dashboardElement {
@@ -146,6 +146,16 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
 
 
                     }
+                    else if (item["type"] == "vector"){
+
+                        new_dashboardElement.type = dashboardElementType::VECTOR_SINK;
+                        try {
+                            new_dashboardElement.windowSize = std::stoi(item.value("vectorSize", "256"));
+                        } catch (...){
+                            new_dashboardElement.windowSize = 256;
+                        }
+                        new_dashboardElement.databuffer.resize(new_dashboardElement.windowSize, 0.0f);
+                    }
                     //Widgets
                     else if (item["type"] == "slider") {
                         new_dashboardElement.type = dashboardElementType::SLIDER;
@@ -232,7 +242,9 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
         for (auto& panel : current_dashboard) {
             for (auto& object : panel.dashboardObjects) {
                 
-                if (object.type == dashboardElementType::TIME_SERIES || object.type == dashboardElementType::FREQUENCY_SINK) { 
+                if (object.type == dashboardElementType::TIME_SERIES 
+                    || object.type == dashboardElementType::FREQUENCY_SINK 
+                    || object.type == dashboardElementType::VECTOR_SINK) { 
                     
                     size_t topic_len = object.id.size();
                     
@@ -285,12 +297,12 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
 
                             }
                             //Frequency spectrum isnt a rolling buffer. Just replace previous buffr
-                            else if(object.type == dashboardElementType::FREQUENCY_SINK){
+                            else if(object.type == dashboardElementType::FREQUENCY_SINK || object.type == dashboardElementType::VECTOR_SINK){
 
                                     //TO DO: Remove this is for debugging
                                     static int dbg_counter = 0;
                                     if (dbg_counter++ % 60 == 0) {
-                                        std::cout << "[FREQ_SINK MATCH] id='" << object.id
+                                        std::cout << "[VECTOR BASED MATCH] id='" << object.id
                                                 << "' num_floats=" << num_floats
                                                 << " first8: ";
                                         for (int i = 0; i < std::min(num_floats, 8); i++)
@@ -585,6 +597,28 @@ void main_loop(){
                             else{
                                 ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Waiting for FFT telemetry stream...");
                             }
+                        }
+                        else if (object.type == dashboardElementType::VECTOR_SINK){
+                            if(!object.databuffer.empty()){
+                                std::string hidden_id = "##" + object.id;
+                            
+                                if(ImPlot::BeginPlot(object.title.c_str(),ImVec2(-1,250))) {
+                                    ImPlot::SetupAxes("Index","Value");
+
+                                    // Lock X-axis bounds to match the vector length
+                                    ImPlot::SetupAxisLimits(ImAxis_X1, 0, (double)object.databuffer.size(), ImPlotCond_Always);
+                                    ImPlot::SetupAxisLimits(ImAxis_Y1, -2.0, 2.0, ImPlotCond_Once);
+
+                                    // Render the vector values against indicies
+                                    ImPlot::PlotLine(hidden_id.c_str(), object.databuffer.data(), (int)object.databuffer.size());
+                                    ImPlot::EndPlot();
+                                } 
+                                
+                            }
+                            else {
+                                    ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Waiting for vector telemetry stream...");
+                            }
+                            
                         }
                         //Widgets
                         else if (object.type == dashboardElementType::SLIDER) { 
