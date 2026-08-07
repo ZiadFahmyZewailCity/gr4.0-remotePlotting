@@ -5,15 +5,40 @@
       "panel_name": "GNU Radio 4.0 Live DSP",
       "dashboardElement": [
         {
-          "id": "plot_1",
-          "type": "timeseries",
-          "title": "Real-Time Signal",
-          "data_source": "live_data"
+          "id": "freq_plot_1",
+          "type": "frequencySink",
+          "title": "freq_plot_1",
+          "windowSize": "1024",
+          "samplingFreq": "48000.000000",
+          "frequencySink_dataSource": "Magnitudes"
         },
         {
-          "id": "slider_freq",
-          "type": "widget",
+          "id": "freq_checkBox",
+          "type": "checkBox",
           "target": "current_val"
+        },
+        {
+          "id": "freq_button",
+          "type": "button",
+          "target": "button_current_val"
+        },
+        {
+          "id": "freq_dropdown",
+          "type": "dropdown",
+          "target": "frequency",
+          "options": [
+            "Low",
+            "High"
+          ]
+        },
+        {
+          "id": "text_input_1",
+          "type": "textBox"
+        },
+        {
+          "id": "freq_label",
+          "type": "textLabel",
+          "target": "text_current_val"
         }
       ]
     }

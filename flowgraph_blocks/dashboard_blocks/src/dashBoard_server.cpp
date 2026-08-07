@@ -126,10 +126,32 @@ void DashboardServer::on_message(connection_hdl hdl, server::message_ptr msg){
         
         //Find the widget
         std::string target_id = json_cmd.value("target", "");
-        //Find the value 
-        float val = json_cmd.value("value", 0.0f);
-        //Create the simple binary packet to be sent to the flowgraph
-        std::string zmq_frame = target_id + ":" + std::to_string(val);
+        
+        //This is the packet being sent
+        std::string zmq_frame = target_id + ":";
+
+        std::cout << "Code has changed " << "\n";
+
+        //Check if whats being rcved is a number or a string. As the textBox has to send a string it must be handled sepeartly as to not throw and error
+        if (json_cmd["value"].is_number()) {
+            
+            //Get value, appened it to the zmq_frame
+            float num_val = json_cmd["value"].get<float>();
+            zmq_frame += std::to_string(num_val);
+        } 
+        else if (json_cmd["value"].is_string()) {
+            
+            //Get the string, appened it to the zmq_frame
+            std::string str_val = json_cmd["value"].get<std::string>();
+            zmq_frame += str_val;
+        } 
+        else if (json_cmd["value"].is_boolean()) {
+
+            bool bool_val = json_cmd["value"].get<bool>();
+            zmq_frame += (bool_val ? "1" : "0");
+
+        }
+
 
         dispatch_internal_message(zmq_frame);
     }
