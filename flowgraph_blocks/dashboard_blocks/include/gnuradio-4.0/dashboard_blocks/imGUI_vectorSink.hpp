@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <gnuradio-4.0/Block.hpp>
 #include <gnuradio-4.0/BlockRegistry.hpp>
+#include <gnuradio-4.0/DataSet.hpp>
 #include <gnuradio-4.0/annotated.hpp>
 #include <gnuradio-4.0/meta/reflection.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_management.hpp>
@@ -20,11 +21,11 @@ namespace gr::dashboard_blocks {
     template <typename T>
     struct imGUI_vectorSink : gr::Block<imGUI_vectorSink<T>> {
 
-        //TO DO: Add detailed description if needed
+        // TO DO: Add detailed description if needed
         using Description = gr::Doc<R""())"">;
 
         // Input Port explicitly requires discrete vectors, not a stream of scalars
-        gr::PortIn<std::vector<T>> in;
+        gr::PortIn<gr::DataSet<T>> in;
 
         // Variables that can be adjusted by user
         gr::Annotated<std::string, "title", gr::Visible> title = "vectorSink_default";
@@ -79,12 +80,9 @@ namespace gr::dashboard_blocks {
             }
 
 
-            
-            // Create a view of the incoming vectors and grab the first one
-            std::span<const std::vector<T>> in_span(input.data(), input.size());
-            const std::vector<T>& vec = in_span[0]; 
+            std::span<const gr::DataSet<T>> in_span(input.data(), input.size());
+             const gr::DataSet<T>& vec = in_span[in_span.size() - 1];
 
-            std::cout << "[vectorSink] got vec.size()=" << vec.size() << std::endl;
 
             if (publisher) {
                 
@@ -105,7 +103,7 @@ namespace gr::dashboard_blocks {
             }
 
             // Tell the scheduler we successfully consumed 1 vector item
-            std::ignore = input.consume(1);
+            std::ignore = input.consume(in_span.size());
             return gr::work::Status::OK;
         }
     };
