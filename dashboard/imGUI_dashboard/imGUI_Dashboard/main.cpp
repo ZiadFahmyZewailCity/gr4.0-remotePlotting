@@ -49,7 +49,7 @@ EM_JS(char*, get_websocket_url, (), {
 
 
 //Structs for dashboard elements 
-enum class dashboardElementType { TIME_SERIES, VECTOR_SINK , SLIDER, TEXTLABEL, FREQUENCY_SINK, BUTTON, CHECKBOX, DROPDOWN, TEXTBOX };
+enum class dashboardElementType { TIME_SERIES, VECTOR_SINK , FREQUENCY_SINK, CONSTELLATION_SINK , SLIDER, TEXTLABEL, BUTTON, CHECKBOX, DROPDOWN, TEXTBOX };
 
 //Simplified dashboard element struct
 struct dashboardElement {
@@ -64,7 +64,13 @@ struct dashboardElement {
     float current_val = 0.0f;
     bool  current_val_bool = false;
 
-    //These are dashboard element specific, it may be a good idea to make this a bit cleaner in the future, its very little overhead 
+    //TO DO: These are dashboard element specific, it may be a good idea to make this a bit cleaner in the future, its very little overhead 
+
+    // Axis boundries
+    int x_axis_min = 0;
+    int x_axis_max = 100;
+    int y_axis_min = 0;
+    int y_axis_max = 100;
 
     // Tracks if the user is holding down the mouse on this widget
     bool is_being_edited = false; 
@@ -158,6 +164,29 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
                         }
                         new_dashboardElement.databuffer.resize(new_dashboardElement.windowSize, 0.0f);
                     }
+                    else if (item["type"] == "constellationSink"){
+                        new_dashboardElement.type = dashboardElementType::CONSTELLATION_SINK;
+                        
+                        //Read Buffer size
+                        try {
+
+                            //Parse number of points 
+                            new_dashboardElement.windowSize = std::stoi(item.value("numberOfPoints", "256"));
+
+                            //Parse axis values
+                            new_dashboardElement.x_axis_min = std::stoi(item.value("x_axis_min", "0"));
+                            new_dashboardElement.x_axis_max = std::stoi(item.value("x_axis_max", "100"));
+                            new_dashboardElement.y_axis_min = std::stoi(item.value("y_axis_min", "0"));
+                            new_dashboardElement.y_axis_max = std::stoi(item.value("y_axis_max", "100"));
+
+
+                        }   catch (...){
+                            new_dashboardElement.windowSize = 256;
+                        }
+
+                        //Intialize buffer
+                        new_dashboardElement.databuffer.resize(new_dashboardElement.windowSize * 2, 0.0f);
+                    }
                     //Widgets
                     else if (item["type"] == "slider") {
                         new_dashboardElement.type = dashboardElementType::SLIDER;
@@ -246,7 +275,8 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
                 
                 if (object.type == dashboardElementType::TIME_SERIES 
                     || object.type == dashboardElementType::FREQUENCY_SINK 
-                    || object.type == dashboardElementType::VECTOR_SINK) { 
+                    || object.type == dashboardElementType::VECTOR_SINK
+                    || object.type == dashboardElementType::CONSTELLATION_SINK) { 
                     
                     size_t topic_len = object.id.size();
                     
@@ -256,7 +286,6 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
                     if (websocketEvent->numBytes > topic_len && 
                         std::strncmp((const char*)websocketEvent->data, object.id.c_str(), topic_len) == 0) {
                         
-
                         size_t data_offset = topic_len;
                         // Move data offset past the delimter 
                         // TO DO: Consider using reinterpret_cast instead of c-style cast
@@ -272,34 +301,35 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
                         //Copy the floats into a vector 
                         if (num_floats > 0) {
                             std::vector<float> incoming_floats(num_floats);
+
+                            //TO DO: Check if this could cause issues somehow
                             std::memcpy(incoming_floats.data(), websocketEvent->data + data_offset, valid_payload_bytes);
 
-                            if(object.type == dashboardElementType::TIME_SERIES){
-
+                            if(object.type == dashboardElementType::TIME_SERIES){                    
+                                //Push floats to buffer 
+                                for (int i = 0; i < num_floats; i++) {
+                                    object.databuffer.push_back(incoming_floats[i]);
+                                }
+                
+                                //Overwriting the oldest samples with newer samples 
+                                int max_window_size = 9600;                
+                                if (object.databuffer.size() > max_window_size) {
+                                    // Erase the oldest samples from the front of the vector
+                                    object.databuffer.erase(
+                                        object.databuffer.begin(), 
+                                        object.databuffer.begin() + (object.databuffer.size() - max_window_size)
+                                    );
+                                }
                                 
-                            //Push floats to buffer 
-                            for (int i = 0; i < num_floats; i++) {
-                                object.databuffer.push_back(incoming_floats[i]);
-                            }
-            
-                            //Overwriting the oldest samples with newer samples 
-                            int max_window_size = 9600;                
-                            if (object.databuffer.size() > max_window_size) {
-                                // Erase the oldest samples from the front of the vector
-                                object.databuffer.erase(
-                                    object.databuffer.begin(), 
-                                    object.databuffer.begin() + (object.databuffer.size() - max_window_size)
-                                );
-                            }
-                            
-                            // Prevent ImGui crash on empty buffer
-                            if (object.databuffer.empty()) {
-                                object.databuffer.push_back(0.0f);
-                            }
+                                // Prevent ImGui crash on empty buffer
+                                if (object.databuffer.empty()) {
+                                    object.databuffer.push_back(0.0f);
+                                }
 
                             }
                             //Frequency spectrum & Vector sink isnt a rolling buffer. Just replace previous buffer
-                            else if(object.type == dashboardElementType::FREQUENCY_SINK || object.type == dashboardElementType::VECTOR_SINK){
+                            else if(object.type == dashboardElementType::FREQUENCY_SINK || object.type == dashboardElementType::VECTOR_SINK 
+                                || object.type == dashboardElementType::CONSTELLATION_SINK){
 
                                 //TO DO: Remove this is for debugging
                                 static int dbg_counter = 0;
@@ -628,6 +658,40 @@ void main_loop(){
                                     ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Waiting for vector telemetry stream...");
                             }
                             
+                        }
+                        else if (object.type == dashboardElementType::CONSTELLATION_SINK) {
+                            if (!object.databuffer.empty()) {
+                                std::string hidden_id = "##" + object.id;
+                            
+                                // A square aspect ratio is usually best for constellation diagrams
+                                if (ImPlot::BeginPlot(object.title.c_str(), ImVec2(250, 250))) {
+                                    ImPlot::SetupAxes("In-Phase (I)", "Quadrature (Q)");
+
+                                    // Apply the user-set boundaries from the JSON config
+                                    ImPlot::SetupAxisLimits(ImAxis_X1, -100, 100, ImPlotCond_Once);
+                                    ImPlot::SetupAxisLimits(ImAxis_Y1, -100, 100, ImPlotCond_Once);
+
+                                    // Split the interleaved I/Q buffer into separate X and Y arrays
+                                    // Made them static to avoid reallocation everytime
+                                    static std::vector<float> xs;
+                                    static std::vector<float> ys;
+
+                                    xs.resize(object.windowSize);
+                                    ys.resize(object.windowSize);
+
+                                    for(int i = 0; i < object.windowSize; i++) {
+                                        xs[i] = object.databuffer[i * 2];       // Even indices = I
+                                        ys[i] = object.databuffer[i * 2 + 1];   // Odd indices  = Q
+                                    }
+
+                                    // Render scatter plot using the separated arrays (4 arguments)
+                                    ImPlot::PlotScatter(hidden_id.c_str(), xs.data(), ys.data(), (int)object.windowSize);
+                                    ImPlot::EndPlot();
+                                } 
+                            }
+                            else {
+                                ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Waiting for constellation telemetry...");
+                            }
                         }
                         //Widgets
                         else if (object.type == dashboardElementType::SLIDER) { 

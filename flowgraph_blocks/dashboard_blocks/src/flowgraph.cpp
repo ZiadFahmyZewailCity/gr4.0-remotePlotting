@@ -1,25 +1,19 @@
 #include <gnuradio-4.0/Graph.hpp>
 #include <gnuradio-4.0/Scheduler.hpp>
 #include <gnuradio-4.0/basic/SignalGenerator.hpp> 
-#include <gnuradio-4.0/basic/StreamToDataSet.hpp>
 #include <gnuradio-4.0/testing/NullSources.hpp>
-#include <gnuradio-4.0/dashboard_blocks/dep_imGUI_timeSeries.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_button.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_checkBox.hpp>
-#include <gnuradio-4.0/dashboard_blocks/imGUI_vectorSink.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_dropDownMenu.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_textBox.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_textLabel.hpp>
-#include <gnuradio-4.0/dashboard_blocks/insertTag.hpp>
-#include <gnuradio-4.0/dashboard_blocks/dataSetDebugger.hpp>
+#include <gnuradio-4.0/dashboard_blocks/imGUI_constellationSink.hpp>
 #include <sstream>
 #include <iomanip>
 
 namespace basicBlocks = gr::basic;
 namespace testing = gr::testing;
 namespace dashboardBlocks = gr::dashboard_blocks;
-namespace debugging = gr::debugging;
-namespace custom_testing = gr::custom_testing;
 
 int main() {
     gr::Graph graph;
@@ -27,38 +21,25 @@ int main() {
     constexpr float FREQ_LOW  = 2343.75f;
     constexpr float FREQ_HIGH = 4687.5f;
 
-    // 1. Single generator
-    auto& source = graph.emplaceBlock<basicBlocks::SignalGenerator<float>>();
+    // 1. Single generator - complex output traces a circle for the constellation sink
+    auto& source = graph.emplaceBlock<basicBlocks::SignalGenerator<std::complex<float>>>();
     source.sample_rate = 48000.f;
     source.frequency   = FREQ_LOW; 
-    source.amplitude   = 1.0f;
-    source.offset      = 0.0f;
+    source.amplitude   = 40.0f;
+    source.offset      = 50.0f;
     source.phase       = 0.0f;
     source.signal_type = basicBlocks::signal_generator::Type::Sin; 
     source.chunk_size  = 1024;
 
     // 2. Throttling the source 
-    auto& throttle = graph.emplaceBlock<testing::SimCompute<float>>();
+    auto& throttle = graph.emplaceBlock<testing::SimCompute<std::complex<float>>>();
     throttle.target_throughput = 48000.f; 
     throttle.busy_wait = false;           
-    
-    // 3. Periodic Tagger + Stream to DataSet block + Downlink Vector Sink
-    auto& tagger = graph.emplaceBlock<custom_testing::insertTag<float>>();
-    tagger.interval = 1024;
-    tagger.offset = 0;
-    tagger.tag_key = "start";
 
-    auto& s2ds = graph.emplaceBlock<basicBlocks::StreamToDataSet<float>>();
-    s2ds.filter = "[start/, start/]";
-    s2ds.n_max = 1024;
-    s2ds.n_pre = 0;
-    s2ds.n_post = 1024;
-
-    auto& vector_sink = graph.emplaceBlock<dashboardBlocks::imGUI_vectorSink<float>>();
-    vector_sink.title = "vector_plot_1";
-    vector_sink.vectorSize = 1024;
-
-    auto& debug_sink = graph.emplaceBlock<debugging::DataSetDebugger<float>>();
+    // 3. Downlink: constellation sink reads the stream directly, no tag/DataSet framing needed
+    auto& constellation_sink = graph.emplaceBlock<dashboardBlocks::imGUI_constellationSink<float>>();
+    constellation_sink.title = "constellation_1";
+    constellation_sink.numberOfPoints = 256;
 
     // 4. Uplink Command Listener - CheckBox
     auto& checkBox_src = graph.emplaceBlock<dashboardBlocks::dep_imGUI_checkBox<bool>>();
@@ -71,7 +52,7 @@ int main() {
     // 6. Dummy drains (Added throttle_drain)
     auto& checkBox_drain = graph.emplaceBlock<testing::NullSink<uint8_t>>();
     auto& button_drain   = graph.emplaceBlock<testing::NullSink<uint8_t>>();
-    auto& throttle_drain = graph.emplaceBlock<testing::NullSink<float>>(); 
+    auto& throttle_drain = graph.emplaceBlock<testing::NullSink<std::complex<float>>>(); 
 
     auto& dropdown_src = graph.emplaceBlock<dashboardBlocks::imGUI_dropDownMenu<uint8_t>>();
     dropdown_src.widget_id = "freq_dropdown";
@@ -139,11 +120,25 @@ int main() {
         return freq_toggle_state ? "High" : "Low";
     };
 
-    // TextBox Event Lambda
-    text_box.on_val_update = [](std::string msg) {
-        std::cout << "\n========================================\n";
-        std::cout << "[TextBox] User Input Received: " << msg << "\n";
-        std::cout << "========================================\n" << std::endl;
+    // TextBox Event Lambda - drives the source's DC offset live, so typing a new
+    // value re-centers the plotted circle (demonstrates the sink tracking a moving signal)
+    text_box.on_val_update = [&source](std::string msg) {
+        try {
+            float new_offset = std::stof(msg);
+
+            gr::property_map old_props;
+            old_props["offset"] = source.offset;
+
+            gr::property_map new_props;
+            new_props["offset"] = new_offset;
+
+            source.offset = new_offset;
+            source.settingsChanged(old_props, new_props);
+
+            std::cout << "[Coordinator] Offset shifted to: " << new_offset << std::endl;
+        } catch (const std::exception& e) {
+            std::cerr << "[TextBox] Invalid offset input: '" << msg << "' (" << e.what() << ")\n";
+        }
     };
 
     // Text Label reports active frequency
@@ -157,21 +152,11 @@ int main() {
     ========================================================
     Connect Downlink (Parallel Architecture)
     ========================================================
-    Path 1: Source -> insertTag -> StreamToDataSet -> Vector Sink (Preserves exact signal)
+    Path 1: Source -> Constellation Sink (direct stream, no tag/DataSet framing needed)
     Path 2: Source -> Throttle -> NullSink (Paces the flowgraph to 48kHz)
     */
-    auto source_to_tagger = graph.connect<"out", "in">(source, tagger);
-    if (!source_to_tagger.has_value()) { return 1; }
-
-    auto tagger_to_s2ds = graph.connect<"out", "in">(tagger, s2ds);
-    if (!tagger_to_s2ds.has_value()) { return 1; }
-
-    // Fork Path 1 to Vector Sink and Debugger
-    auto s2ds_to_vector = graph.connect<"out", "in">(s2ds, vector_sink);
-    if (!s2ds_to_vector.has_value()) { return 1; }
-    
-    auto s2ds_to_debug = graph.connect<"out", "in">(s2ds, debug_sink);
-    if (!s2ds_to_debug.has_value()) { return 1; }
+    auto source_to_constellation = graph.connect<"out", "in">(source, constellation_sink);
+    if (!source_to_constellation.has_value()) { return 1; }
 
     auto source_to_throttle = graph.connect<"out", "in">(source, throttle);
     if (!source_to_throttle.has_value()) { return 1; }

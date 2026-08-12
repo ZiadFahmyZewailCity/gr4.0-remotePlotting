@@ -5,10 +5,15 @@
       "panel_name": "GNU Radio 4.0 Live DSP",
       "dashboardElement": [
         {
-          "id": "vector_plot_1",
-          "type": "vector",
-          "title": "vector_plot_1",
-          "vectorSize": "1024"
+          "id": "constellation_1",
+          "type": "constellationSink",
+          "presistance_on": true,
+          "numberOfPoints": "256",
+          "autoscale": true,
+          "x_axis_min": "0",
+          "x_axis_max": "100",
+          "y_axis_min": "0",
+          "y_axis_max": "100"
         },
         {
           "id": "freq_checkBox",
