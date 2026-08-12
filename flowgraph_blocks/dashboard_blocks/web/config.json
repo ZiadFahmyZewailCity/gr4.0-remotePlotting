@@ -28,10 +28,10 @@
         {
           "id": "freq_dropdown",
           "type": "dropdown",
-          "target": "frequency",
+          "target": "offset",
           "options": [
-            "Low",
-            "High"
+            "Positive Offset",
+            "Negative Offset"
           ]
         },
         {

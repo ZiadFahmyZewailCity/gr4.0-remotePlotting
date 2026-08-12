@@ -128,14 +128,14 @@ namespace gr::dashboard_blocks {
 
                 //1) Apply header - every message on the wire is "id:payload", daemon splits on the first ':'
                 std::string header = title.value + ":";
-                std::size_t payload_size = header.size() + (nSamples * sizeof(T));
+                std::size_t payload_size = header.size() + (nSamples * sizeof(std::complex<T>));
 
                 //2) Message core
                 zmq::message_t z_msg(payload_size);
 
                 //3) Cpy into zmq message buffer
                 std::memcpy(z_msg.data(), header.data(), header.size());
-                std::memcpy(static_cast<char*>(z_msg.data()) + header.size(), samples_frame.data(), nSamples * sizeof(T));
+                std::memcpy(static_cast<char*>(z_msg.data()) + header.size(), samples_frame.data(), nSamples * sizeof(std::complex<T>));
                 //TO DO: if payload isnt raw samples (eg processed magnitudes) memcpy the processed buffer instead
 
                 //4) Send

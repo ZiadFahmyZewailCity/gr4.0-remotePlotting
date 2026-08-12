@@ -664,7 +664,7 @@ void main_loop(){
                                 std::string hidden_id = "##" + object.id;
                             
                                 // A square aspect ratio is usually best for constellation diagrams
-                                if (ImPlot::BeginPlot(object.title.c_str(), ImVec2(250, 250))) {
+                                if (ImPlot::BeginPlot(object.title.c_str(), ImVec2(250, 250)))./f    {
                                     ImPlot::SetupAxes("In-Phase (I)", "Quadrature (Q)");
 
                                     // Apply the user-set boundaries from the JSON config
