@@ -14,7 +14,7 @@
 #include <string>
 #include <cstring>
 #include <span>
-#include <vector>
+
 
 namespace gr::dashboard_blocks {
 
@@ -81,28 +81,43 @@ namespace gr::dashboard_blocks {
 
 
             std::span<const gr::DataSet<T>> in_span(input.data(), input.size());
-             const gr::DataSet<T>& vec = in_span[in_span.size() - 1];
+            const gr::DataSet<T>& vec = in_span[in_span.size() - 1];
+        
 
+            //Check if the size of the vector is greater than the pre-defined user length of the vector 
+            //Drops buffer if this is the case
+            //If the vector size is smaller than the vector size set by the user, the dashboard will zero out the tail 
+            const std::size_t nSamples = static_cast<std::size_t>(vec.extents[0]);
+            if (nSamples > vectorSize.value) {
+                std::cout << "[vectorSink] Dropping frame: got vector of size " << nSamples
+                           << " which exceeds configured vectorSize " << vectorSize.value << "\n";
+                std::ignore = input.consume(in_span.size());
+                return gr::work::Status::OK;
+            }
+
+            //TO DO: Debug message for check what extents gives
+            std::cout << "[vectorSink] extents[0]=" << vec.extents[0] << " signal_values.size()=" << vec.signal_values.size() << std::endl;
 
             if (publisher) {
                 
                 std::string header = title.value + ":";
-                std::cout << "[vectorSink] got vec.size()=" << vec.size() << std::endl;
+                std::cout << "[vectorSink] got vec.extents[0]=" << vec.extents[0] << std::endl;
                 
+                //Has to be unsigned to work with the T
+                const std::size_t nExtents = static_cast<std::size_t>(vec.extents[0]);
+
                 // Dynamically calculate payload size based on the incoming vector length
-                std::size_t payload_size = header.size() + (vec.size() * sizeof(T)); 
+                std::size_t payload_size = header.size() + (nExtents * sizeof(T)); 
 
                 zmq::message_t z_msg(payload_size);
 
                 std::memcpy(z_msg.data(), header.data(), header.size());
-                std::memcpy(static_cast<char*>(z_msg.data()) + header.size(), vec.data(), vec.size() * sizeof(T));
-
-                
+                std::memcpy(static_cast<char*>(z_msg.data()) + header.size(), vec.signal_values.data(), nExtents * sizeof(T));
 
                 publisher.send(z_msg, zmq::send_flags::dontwait);
             }
 
-            // Tell the scheduler we successfully consumed 1 vector item
+            // Consume all the vectors rcved
             std::ignore = input.consume(in_span.size());
             return gr::work::Status::OK;
         }

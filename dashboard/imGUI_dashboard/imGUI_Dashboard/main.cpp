@@ -10,6 +10,8 @@
 // The WebGL graphics library provided by Emscripten
 #include <GLES3/gl3.h> 
 // Required so we can use emscripten_set_main_loop()
+#include <algorithm>
+#include <cstddef>
 #include <emscripten.h> 
 #include <emscripten/websocket.h>
 
@@ -296,20 +298,27 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
                             }
 
                             }
-                            //Frequency spectrum isnt a rolling buffer. Just replace previous buffr
+                            //Frequency spectrum & Vector sink isnt a rolling buffer. Just replace previous buffer
                             else if(object.type == dashboardElementType::FREQUENCY_SINK || object.type == dashboardElementType::VECTOR_SINK){
 
-                                    //TO DO: Remove this is for debugging
-                                    static int dbg_counter = 0;
-                                    if (dbg_counter++ % 60 == 0) {
-                                        std::cout << "[VECTOR BASED MATCH] id='" << object.id
-                                                << "' num_floats=" << num_floats
-                                                << " first8: ";
-                                        for (int i = 0; i < std::min(num_floats, 8); i++)
-                                            std::cout << incoming_floats[i] << " ";
-                                        std::cout << std::endl;
-                                    }
-                                object.databuffer = std::move(incoming_floats);
+                                //TO DO: Remove this is for debugging
+                                static int dbg_counter = 0;
+                                if (dbg_counter++ % 60 == 0) {
+                                    std::cout << "[VECTOR BASED MATCH] id='" << object.id
+                                            << "' num_floats=" << num_floats
+                                            << " first8: ";
+                                    for (int i = 0; i < std::min(num_floats, 8); i++)
+                                        std::cout << incoming_floats[i] << " ";
+                                    std::cout << std::endl;
+                                }
+
+                                //Check if the incoming_floats size is maller than that data buffer
+                                std::size_t vectorSize = std::min(incoming_floats.size(), object.databuffer.size());
+
+                                //Copy into the buffer the floats 
+                                std::copy(incoming_floats.begin(), incoming_floats.begin() + vectorSize, object.databuffer.begin());                                
+                                
+
                             }
 
                         }

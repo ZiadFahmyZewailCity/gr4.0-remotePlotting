@@ -1,6 +1,7 @@
 #include <gnuradio-4.0/Graph.hpp>
 #include <gnuradio-4.0/Scheduler.hpp>
 #include <gnuradio-4.0/basic/SignalGenerator.hpp> 
+#include <gnuradio-4.0/basic/StreamToDataSet.hpp>
 #include <gnuradio-4.0/testing/NullSources.hpp>
 #include <gnuradio-4.0/dashboard_blocks/dep_imGUI_timeSeries.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_button.hpp>
@@ -9,13 +10,16 @@
 #include <gnuradio-4.0/dashboard_blocks/imGUI_dropDownMenu.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_textBox.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_textLabel.hpp>
-#include <gnuradio-4.0/dashboard_blocks/streamToVector.hpp>
+#include <gnuradio-4.0/dashboard_blocks/insertTag.hpp>
+#include <gnuradio-4.0/dashboard_blocks/dataSetDebugger.hpp>
 #include <sstream>
 #include <iomanip>
 
 namespace basicBlocks = gr::basic;
 namespace testing = gr::testing;
 namespace dashboardBlocks = gr::dashboard_blocks;
+namespace debugging = gr::debugging;
+namespace custom_testing = gr::custom_testing;
 
 int main() {
     gr::Graph graph;
@@ -38,13 +42,23 @@ int main() {
     throttle.target_throughput = 48000.f; 
     throttle.busy_wait = false;           
     
-    // 3. Stream to Vector block + Downlink Vector Sink
-    auto& s2v = graph.emplaceBlock<dashboardBlocks::StreamToVector<float>>();
-    s2v.vector_size = 1024;
+    // 3. Periodic Tagger + Stream to DataSet block + Downlink Vector Sink
+    auto& tagger = graph.emplaceBlock<custom_testing::insertTag<float>>();
+    tagger.interval = 1024;
+    tagger.offset = 0;
+    tagger.tag_key = "start";
+
+    auto& s2ds = graph.emplaceBlock<basicBlocks::StreamToDataSet<float>>();
+    s2ds.filter = "[start/, start/]";
+    s2ds.n_max = 1024;
+    s2ds.n_pre = 0;
+    s2ds.n_post = 1024;
 
     auto& vector_sink = graph.emplaceBlock<dashboardBlocks::imGUI_vectorSink<float>>();
     vector_sink.title = "vector_plot_1";
     vector_sink.vectorSize = 1024;
+
+    auto& debug_sink = graph.emplaceBlock<debugging::DataSetDebugger<float>>();
 
     // 4. Uplink Command Listener - CheckBox
     auto& checkBox_src = graph.emplaceBlock<dashboardBlocks::dep_imGUI_checkBox<bool>>();
@@ -143,14 +157,21 @@ int main() {
     ========================================================
     Connect Downlink (Parallel Architecture)
     ========================================================
-    Path 1: Source -> StreamToVector -> Vector Sink (Preserves exact signal)
+    Path 1: Source -> insertTag -> StreamToDataSet -> Vector Sink (Preserves exact signal)
     Path 2: Source -> Throttle -> NullSink (Paces the flowgraph to 48kHz)
     */
-    auto source_to_s2v = graph.connect<"out", "in">(source, s2v);
-    if (!source_to_s2v.has_value()) { return 1; }
+    auto source_to_tagger = graph.connect<"out", "in">(source, tagger);
+    if (!source_to_tagger.has_value()) { return 1; }
 
-    auto s2v_to_vector = graph.connect<"out", "in">(s2v, vector_sink);
-    if (!s2v_to_vector.has_value()) { return 1; }
+    auto tagger_to_s2ds = graph.connect<"out", "in">(tagger, s2ds);
+    if (!tagger_to_s2ds.has_value()) { return 1; }
+
+    // Fork Path 1 to Vector Sink and Debugger
+    auto s2ds_to_vector = graph.connect<"out", "in">(s2ds, vector_sink);
+    if (!s2ds_to_vector.has_value()) { return 1; }
+    
+    auto s2ds_to_debug = graph.connect<"out", "in">(s2ds, debug_sink);
+    if (!s2ds_to_debug.has_value()) { return 1; }
 
     auto source_to_throttle = graph.connect<"out", "in">(source, throttle);
     if (!source_to_throttle.has_value()) { return 1; }
