@@ -908,9 +908,9 @@ void main_loop(){
                     }
 
                 }
-
+                ImGui::End();
             }
-            ImGui::End();
+            
         }
 
     

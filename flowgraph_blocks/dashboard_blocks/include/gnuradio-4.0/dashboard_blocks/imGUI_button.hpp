@@ -25,6 +25,10 @@ namespace gr::dashboard_blocks {
 
         //Widget ID (Must be given a unique id by user)
         gr::Annotated<std::string, "widget_id", gr::Visible> widget_id = "imGUI_button";
+        
+        //All widgets or blocks with the same panel name will be placed in the same panel
+        //The panel chosen purely has an affect on the widget or blocks location, has no affect on the data it displays or affects
+        gr::Annotated<std::string, "panel", gr::Visible> panel_name = "default";
         gr::Annotated<std::string, "target_property", gr::Visible> target_property = "button_current_val";
 
         gr::Annotated<std::string, "zmq_endpoint"> endpoint = "tcp://127.0.0.1:5556";

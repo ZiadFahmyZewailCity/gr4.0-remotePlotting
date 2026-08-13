@@ -20,6 +20,11 @@ namespace gr::dashboard_blocks {
 
         gr::PortIn<T> in;
 
+
+        //All widgets or blocks with the same panel name will be placed in the same panel
+        //The panel chosen purely has an affect on the widget or blocks location, has no affect on the data it displays or affects
+        gr::Annotated<std::string, "panel", gr::Visible> panel_name = "default";
+
         gr::Annotated<std::string, "topic_id", gr::Visible> topic_id = "plot_1";
 
         gr::Annotated<std::string, "zmq_endpoint"> endpoint = "tcp://127.0.0.1:5555";
@@ -36,13 +41,14 @@ namespace gr::dashboard_blocks {
                 json_data += "\"id\": \"" + this->topic_id.value + "\", ";
                 json_data += "\"type\": \"timeseries\", ";
                 json_data += "\"title\": \"Real-Time Signal\", ";
+                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", ";
                 json_data += "\"data_source\": \"live_data\"";
                 json_data += "}";
                 return json_data;
             });
         }
 
-        GR_MAKE_REFLECTABLE(dep_imGUI_timeSeries, in, topic_id, endpoint);
+        GR_MAKE_REFLECTABLE(dep_imGUI_timeSeries, in, topic_id, panel_name, endpoint);
 
         void start() {
             publisher = zmq::socket_t(zmq_ctx, zmq::socket_type::pub);

@@ -2,17 +2,35 @@
   "msg_type": "config",
   "panels": [
     {
-      "panel_name": "GNU Radio 4.0 Live DSP",
+      "panel_name": "Frequency Domain",
       "dashboardElement": [
         {
           "id": "waterfall_plot_1",
           "type": "waterFallSink",
           "title": "waterfall_plot_1",
+          "panel_name": "Frequency Domain",
           "windowSize": "1024",
           "samplingFreq": "48000.000000",
           "historySize": "100",
           "waterFallSink_dataSource": "Magnitudes"
-        },
+        }
+      ]
+    },
+    {
+      "panel_name": "Time Domain",
+      "dashboardElement": [
+        {
+          "id": "time_plot_1",
+          "type": "timeseries",
+          "title": "Real-Time Signal",
+          "panel_name": "Time Domain",
+          "data_source": "live_data"
+        }
+      ]
+    },
+    {
+      "panel_name": "default_panel",
+      "dashboardElement": [
         {
           "id": "freq_checkBox",
           "type": "checkBox",

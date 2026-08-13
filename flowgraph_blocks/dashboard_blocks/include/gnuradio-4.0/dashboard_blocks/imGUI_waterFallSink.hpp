@@ -57,6 +57,9 @@ namespace gr::dashboard_blocks {
 
         //Title of the sink (Must be unique to the sink)
         gr::Annotated<std::string, "title", gr::Visible> title = "plot_1";
+        //All widgets or blocks with the same panel name will be placed in the same panel
+        //The panel chosen purely has an affect on the widget or blocks location, has no affect on the data it displays or affects
+        gr::Annotated<std::string, "panel", gr::Visible> panel_name = "default";
         //TO DO: Any reason to default to something in specific, currently default to Hann
         gr::Annotated<gr::algorithm::window::Type, "Window Type", gr::Visible> windowType = gr::algorithm::window::Type::Hann;
         //Control size of the history  
@@ -98,6 +101,7 @@ namespace gr::dashboard_blocks {
                 json_data += "\"id\": \"" + this->title.value + "\", ";
                 json_data += "\"type\": \"waterFallSink\", ";
                 json_data += "\"title\": \"" + this->title.value + "\", ";
+                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", ";
                 json_data += "\"windowSize\": \"" + std::to_string(this->windowSize.value) + "\", ";
                 json_data += "\"samplingFreq\": \"" + std::to_string(this->sampleRate.value) + "\", ";
                 json_data += "\"historySize\": \"" + std::to_string(this->history_size.value) + "\", ";
@@ -108,7 +112,7 @@ namespace gr::dashboard_blocks {
         }
 
         
-        GR_MAKE_REFLECTABLE(imGUI_waterFallSink, in, title, windowSize, sampleRate, history_size, windowType, outputInDb, typeOfTrigger, typeOfAveraging, endpoint);
+        GR_MAKE_REFLECTABLE(imGUI_waterFallSink, in, title, panel_name, windowSize, sampleRate, history_size, windowType, outputInDb, typeOfTrigger, typeOfAveraging, endpoint);
 
         void start() {
 

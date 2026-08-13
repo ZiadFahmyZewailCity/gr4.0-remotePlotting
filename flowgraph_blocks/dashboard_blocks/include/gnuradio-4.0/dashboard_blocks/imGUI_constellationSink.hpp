@@ -36,6 +36,9 @@ namespace gr::dashboard_blocks {
 
         //Title of the sink (Must be unique to the sink)
         gr::Annotated<std::string, "title", gr::Visible> title = "SINKNAME_1";
+        //All widgets or blocks with the same panel name will be placed in the same panel
+        //The panel chosen purely has an affect on the widget or blocks location, has no affect on the data it displays or affects
+        gr::Annotated<std::string, "panel", gr::Visible> panel_name = "default";
 
         
         // **Control Plotting**

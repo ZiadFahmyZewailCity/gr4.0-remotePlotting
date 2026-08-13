@@ -1,4 +1,5 @@
 #include "../include/gnuradio-4.0/dashboard_blocks/imGUI_management.hpp"
+#include <map>
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <iostream>
@@ -9,43 +10,55 @@ namespace gr::dashboard_blocks {
 
     void imGUI_DashboardRegistry::config_fileGenerator() {
         
+
+        
         //Config type
         json root_config;
         root_config["msg_type"] = "config";
 
-        //Pannel object
-        json main_panel;
-        main_panel["panel_name"] = "GNU Radio 4.0 Live DSP";
-        
-        //Json array for dashboard elements
-        json dashboard_elements = json::array();
+        //Storage for all the panels in the flowgraph
+        std::map<std::string, json> panel_groups;
 
         //Loop through each callback to get the string containng the data about the blocks
         for (auto& callback : ptrs_to_imGUIblocks_callbacks) {
             
-            // Execute the lambda to pull the absolute latest raw string from the block
+            // Get the string from each block using the lamdas
             std::string element_str = callback(); 
             
             try {
-
-                // Parse the raw string into a structured JSON object
+                // Parse the raw string into a JSON object
                 json element_json = json::parse(element_str);
                 
-                // Add the object to dashBoard elements array
-                dashboard_elements.push_back(element_json);
+                // Find the panel name 
+                std::string panel_key = element_json.value("panel_name", "default_panel");
+
+                //If the panel name already exists we simple add this dashboard element object into it
+                //If it doesnt a new json object is created and the element is added to it
+                panel_groups[panel_key].push_back(element_json); 
                 
             } catch (const json::parse_error& e) {
                 std::cerr << "[Registry] JSON Parse Error from block callback: " << e.what() << std::endl;
             }
         }
 
-        //Attach the elements array to the main panel
-        main_panel["dashboardElement"] = dashboard_elements;
 
-        //Attach the main panel into the root's "panels" array
-        root_config["panels"] = json::array({main_panel});
+        //json array for the actual config file generation
+        json panels_array = json::array();
 
-        //Serialize the JSON 
+
+        //For each panel_group
+        //place all the elements in their associated panel section of the config file
+        for (auto& [p_name, elements] : panel_groups) {
+            json panel_obj;
+            panel_obj["panel_name"] = p_name;
+            panel_obj["dashboardElement"] = elements;
+            panels_array.push_back(panel_obj);
+        }
+
+
+        //attach the panel array 
+        root_config["panels"] = panels_array;
+        //Serialize 
         std::string final_json_str = root_config.dump(2);
         
         //TO DO: Remove, for debugging

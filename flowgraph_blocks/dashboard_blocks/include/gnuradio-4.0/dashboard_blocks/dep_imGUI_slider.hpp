@@ -27,6 +27,11 @@ namespace gr::dashboard_blocks {
 
         //This is the unique ID that will be given to the widget by the user
         gr::Annotated<std::string, "widget_id", gr::Visible> widget_id = "slider_freq";
+        
+        //All widgets or blocks with the same panel name will be placed in the same panel
+        //The panel chosen purely has an affect on the widget or blocks location, has no affect on the data it displays or affects
+        gr::Annotated<std::string, "panel", gr::Visible> panel_name = "default";
+
         gr::Annotated<std::string, "target_property", gr::Visible> target_property = "current_val";
 
         //Variable for PUB socket in dashboard_server

@@ -60,6 +60,9 @@ namespace gr::dashboard_blocks {
 
         //Variables that can be adjusted by user
         gr::Annotated<std::string, "title", gr::Visible> title = "plot_1";
+        //All widgets or blocks with the same panel name will be placed in the same panel
+        //The panel chosen purely has an affect on the widget or blocks location, has no affect on the data it displays or affects
+        gr::Annotated<std::string, "panel", gr::Visible> panel_name = "default";
         gr::Annotated<size_t, "Window Size", gr::Visible> windowSize = 1024UL;
         //TO DO: Any reason to default to something in specific, currently default to Hann
         gr::Annotated<gr::algorithm::window::Type, "Window Type", gr::Visible> windowType = gr::algorithm::window::Type::Hann;
