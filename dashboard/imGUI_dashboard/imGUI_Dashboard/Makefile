@@ -11,7 +11,7 @@ TARGET = $(BUILD_DIR)/dashboard.html
 
 # Relative path math from: dashboard/imGUI_dashboard/imGUI_Dashboard/
 # ../.. lands in "dashboard/"
-INCLUDES = -I../../imgui -I../../implot -I../..
+INCLUDES = -I. -I../../imgui -I../../implot -I../..
 
 # Source files
 SOURCES = \
@@ -30,8 +30,7 @@ EMFLAGS = -s USE_SDL=2 \
           -s USE_WEBGL2=1 \
           -lwebsocket.js \
           -s ALLOW_MEMORY_GROWTH=1 \
-          # Specifically for allowing 32 bit vertex indices. Usually needed for waterfall plots
-          -DImDrawIdx="unsigned int"
+          -DIMGUI_USER_CONFIG=\"my_imgui_config.h\"
 
 # ==========================================
 # BUILD RULES
