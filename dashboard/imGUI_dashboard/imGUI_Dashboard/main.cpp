@@ -356,8 +356,7 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
 
                             }
                             //Frequency spectrum & Vector sink isnt a rolling buffer. Just replace previous buffer
-                            else if(object.type == dashboardElementType::FREQUENCY_SINK 
-                                || object.type == dashboardElementType::VECTOR_SINK 
+                            else if(object.type == dashboardElementType::VECTOR_SINK 
                                 || object.type == dashboardElementType::CONSTELLATION_SINK){
 
                                 //TO DO: Remove this is for debugging
@@ -371,13 +370,38 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
                                     std::cout << std::endl;
                                 }
 
-                                //Check if the incoming_floats size is maller than that data buffer
+                                //Check if the incoming_floats size is smaller than that data buffer
                                 std::size_t vectorSize = std::min(incoming_floats.size(), object.databuffer.size());
 
                                 //Copy into the buffer the floats 
                                 std::copy(incoming_floats.begin(), incoming_floats.begin() + vectorSize, object.databuffer.begin());                                
                                 
 
+                            }
+                            else if(object.type == dashboardElementType::FREQUENCY_SINK){     
+                            
+                                //TO DO: Remove this is for debugging
+                                static int dbg_counter = 0;
+                                if (dbg_counter++ % 60 == 0) {
+                                    std::cout << "[VECTOR BASED MATCH] id='" << object.id
+                                            << "' num_floats=" << num_floats
+                                            << " first8: ";
+                                    for (int i = 0; i < std::min(num_floats, 8); i++)
+                                        std::cout << incoming_floats[i] << " ";
+                                    std::cout << std::endl;
+                                }
+
+                                //Check if the incoming_floats size is smaller than that data buffer
+                                std::size_t vectorSize = std::min(incoming_floats.size(), object.databuffer.size());
+
+                                //Copy into the buffer the floats 
+                                std::copy(incoming_floats.begin(), incoming_floats.begin() + vectorSize, object.databuffer.begin());   
+                                //Zero out the rest of the buffer
+                                if (vectorSize < object.databuffer.size()) {
+                                    //TO DO, UPDATE THIS TO BE THE DYNAMIC NOISE FLOOR
+                                    std::fill(object.databuffer.begin() + vectorSize, object.databuffer.end(), -140.0);
+                                }                             
+                                
                             }
                             else if(object.type == dashboardElementType::WATERFALL_SINK){
 
