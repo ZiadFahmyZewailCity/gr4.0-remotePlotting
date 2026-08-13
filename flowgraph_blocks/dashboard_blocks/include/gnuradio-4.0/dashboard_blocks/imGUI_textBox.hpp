@@ -26,7 +26,10 @@ namespace gr::dashboard_blocks {
 
         //Widget ID (Must be given a unique id by user)
         gr::Annotated<std::string, "widget_id", gr::Visible> widget_id = "imGUI_textBox_default";
-        
+        //All widgets or blocks with the same panel name will be placed in the same panel
+        //The panel chosen purely has an affect on the widget or blocks location, has no affect on the data it displays or affects
+        gr::Annotated<std::string, "panel", gr::Visible> panel_name = "default";
+
         gr::Annotated<std::string, "zmq_endpoint"> endpoint = "tcp://127.0.0.1:5556";
         
         gr::PortOut<T> out;
@@ -47,6 +50,7 @@ namespace gr::dashboard_blocks {
             imGUI_DashboardRegistry::getInstance().register_imGUI_block([this]() -> std::string {
                 std::string json_data = "{";
                 json_data += "\"id\": \"" + this->widget_id.value + "\", ";
+                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", ";
                 json_data += "\"type\": \"textBox\"";           
                 json_data += "}";
                 return json_data;
@@ -54,7 +58,7 @@ namespace gr::dashboard_blocks {
         }
 
         // TODO: ADD ANY NEW ANNOTATED FIELDS TO THIS LIST
-        GR_MAKE_REFLECTABLE(imGUI_textBox, out, widget_id, endpoint);
+        GR_MAKE_REFLECTABLE(imGUI_textBox, out, widget_id, panel_name ,endpoint);
 
         //ZMQ subscriber to the ZMQ publisher in the dashboard_server graph for updating widgets
         void start() {

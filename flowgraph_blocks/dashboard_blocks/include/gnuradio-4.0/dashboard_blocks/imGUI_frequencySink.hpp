@@ -60,6 +60,9 @@ namespace gr::dashboard_blocks {
 
         //Variables that can be adjusted by user
         gr::Annotated<std::string, "title", gr::Visible> title = "plot_1";
+        //All widgets or blocks with the same panel name will be placed in the same panel
+        //The panel chosen purely has an affect on the widget or blocks location, has no affect on the data it displays or affects
+        gr::Annotated<std::string, "panel", gr::Visible> panel_name = "default";
         gr::Annotated<size_t, "Window Size", gr::Visible> windowSize = 1024UL;
         //TO DO: Any reason to default to something in specific, currently default to Hann
         gr::Annotated<gr::algorithm::window::Type, "Window Type", gr::Visible> windowType = gr::algorithm::window::Type::Hann;
@@ -85,6 +88,7 @@ namespace gr::dashboard_blocks {
             imGUI_DashboardRegistry::getInstance().register_imGUI_block([this]() -> std::string {
                 std::string json_data = "{";
                 json_data += "\"id\": \"" + this->title.value + "\", ";
+                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", ";
                 json_data += "\"type\": \"frequencySink\", ";
                 json_data += "\"title\": \"" + this->title.value + "\", ";
                 json_data += "\"windowSize\": \"" + std::to_string(this->windowSize.value) + "\", ";
@@ -95,7 +99,7 @@ namespace gr::dashboard_blocks {
             });
         }
 
-        GR_MAKE_REFLECTABLE(imGUI_frequencySink, in, title, windowSize, sampleRate, windowType, outputInDb, typeOfTrigger, typeOfAveraging, endpoint);
+        GR_MAKE_REFLECTABLE(imGUI_frequencySink, in, title, panel_name ,windowSize, sampleRate, windowType, outputInDb, typeOfTrigger, typeOfAveraging, endpoint);
 
         void start() {
 

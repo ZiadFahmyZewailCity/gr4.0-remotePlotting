@@ -40,6 +40,9 @@ namespace gr::dashboard_blocks {
         //Variables that can be adjusted by user
         //Every sink needs a title/id, this is what ties it to the frontend widget + the ZMQ topic header
         gr::Annotated<std::string, "title", gr::Visible> title = "SINKNAME_1";
+        //All widgets or blocks with the same panel name will be placed in the same panel
+        //The panel chosen purely has an affect on the widget or blocks location, has no affect on the data it displays or affects
+        gr::Annotated<std::string, "panel", gr::Visible> panel_name = "default";
 
         //TO DO: Add whatever settings this sink actually needs, following the same Annotated<> pattern
         //e.g. windowSize for anything that batches N samples before publishing

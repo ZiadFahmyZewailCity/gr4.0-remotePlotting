@@ -205,14 +205,11 @@ bool  DashboardServer::readFile(const std::string& filepath, std::string& out_co
                         std::istreambuf_iterator<char>());
     return true;
 
-
-
 }
 
 
 void DashboardServer::dispatch_internal_message(const std::string& cmd){
 
-    
     //TO DO: Remove debug message
     std::cout << "internal Messaging function called" << "\n";
 

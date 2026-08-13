@@ -1,5 +1,5 @@
-#ifndef GNURADIO_DASHBOARDBLOCKS_DEP_IMGUI_SINKNAME_HPP
-#define GNURADIO_DASHBOARDBLOCKS_DEP_IMGUI_SINKNAME_HPP
+#ifndef GNURADIO_DASHBOARDBLOCKS_IMGUI_WATERFALLSINK_HPP
+#define GNURADIO_DASHBOARDBLOCKS_IMGUI_WATERFALLSINK_HPP
 
 #include <cstddef>
 #include <gnuradio-4.0/Block.hpp>
@@ -25,24 +25,24 @@ namespace gr::dashboard_blocks {
 
 
     template <typename T>
-    struct extract_real { using type = T; };
+    struct waterfall_extract_real { using type = T; };
 
     template <typename T>
-    struct extract_real<std::complex<T>> { using type = T; };
+    struct waterfall_extract_real<std::complex<T>> { using type = T; };
 
 
     // TO DO: Figure out what type of triggers i want to implement
-    enum triggerType {
-        FREE_RUN,
-        AUTO,
-        NORMAL
+    enum waterfall_triggerType {
+        waterfall_FREE_RUN,
+        waterfall_AUTO,
+        waterfall_NORMAL
     };
 
     // TO DO: Figure out the type of averaging i want to implement
-    enum averagingType {
-        NONE,
-        MOVING_AVERAGE,
-        MAX_HOLD
+    enum waterfall_averagingType {
+        waterfall_NONE,
+        waterfall_MOVING_AVERAGE,
+        waterfall_MAX_HOLD
     };
 
 
@@ -57,6 +57,9 @@ namespace gr::dashboard_blocks {
 
         //Title of the sink (Must be unique to the sink)
         gr::Annotated<std::string, "title", gr::Visible> title = "plot_1";
+        //All widgets or blocks with the same panel name will be placed in the same panel
+        //The panel chosen purely has an affect on the widget or blocks location, has no affect on the data it displays or affects
+        gr::Annotated<std::string, "panel", gr::Visible> panel_name = "default";
         //TO DO: Any reason to default to something in specific, currently default to Hann
         gr::Annotated<gr::algorithm::window::Type, "Window Type", gr::Visible> windowType = gr::algorithm::window::Type::Hann;
         //Control size of the history  
@@ -68,9 +71,9 @@ namespace gr::dashboard_blocks {
         //Size of the FFT window
         gr::Annotated<size_t, "Window Size", gr::Visible> windowSize = 1024UL;
         //CURRENTLY PLACEHOLDER DOESNT DO ANYTHING
-        gr::Annotated<triggerType, "Trigger Type", gr::Visible> typeOfTrigger;
+        gr::Annotated<waterfall_triggerType, "Trigger Type", gr::Visible> typeOfTrigger;
         //CURRENTLY PLACE HOLDER DOESNT DO ANYTHING
-        gr::Annotated<averagingType, "Averaging Type",gr::Visible> typeOfAveraging;
+        gr::Annotated<waterfall_averagingType, "Averaging Type",gr::Visible> typeOfAveraging;
         //CURRENTLY PLACE HOLDER DOESNT DO ANYTHING
         gr::Annotated<float, "Sample Rate", gr::Visible, gr::Unit<"Hz">> sampleRate = 1.0f;
         gr::Annotated<bool, "Output in dB", gr::Visible> outputInDb = true;
@@ -98,6 +101,7 @@ namespace gr::dashboard_blocks {
                 json_data += "\"id\": \"" + this->title.value + "\", ";
                 json_data += "\"type\": \"waterFallSink\", ";
                 json_data += "\"title\": \"" + this->title.value + "\", ";
+                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", ";
                 json_data += "\"windowSize\": \"" + std::to_string(this->windowSize.value) + "\", ";
                 json_data += "\"samplingFreq\": \"" + std::to_string(this->sampleRate.value) + "\", ";
                 json_data += "\"historySize\": \"" + std::to_string(this->history_size.value) + "\", ";
@@ -108,7 +112,7 @@ namespace gr::dashboard_blocks {
         }
 
         
-        GR_MAKE_REFLECTABLE(imGUI_waterFallSink, in, title, windowSize, sampleRate, history_size, windowType, outputInDb, typeOfTrigger, typeOfAveraging, endpoint);
+        GR_MAKE_REFLECTABLE(imGUI_waterFallSink, in, title, panel_name, windowSize, sampleRate, history_size, windowType, outputInDb, typeOfTrigger, typeOfAveraging, endpoint);
 
         void start() {
 
@@ -145,7 +149,7 @@ namespace gr::dashboard_blocks {
 
                 static int dbg = 0;
 
-                using floattype = typename extract_real<T>::type;
+                using floattype = typename waterfall_extract_real<T>::type;
 
                 //TO DO: This is constantly being intalized, probably very heavy computaion wise. Statically allocate it somewhere else
                 //Probably just allocating it as a private member of the block would be good enough

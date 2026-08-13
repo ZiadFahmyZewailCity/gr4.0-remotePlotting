@@ -1,12 +1,16 @@
 #include <gnuradio-4.0/Graph.hpp>
 #include <gnuradio-4.0/Scheduler.hpp>
-#include <gnuradio-4.0/basic/SignalGenerator.hpp> 
+#include <gnuradio-4.0/basic/SignalGenerator.hpp>
+#include <gnuradio-4.0/basic/StreamToDataSet.hpp>
 #include <gnuradio-4.0/testing/NullSources.hpp>
+#include <gnuradio-4.0/dashboard_blocks/insertTag.hpp>
 #include <gnuradio-4.0/dashboard_blocks/dep_imGUI_timeSeries.hpp>
-#include <gnuradio-4.0/dashboard_blocks/imGUI_button.hpp>
+#include <gnuradio-4.0/dashboard_blocks/imGUI_frequencySink.hpp>
+#include <gnuradio-4.0/dashboard_blocks/imGUI_waterFallSink.hpp>
+#include <gnuradio-4.0/dashboard_blocks/imGUI_vectorSink.hpp>
+#include <gnuradio-4.0/dashboard_blocks/imGUI_constellationSink.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_checkBox.hpp>
-// Swapped to the Waterfall Sink Header
-#include <gnuradio-4.0/dashboard_blocks/imGUI_waterFallSink.hpp> 
+#include <gnuradio-4.0/dashboard_blocks/imGUI_button.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_dropDownMenu.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_textBox.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_textLabel.hpp>
@@ -16,84 +20,132 @@
 namespace basicBlocks = gr::basic;
 namespace testing = gr::testing;
 namespace dashboardBlocks = gr::dashboard_blocks;
+namespace custom_testing = gr::custom_testing;
 
 int main() {
     gr::Graph graph;
 
-    /*
-    We need 6 blocks for this decoupled live test:
-    - Source: Generates the base sine wave
-    - Throttle: Keeps the CPU from crashing the browser by limiting throughput
-    - imGUI_waterFallSink: Computes FFT, captures magnitudes, and broadcasts them to ZMQ Port 5555
-    - dep_imGUI_checkBox: Subscribes to ZMQ Port 5556 for UI checkbox toggles
-    - dep_imGUI_button: Subscribes to ZMQ Port 5556 for UI button presses
-    - NullSink (x2): Drains the checkbox and button blocks so the GR4 scheduler actively polls them
-    */
-
     constexpr float FREQ_LOW  = 2343.75f;
     constexpr float FREQ_HIGH = 4687.5f;
 
-    // 1. Single generator
+    /*
+    ============================================================
+    Real-valued chain: drives frequencySink, waterFallSink,
+    timeSeries, and vectorSink (via tag + StreamToDataSet framing,
+    which vectorSink actually requires - it takes DataSet<T>, not a plain stream)
+    ============================================================
+    */
     auto& source = graph.emplaceBlock<basicBlocks::SignalGenerator<float>>();
     source.sample_rate = 48000.f;
-    source.frequency   = FREQ_LOW; 
+    source.frequency   = FREQ_LOW;
     source.amplitude   = 1.0f;
     source.offset      = 0.0f;
     source.phase       = 0.0f;
-    source.signal_type = basicBlocks::signal_generator::Type::Sin; 
+    source.signal_type = basicBlocks::signal_generator::Type::Sin;
     source.chunk_size  = 1024;
 
-    // 2. Throttling the source 
     auto& throttle = graph.emplaceBlock<testing::SimCompute<float>>();
-    throttle.target_throughput = 48000.f; 
-    throttle.busy_wait = false;           
+    throttle.target_throughput = 48000.f;
+    throttle.busy_wait = false;
+    auto& throttle_drain = graph.emplaceBlock<testing::NullSink<float>>();
 
-    // 3. Downlink Waterfall Sink 
+    auto& freq_sink = graph.emplaceBlock<dashboardBlocks::imGUI_frequencySink<float>>();
+    freq_sink.title      = "freq_plot_1";
+    freq_sink.panel_name = "Frequency Domain";
+    freq_sink.sampleRate = 48000.0f;
+    freq_sink.windowSize = 1024;
+
     auto& waterfall_sink = graph.emplaceBlock<dashboardBlocks::imGUI_waterFallSink<float>>();
-    waterfall_sink.title = "waterfall_plot_1";
-    waterfall_sink.sampleRate = 48000.0f; 
-    waterfall_sink.windowSize = 1024;
-    waterfall_sink.history_size = 100; // Define how many lines of history the UI should render
-    
+    waterfall_sink.title        = "waterfall_plot_1";
+    waterfall_sink.panel_name   = "Frequency Domain";
+    waterfall_sink.sampleRate   = 48000.0f;
+    waterfall_sink.windowSize   = 1024;
+    waterfall_sink.history_size = 100;
 
-    // 4. Uplink Command Listener - CheckBox
+    auto& time_sink = graph.emplaceBlock<dashboardBlocks::dep_imGUI_timeSeries<float>>();
+    time_sink.topic_id   = "time_plot_1";
+    time_sink.panel_name = "Time Domain";
+
+    auto& tagger = graph.emplaceBlock<custom_testing::insertTag<float>>();
+    tagger.interval = 1024;
+    tagger.offset   = 0;
+    tagger.tag_key  = "start";
+
+    auto& s2ds = graph.emplaceBlock<basicBlocks::StreamToDataSet<float>>();
+    s2ds.filter = "[start/, start/]";
+    s2ds.n_max  = 1024;
+    s2ds.n_pre  = 0;
+    s2ds.n_post = 1024;
+
+    auto& vector_sink = graph.emplaceBlock<dashboardBlocks::imGUI_vectorSink<float>>();
+    vector_sink.title      = "vector_plot_1";
+    vector_sink.panel_name = "Vector";
+    vector_sink.vectorSize = 1024;
+
+    /*
+    ============================================================
+    Complex chain: drives constellationSink (needs PortIn<complex<T>>)
+    Circle centered at (50,50) radius 40 - stays inside the sink's
+    default 0-100 axis bounds while leaving room to move via the offset control
+    ============================================================
+    */
+    auto& source_complex = graph.emplaceBlock<basicBlocks::SignalGenerator<std::complex<float>>>();
+    source_complex.sample_rate = 48000.f;
+    source_complex.frequency   = 500.0f;
+    source_complex.amplitude   = 40.0f;
+    source_complex.offset      = 50.0f;
+    source_complex.phase       = 0.0f;
+    source_complex.signal_type = basicBlocks::signal_generator::Type::Sin;
+    source_complex.chunk_size  = 1024;
+
+    auto& throttle_complex = graph.emplaceBlock<testing::SimCompute<std::complex<float>>>();
+    throttle_complex.target_throughput = 48000.f;
+    throttle_complex.busy_wait = false;
+    auto& throttle_complex_drain = graph.emplaceBlock<testing::NullSink<std::complex<float>>>();
+
+    auto& constellation_sink = graph.emplaceBlock<dashboardBlocks::imGUI_constellationSink<float>>();
+    constellation_sink.title      = "constellation_1";
+    constellation_sink.panel_name = "Constellation";
+    constellation_sink.numberOfPoints = 256;
+
+    /*
+    ============================================================
+    Widgets: all on the "Controls" panel. Checkbox, button, and dropdown
+    all drive the same shared toggle between FREQ_LOW/FREQ_HIGH on the real source.
+    Text box drives the complex source's offset live. Label reports the real frequency.
+    ============================================================
+    */
     auto& checkBox_src = graph.emplaceBlock<dashboardBlocks::dep_imGUI_checkBox<bool>>();
-    checkBox_src.widget_id = "freq_checkBox";
+    checkBox_src.widget_id  = "freq_checkBox";
+    checkBox_src.panel_name = "Controls";
 
-    // 5. Uplink Command Listener - Button
     auto& button_src = graph.emplaceBlock<dashboardBlocks::dep_imGUI_button<bool>>();
-    button_src.widget_id = "freq_button";
+    button_src.widget_id  = "freq_button";
+    button_src.panel_name = "Controls";
 
-    // 6. Dummy drains
     auto& checkBox_drain = graph.emplaceBlock<testing::NullSink<uint8_t>>();
     auto& button_drain   = graph.emplaceBlock<testing::NullSink<uint8_t>>();
 
-    auto& dropdown_src = graph.emplaceBlock<dashboardBlocks::imGUI_dropDownMenu<uint8_t>>();
-    dropdown_src.widget_id = "freq_dropdown";
+    auto& dropdown_src = graph.emplaceBlock<dashboardBlocks::imGUI_dropDownMenu<float>>();
+    dropdown_src.widget_id     = "freq_dropdown";
+    dropdown_src.panel_name    = "Controls";
     dropdown_src.target_property = "frequency";
-    dropdown_src.options = std::vector<std::string>{"Low", "High"};
-
-    //TextBox Input Listener 
-    auto& text_box = graph.emplaceBlock<dashboardBlocks::imGUI_textBox<float>>();
-    text_box.widget_id = "text_input_1";
-
-    //Dummy drain for TextBox
-    auto& text_drain = graph.emplaceBlock<testing::NullSink<float>>();
-
-    // Text Label - displays whatever frequency is currently active, updated by the flowgraph
-    auto& freq_label = graph.emplaceBlock<dashboardBlocks::imGUI_textLabel<uint8_t>>();
-    freq_label.widget_id = "freq_label";
-
-    //Dummy drain for the text label, same reason as the other widget drains
-    auto& freq_label_drain = graph.emplaceBlock<testing::NullSink<uint8_t>>();
-
-    // 8. Dummy drain for the dropdown, same reason as checkbox/button drains
+    dropdown_src.options       = std::vector<std::string>{"Low", "High"};
     auto& dropdown_drain = graph.emplaceBlock<testing::NullSink<uint8_t>>();
 
-    // Shared state that both widgets drive - true = FREQ_HIGH, false = FREQ_LOW
+    auto& text_box = graph.emplaceBlock<dashboardBlocks::imGUI_textBox<float>>();
+    text_box.widget_id  = "offset_input_1";
+    text_box.panel_name = "Controls";
+    auto& text_drain = graph.emplaceBlock<testing::NullSink<float>>();
+
+    auto& freq_label = graph.emplaceBlock<dashboardBlocks::imGUI_textLabel<uint8_t>>();
+    freq_label.widget_id  = "freq_label";
+    freq_label.panel_name = "Controls";
+    auto& freq_label_drain = graph.emplaceBlock<testing::NullSink<uint8_t>>();
+
+    // Shared toggle state driving the real source's frequency
     bool freq_toggle_state = false;
 
-    // Applies the shared toggle state to the source's frequency
     auto apply_freq_toggle = [&source](bool state) {
         gr::property_map old_props;
         old_props["frequency"] = source.frequency;
@@ -108,25 +160,19 @@ int main() {
         std::cout << "[Coordinator] Frequency shifted to: " << new_freq << " Hz" << std::endl;
     };
 
-    // CheckBox is real persisted state, so just take whatever it says
     checkBox_src.on_val_update = [&freq_toggle_state, apply_freq_toggle](bool new_state) {
         freq_toggle_state = new_state;
         apply_freq_toggle(freq_toggle_state);
-        std::cout << freq_toggle_state << "\n";
     };
     checkBox_src.get_external_val = [&freq_toggle_state]() -> bool {
         return freq_toggle_state;
     };
 
-    // Button has no state of its own, a press just flips whatever the shared state currently is
     button_src.on_val_update = [&freq_toggle_state, apply_freq_toggle](bool) {
-        
         freq_toggle_state = !freq_toggle_state;
         apply_freq_toggle(freq_toggle_state);
-        std::cout << freq_toggle_state << "\n";
     };
 
-    // Drop Down menu testing
     dropdown_src.on_val_update = [&freq_toggle_state, apply_freq_toggle](std::string selected_option) {
         freq_toggle_state = (selected_option == "High");
         apply_freq_toggle(freq_toggle_state);
@@ -135,14 +181,27 @@ int main() {
         return freq_toggle_state ? "High" : "Low";
     };
 
-    // TextBox Event Lambda
-    text_box.on_val_update = [](std::string msg) {
-        std::cout << "\n========================================\n";
-        std::cout << "[TextBox] User Input Received: " << msg << "\n";
-        std::cout << "========================================\n" << std::endl;
+    // Text box drives the complex source's DC offset live, so typing a new
+    // value re-centers the plotted constellation circle
+    text_box.on_val_update = [&source_complex](std::string msg) {
+        try {
+            float new_offset = std::stof(msg);
+
+            gr::property_map old_props;
+            old_props["offset"] = source_complex.offset;
+
+            gr::property_map new_props;
+            new_props["offset"] = new_offset;
+
+            source_complex.offset = new_offset;
+            source_complex.settingsChanged(old_props, new_props);
+
+            std::cout << "[Coordinator] Constellation offset shifted to: " << new_offset << std::endl;
+        } catch (const std::exception& e) {
+            std::cerr << "[TextBox] Invalid offset input: '" << msg << "' (" << e.what() << ")\n";
+        }
     };
 
-    // Text Label has no on_val_update, its display only - just reports whatever the source's frequency currently is
     freq_label.get_external_val = [&source]() -> std::string {
         std::ostringstream oss;
         oss << "Current Frequency: " << std::fixed << std::setprecision(2) << source.frequency << " Hz";
@@ -150,17 +209,42 @@ int main() {
     };
 
     /*
-    Connect Downlink: Source -> Throttle -> imGUI_waterFallSink
+    ============================================================
+    Connections
+    ============================================================
     */
+    // Real-valued fork: pacing path + three direct-stream sinks + tagged DataSet path
     auto source_to_throttle = graph.connect<"out", "in">(source, throttle);
     if (!source_to_throttle.has_value()) { return 1; }
+    auto throttle_to_drain = graph.connect<"out", "in">(throttle, throttle_drain);
+    if (!throttle_to_drain.has_value()) { return 1; }
 
-    auto throttle_to_waterfall = graph.connect<"out", "in">(throttle, waterfall_sink);
-    if (!throttle_to_waterfall.has_value()) { return 1; }
+    auto source_to_freq = graph.connect<"out", "in">(source, freq_sink);
+    if (!source_to_freq.has_value()) { return 1; }
 
-    /*
-    Connect Uplink: UI Blocks -> NullSink
-    */
+    auto source_to_waterfall = graph.connect<"out", "in">(source, waterfall_sink);
+    if (!source_to_waterfall.has_value()) { return 1; }
+
+    auto source_to_time = graph.connect<"out", "in">(source, time_sink);
+    if (!source_to_time.has_value()) { return 1; }
+
+    auto source_to_tagger = graph.connect<"out", "in">(source, tagger);
+    if (!source_to_tagger.has_value()) { return 1; }
+    auto tagger_to_s2ds = graph.connect<"out", "in">(tagger, s2ds);
+    if (!tagger_to_s2ds.has_value()) { return 1; }
+    auto s2ds_to_vector = graph.connect<"out", "in">(s2ds, vector_sink);
+    if (!s2ds_to_vector.has_value()) { return 1; }
+
+    // Complex-valued fork: pacing path + constellation sink
+    auto sourceC_to_throttleC = graph.connect<"out", "in">(source_complex, throttle_complex);
+    if (!sourceC_to_throttleC.has_value()) { return 1; }
+    auto throttleC_to_drain = graph.connect<"out", "in">(throttle_complex, throttle_complex_drain);
+    if (!throttleC_to_drain.has_value()) { return 1; }
+
+    auto sourceC_to_constellation = graph.connect<"out", "in">(source_complex, constellation_sink);
+    if (!sourceC_to_constellation.has_value()) { return 1; }
+
+    // Widget uplinks -> NullSinks
     auto checkBox_to_drain = graph.connect<"out", "in">(checkBox_src, checkBox_drain);
     if (!checkBox_to_drain.has_value()) { return 1; }
 
@@ -176,9 +260,6 @@ int main() {
     auto freq_label_to_drain = graph.connect<"out", "in">(freq_label, freq_label_drain);
     if (!freq_label_to_drain.has_value()) { return 1; }
 
-    /*
-    Pass the graph to the scheduler and run indefinitely.
-    */
     std::cout << "Starting GNU Radio 4.0 Decoupled Flowgraph Coordinator..." << std::endl;
     gr::scheduler::Simple<> scheduler;
 

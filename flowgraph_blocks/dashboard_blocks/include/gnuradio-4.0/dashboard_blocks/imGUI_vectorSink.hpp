@@ -29,6 +29,9 @@ namespace gr::dashboard_blocks {
 
         // Variables that can be adjusted by user
         gr::Annotated<std::string, "title", gr::Visible> title = "vectorSink_default";
+        //All widgets or blocks with the same panel name will be placed in the same panel
+        //The panel chosen purely has an affect on the widget or blocks location, has no affect on the data it displays or affects
+        gr::Annotated<std::string, "panel", gr::Visible> panel_name = "default";
 
         // Size of vector (Used primarily for UI setup/scaling on the dashboard side)
         gr::Annotated<size_t, "vector Size", gr::Visible> vectorSize = 256UL;
@@ -45,6 +48,7 @@ namespace gr::dashboard_blocks {
             imGUI_DashboardRegistry::getInstance().register_imGUI_block([this]() -> std::string {
                 std::string json_data = "{";
                 json_data += "\"id\": \"" + this->title.value + "\", ";
+                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", ";
                 json_data += "\"type\": \"vector\", "; 
                 json_data += "\"title\": \"" + this->title.value + "\", ";
                 json_data += "\"vectorSize\": \"" + std::to_string(this->vectorSize.value) + "\" ";

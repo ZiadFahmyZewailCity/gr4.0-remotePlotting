@@ -27,6 +27,11 @@ namespace gr::dashboard_blocks {
 
         //This is the unique ID that will be given to the widget by the user
         gr::Annotated<std::string, "widget_id", gr::Visible> widget_id = "slider_freq";
+        
+        //All widgets or blocks with the same panel name will be placed in the same panel
+        //The panel chosen purely has an affect on the widget or blocks location, has no affect on the data it displays or affects
+        gr::Annotated<std::string, "panel", gr::Visible> panel_name = "default";
+
         gr::Annotated<std::string, "target_property", gr::Visible> target_property = "current_val";
 
         //Variable for PUB socket in dashboard_server
@@ -68,6 +73,7 @@ namespace gr::dashboard_blocks {
             imGUI_DashboardRegistry::getInstance().register_imGUI_block([this]() -> std::string {
                 std::string json_data = "{";
                 json_data += "\"id\": \"" + this->widget_id.value + "\", ";
+                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", ";
                 json_data += "\"type\": \"slider\", ";
                 json_data += "\"target\": \"" + this->target_property.value + "\"";
                 json_data += "}";
@@ -77,7 +83,7 @@ namespace gr::dashboard_blocks {
 
         
         //Widgets are meant to vary already existing variables 
-        GR_MAKE_REFLECTABLE(dep_imGUI_slider,out  ,widget_id, target_property, endpoint, dashboard_server, current_val);
+        GR_MAKE_REFLECTABLE(dep_imGUI_slider,out  ,widget_id, panel_name, target_property, endpoint, dashboard_server, current_val);
 
         //ZMQ subscriber to the ZMQ publisher in the dashboard_server graph for updating widgets
         void start() {
