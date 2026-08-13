@@ -521,7 +521,7 @@ CMakeFiles/flowgraph.dir/src/flowgraph.cpp.o: \
  /usr/local/include/gnuradio-4.0/algorithm/signal/ToneGenerator.hpp \
  /usr/local/include/gnuradio-4.0/testing/NullSources.hpp \
  /usr/local/include/gnuradio-4.0/DataSet.hpp \
- /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_button.hpp \
+ /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/dep_imGUI_timeSeries.hpp \
  /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_management.hpp \
  /usr/include/zmq.hpp /usr/include/zmq.h /usr/include/signal.h \
  /usr/include/x86_64-linux-gnu/bits/signum-generic.h \
@@ -545,8 +545,35 @@ CMakeFiles/flowgraph.dir/src/flowgraph.cpp.o: \
  /usr/include/x86_64-linux-gnu/bits/types/struct_sigstack.h \
  /usr/include/x86_64-linux-gnu/bits/sigthread.h \
  /usr/include/x86_64-linux-gnu/bits/signal_ext.h \
+ /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_button.hpp \
  /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_checkBox.hpp \
+ /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_waterFallSink.hpp \
+ /usr/local/include/gnuradio-4.0/fourier/fft.hpp \
+ /usr/include/c++/14/execution \
+ /usr/include/c++/14/pstl/glue_execution_defs.h \
+ /usr/include/c++/14/pstl/algorithm_impl.h \
+ /usr/include/c++/14/pstl/execution_impl.h \
+ /usr/include/c++/14/pstl/memory_impl.h \
+ /usr/include/c++/14/pstl/unseq_backend_simd.h \
+ /usr/include/c++/14/pstl/utils.h \
+ /usr/include/c++/14/pstl/parallel_backend_utils.h \
+ /usr/include/c++/14/pstl/parallel_backend.h \
+ /usr/include/c++/14/pstl/parallel_backend_serial.h \
+ /usr/include/c++/14/pstl/parallel_impl.h \
+ /usr/include/c++/14/pstl/numeric_impl.h \
+ /usr/include/c++/14/pstl/pstl_config.h \
+ /usr/include/c++/14/pstl/algorithm_fwd.h \
+ /usr/include/c++/14/pstl/glue_algorithm_impl.h \
+ /usr/include/c++/14/pstl/numeric_fwd.h \
+ /usr/include/c++/14/pstl/glue_numeric_impl.h \
+ /usr/include/c++/14/pstl/glue_memory_impl.h \
+ /usr/local/include/gnuradio-4.0/HistoryBuffer.hpp \
+ /usr/local/include/gnuradio-4.0/algorithm/fourier/fft.hpp \
+ /usr/local/include/gnuradio-4.0/algorithm/fourier/SimdFFT.hpp \
+ /usr/local/include/vir/simd_execution.h \
+ /usr/local/include/vir/simd_cvt.h /usr/local/include/vir/simdize.h \
+ /usr/local/include/gnuradio-4.0/algorithm/fourier/fft_common.hpp \
+ /usr/local/include/gnuradio-4.0/algorithm/fourier/window.hpp \
  /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_dropDownMenu.hpp \
  /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_textBox.hpp \
- /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_textLabel.hpp \
- /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_constellationSink.hpp
+ /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_textLabel.hpp

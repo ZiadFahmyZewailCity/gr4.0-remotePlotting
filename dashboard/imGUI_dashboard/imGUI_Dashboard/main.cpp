@@ -166,7 +166,7 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
                         try{
 
                             new_dashboardElement.windowSize = std::stoi(item.value("windowSize", "1024"));
-                            new_dashboardElement.history_size = std::stoi(item.value("historySize","100"))
+                            new_dashboardElement.history_size = std::stoi(item.value("historySize","100"));
                             new_dashboardElement.sample_rate = std::stof(item.value("samplingFreq", "1.0"));
 
                             //The start and end of the frequency graph

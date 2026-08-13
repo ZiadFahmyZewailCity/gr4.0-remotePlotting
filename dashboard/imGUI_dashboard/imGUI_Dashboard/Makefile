@@ -29,7 +29,9 @@ SOURCES = \
 EMFLAGS = -s USE_SDL=2 \
           -s USE_WEBGL2=1 \
           -lwebsocket.js \
-          -s ALLOW_MEMORY_GROWTH=1
+          -s ALLOW_MEMORY_GROWTH=1 \
+          # Specifically for allowing 32 bit vertex indices. Usually needed for waterfall plots
+          -DImDrawIdx="unsigned int"
 
 # ==========================================
 # BUILD RULES
