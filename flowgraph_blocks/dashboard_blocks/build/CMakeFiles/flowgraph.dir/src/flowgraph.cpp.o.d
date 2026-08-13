@@ -547,7 +547,7 @@ CMakeFiles/flowgraph.dir/src/flowgraph.cpp.o: \
  /usr/include/x86_64-linux-gnu/bits/signal_ext.h \
  /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_button.hpp \
  /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_checkBox.hpp \
- /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_frequencySink.hpp \
+ /home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/include/gnuradio-4.0/dashboard_blocks/imGUI_waterFallSink.hpp \
  /usr/local/include/gnuradio-4.0/fourier/fft.hpp \
  /usr/include/c++/14/execution \
  /usr/include/c++/14/pstl/glue_execution_defs.h \

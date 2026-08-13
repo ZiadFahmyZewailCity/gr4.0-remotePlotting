@@ -5,20 +5,17 @@
 #include <gnuradio-4.0/dashboard_blocks/dep_imGUI_timeSeries.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_button.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_checkBox.hpp>
-#include <gnuradio-4.0/dashboard_blocks/imGUI_frequencySink.hpp>
+// Swapped to the Waterfall Sink Header
+#include <gnuradio-4.0/dashboard_blocks/imGUI_waterFallSink.hpp> 
 #include <gnuradio-4.0/dashboard_blocks/imGUI_dropDownMenu.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_textBox.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_textLabel.hpp>
 #include <sstream>
 #include <iomanip>
 
-
 namespace basicBlocks = gr::basic;
 namespace testing = gr::testing;
 namespace dashboardBlocks = gr::dashboard_blocks;
-
-//THIS TEST CODE WAS AI GENERATED FOR SPEED
-
 
 int main() {
     gr::Graph graph;
@@ -27,16 +24,10 @@ int main() {
     We need 6 blocks for this decoupled live test:
     - Source: Generates the base sine wave
     - Throttle: Keeps the CPU from crashing the browser by limiting throughput
-    - imGUI_frequencySink: Captures DSP frames and broadcasts them to ZMQ Port 5555
+    - imGUI_waterFallSink: Computes FFT, captures magnitudes, and broadcasts them to ZMQ Port 5555
     - dep_imGUI_checkBox: Subscribes to ZMQ Port 5556 for UI checkbox toggles
     - dep_imGUI_button: Subscribes to ZMQ Port 5556 for UI button presses
     - NullSink (x2): Drains the checkbox and button blocks so the GR4 scheduler actively polls them
-
-    Both the checkbox and the button drive the same shared boolean, which toggles
-    the sine wave's frequency between two fixed values (FREQ_LOW / FREQ_HIGH).
-    The checkbox is real state so it just sets the boolean to whatever it was
-    toggled to. The button has no state of its own (its a pulse), so a press
-    just flips whatever the shared boolean currently is.
     */
 
     constexpr float FREQ_LOW  = 2343.75f;
@@ -57,11 +48,12 @@ int main() {
     throttle.target_throughput = 48000.f; 
     throttle.busy_wait = false;           
 
-    // 3. Downlink Frequency Sink 
-    auto& freq_sink = graph.emplaceBlock<dashboardBlocks::imGUI_frequencySink<float>>();
-    freq_sink.title = "freq_plot_1";
-    freq_sink.sampleRate = 48000.0f; 
-    freq_sink.windowSize = 1024;
+    // 3. Downlink Waterfall Sink 
+    auto& waterfall_sink = graph.emplaceBlock<dashboardBlocks::imGUI_waterFallSink<float>>();
+    waterfall_sink.title = "waterfall_plot_1";
+    waterfall_sink.sampleRate = 48000.0f; 
+    waterfall_sink.windowSize = 1024;
+    waterfall_sink.history_size = 100; // Define how many lines of history the UI should render
     
 
     // 4. Uplink Command Listener - CheckBox
@@ -81,7 +73,6 @@ int main() {
     dropdown_src.target_property = "frequency";
     dropdown_src.options = std::vector<std::string>{"Low", "High"};
 
-
     //TextBox Input Listener 
     auto& text_box = graph.emplaceBlock<dashboardBlocks::imGUI_textBox<float>>();
     text_box.widget_id = "text_input_1";
@@ -95,7 +86,6 @@ int main() {
 
     //Dummy drain for the text label, same reason as the other widget drains
     auto& freq_label_drain = graph.emplaceBlock<testing::NullSink<uint8_t>>();
-
 
     // 8. Dummy drain for the dropdown, same reason as checkbox/button drains
     auto& dropdown_drain = graph.emplaceBlock<testing::NullSink<uint8_t>>();
@@ -160,16 +150,16 @@ int main() {
     };
 
     /*
-    Connect Downlink: Source -> Throttle -> imGUI_frequencySink
+    Connect Downlink: Source -> Throttle -> imGUI_waterFallSink
     */
     auto source_to_throttle = graph.connect<"out", "in">(source, throttle);
     if (!source_to_throttle.has_value()) { return 1; }
 
-    auto throttle_to_freq = graph.connect<"out", "in">(throttle, freq_sink);
-    if (!throttle_to_freq.has_value()) { return 1; }
+    auto throttle_to_waterfall = graph.connect<"out", "in">(throttle, waterfall_sink);
+    if (!throttle_to_waterfall.has_value()) { return 1; }
 
     /*
-    Connect Uplink: dep_imGUI_checkBox / dep_imGUI_button -> NullSink
+    Connect Uplink: UI Blocks -> NullSink
     */
     auto checkBox_to_drain = graph.connect<"out", "in">(checkBox_src, checkBox_drain);
     if (!checkBox_to_drain.has_value()) { return 1; }
@@ -185,7 +175,6 @@ int main() {
 
     auto freq_label_to_drain = graph.connect<"out", "in">(freq_label, freq_label_drain);
     if (!freq_label_to_drain.has_value()) { return 1; }
-
 
     /*
     Pass the graph to the scheduler and run indefinitely.

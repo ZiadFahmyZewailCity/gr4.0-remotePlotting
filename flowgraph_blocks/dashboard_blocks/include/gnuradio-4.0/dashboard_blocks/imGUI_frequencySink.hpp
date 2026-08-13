@@ -11,15 +11,14 @@
 #include <gnuradio-4.0/DataSet.hpp>
 #include <gnuradio-4.0/annotated.hpp>
 #include <gnuradio-4.0/meta/reflection.hpp>
+#include <gnuradio-4.0/meta/utils.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_management.hpp>
 #include <gnuradio-4.0/fourier/fft.hpp>
 #include <gnuradio-4.0/algorithm/fourier/window.hpp>
 //External dependecies
-#include <gnuradio-4.0/meta/utils.hpp>
 #include <iostream>
 #include <magic_enum.hpp>
 #include <span>
-#include <type_traits>
 #include <vector>
 #include <zmq.hpp>
 #include <string>
