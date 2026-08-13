@@ -49,7 +49,7 @@ EM_JS(char*, get_websocket_url, (), {
 
 
 //Structs for dashboard elements 
-enum class dashboardElementType { TIME_SERIES, VECTOR_SINK , FREQUENCY_SINK, CONSTELLATION_SINK , SLIDER, TEXTLABEL, BUTTON, CHECKBOX, DROPDOWN, TEXTBOX };
+enum class dashboardElementType { TIME_SERIES, VECTOR_SINK , FREQUENCY_SINK, CONSTELLATION_SINK, WATERFALL_SINK , SLIDER, TEXTLABEL, BUTTON, CHECKBOX, DROPDOWN, TEXTBOX };
 
 //Simplified dashboard element struct
 struct dashboardElement {
@@ -81,11 +81,14 @@ struct dashboardElement {
     int current_val_int = 0;
 
 
-    // FREQUENCY SINK PARAMS
+    // FREQUENCY/WATERFALL SINK PARAMS
     int windowSize = 1024;
     float sample_rate = 1.0f;
     double start_freq = 0.0;
     double step_freq = 1.0;
+
+    //Waterfall only
+    int history_size = 100;
 
     //String Data for textLabel and textBox
     std::string string_current_text = " ";
@@ -152,6 +155,30 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
                         }
                         new_dashboardElement.databuffer.resize(new_dashboardElement.windowSize, 0.0f);
 
+
+                    }
+                    else if (item["type"] == "waterFallSink"){
+                        
+                        
+                        new_dashboardElement.type = dashboardElementType::WATERFALL_SINK;
+                       
+                        //Allocating the memory
+                        try{
+
+                            new_dashboardElement.windowSize = std::stoi(item.value("windowSize", "1024"));
+                            new_dashboardElement.history_size = std::stoi(item.value("historySize","100"))
+                            new_dashboardElement.sample_rate = std::stof(item.value("samplingFreq", "1.0"));
+
+                            //The start and end of the frequency graph
+                            new_dashboardElement.start_freq = 0;
+                            new_dashboardElement.step_freq  = (double)new_dashboardElement.sample_rate / (double)new_dashboardElement.windowSize;
+
+                        } catch (...){
+                            //TO DO: debugging message
+                            std::cout << "Failed to parse window size on intialization";
+                        }
+
+                        new_dashboardElement.databuffer.resize(new_dashboardElement.windowSize * new_dashboardElement.history_size, -140.0f);
 
                     }
                     else if (item["type"] == "vector"){
@@ -276,7 +303,8 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
                 if (object.type == dashboardElementType::TIME_SERIES 
                     || object.type == dashboardElementType::FREQUENCY_SINK 
                     || object.type == dashboardElementType::VECTOR_SINK
-                    || object.type == dashboardElementType::CONSTELLATION_SINK) { 
+                    || object.type == dashboardElementType::CONSTELLATION_SINK
+                    || object.type == dashboardElementType::WATERFALL_SINK) { 
                     
                     size_t topic_len = object.id.size();
                     
@@ -328,7 +356,8 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
 
                             }
                             //Frequency spectrum & Vector sink isnt a rolling buffer. Just replace previous buffer
-                            else if(object.type == dashboardElementType::FREQUENCY_SINK || object.type == dashboardElementType::VECTOR_SINK 
+                            else if(object.type == dashboardElementType::FREQUENCY_SINK 
+                                || object.type == dashboardElementType::VECTOR_SINK 
                                 || object.type == dashboardElementType::CONSTELLATION_SINK){
 
                                 //TO DO: Remove this is for debugging
@@ -348,6 +377,22 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
                                 //Copy into the buffer the floats 
                                 std::copy(incoming_floats.begin(), incoming_floats.begin() + vectorSize, object.databuffer.begin());                                
                                 
+
+                            }
+                            else if(object.type == dashboardElementType::WATERFALL_SINK){
+
+                                //FFT Window size
+                                int fft_size = object.windowSize;
+                                //size of the history that can be stored
+                                int history = object.history_size;
+
+                                //Shift the history down one row
+                                std::memmove(object.databuffer.data() + fft_size, //Select everything after that first row
+                                            object.databuffer.data(), //Select all the data in the buffer
+                                            (history - 1) * fft_size * sizeof(float)); //all the slots in history - 1, times the number of elements per row, times the size of their type. Total memory size minus the first row
+
+                                //Cpy the new FFT frame into the 0th index
+                                std::memcpy(object.databuffer.data(), incoming_floats.data(), fft_size * sizeof(float));
 
                             }
 
@@ -664,7 +709,7 @@ void main_loop(){
                                 std::string hidden_id = "##" + object.id;
                             
                                 // A square aspect ratio is usually best for constellation diagrams
-                                if (ImPlot::BeginPlot(object.title.c_str(), ImVec2(250, 250)))./f    {
+                                if (ImPlot::BeginPlot(object.title.c_str(), ImVec2(250, 250)))    {
                                     ImPlot::SetupAxes("In-Phase (I)", "Quadrature (Q)");
 
                                     // Apply the user-set boundaries from the JSON config
@@ -692,6 +737,39 @@ void main_loop(){
                             else {
                                 ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Waiting for constellation telemetry...");
                             }
+                        }
+                        else if (object.type == dashboardElementType::WATERFALL_SINK){
+
+                            if (!object.databuffer.empty()) {
+                                std::string hidden_id = "##" + object.id;
+
+                                // Apply a colormap (This is the look that looked most like waterfall plots i usually see)
+                                ImPlot::PushColormap(ImPlotColormap_Viridis);
+
+                                if (ImPlot::BeginPlot(object.title.c_str(), ImVec2(-1, 300))) {
+                                    
+                                    // X-axis: Frequency limits. Y-axis: Time (0 to history size)
+                                    ImPlot::SetupAxes("Frequency (Hz)", "Time (Frames)");
+                                    
+                                    // Bounds mapping for the corners of the heatmap image
+                                    ImPlotPoint bounds_min(object.start_freq, object.history_size);
+                                    ImPlotPoint bounds_max(object.start_freq + (object.windowSize * object.step_freq), 0);
+
+                                    // Render the flattened vector as a Heatmap
+                                    ImPlot::PlotHeatmap(hidden_id.c_str(), 
+                                                        object.databuffer.data(), 
+                                                        object.history_size,    // rows
+                                                        object.windowSize,      // cols
+                                                        -140.0, 0.0,            // Scale min/max bounds (dB limits for the colors)
+                                                        nullptr,                // Format string (nullptr for no text overlay)
+                                                        bounds_min, bounds_max);
+                                    ImPlot::EndPlot();
+                                }
+                                ImPlot::PopColormap();
+                            }
+
+
+
                         }
                         //Widgets
                         else if (object.type == dashboardElementType::SLIDER) { 
