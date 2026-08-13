@@ -391,8 +391,20 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
                                             object.databuffer.data(), //Select all the data in the buffer
                                             (history - 1) * fft_size * sizeof(float)); //all the slots in history - 1, times the number of elements per row, times the size of their type. Total memory size minus the first row
 
-                                //Cpy the new FFT frame into the 0th index
-                                std::memcpy(object.databuffer.data(), incoming_floats.data(), fft_size * sizeof(float));
+
+                                //If there is a mismatch between the amount that should be plotted according to the window size and whats being sent
+                                //This happens for example when a real valued signal is passed through the FFT block, it outputs only half the samples 
+                                
+                                //Check if there actually is a difference
+                                int valid_bins = std::min(num_floats, fft_size);
+                                std::memcpy(object.databuffer.data(), incoming_floats.data(), valid_bins * sizeof(float));
+
+                                // Fill the remainder of the row (buffer) with the noise floor
+                                if (valid_bins < fft_size) {
+                                    std::fill(object.databuffer.begin() + valid_bins, 
+                                            object.databuffer.begin() + fft_size, 
+                                            -140.0f);
+                                }
 
                             }
 
