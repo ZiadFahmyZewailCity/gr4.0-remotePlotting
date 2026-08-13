@@ -48,6 +48,7 @@ namespace gr::dashboard_blocks {
             imGUI_DashboardRegistry::getInstance().register_imGUI_block([this]() -> std::string {
                 std::string json_data = "{";
                 json_data += "\"id\": \"" + this->title.value + "\", ";
+                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", ";
                 json_data += "\"type\": \"vector\", "; 
                 json_data += "\"title\": \"" + this->title.value + "\", ";
                 json_data += "\"vectorSize\": \"" + std::to_string(this->vectorSize.value) + "\" ";

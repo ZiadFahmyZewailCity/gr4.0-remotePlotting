@@ -2,8 +2,72 @@
   "msg_type": "config",
   "panels": [
     {
+      "panel_name": "Constellation",
+      "dashboardElement": [
+        {
+          "id": "constellation_1",
+          "panel_name": "Constellation",
+          "type": "constellationSink",
+          "presistance_on": true,
+          "numberOfPoints": "256",
+          "autoscale": true,
+          "x_axis_min": "0",
+          "x_axis_max": "100",
+          "y_axis_min": "0",
+          "y_axis_max": "100"
+        }
+      ]
+    },
+    {
+      "panel_name": "Controls",
+      "dashboardElement": [
+        {
+          "id": "freq_checkBox",
+          "panel_name": "Controls",
+          "type": "checkBox",
+          "target": "current_val"
+        },
+        {
+          "id": "freq_button",
+          "type": "button",
+          "panel_name": "Controls",
+          "target": "button_current_val"
+        },
+        {
+          "id": "freq_dropdown",
+          "panel_name": "Controls",
+          "type": "dropdown",
+          "target": "frequency",
+          "options": [
+            "Low",
+            "High"
+          ]
+        },
+        {
+          "id": "offset_input_1",
+          "panel_name": "Controls",
+          "type": "textBox"
+        },
+        {
+          "id": "freq_label",
+          "panel_name": "Controls",
+          "type": "textLabel",
+          "target": "text_current_val"
+        }
+      ]
+    },
+    {
       "panel_name": "Frequency Domain",
       "dashboardElement": [
+        {
+          "id": "freq_plot_1",
+          "panel_name": "Frequency Domain",
+          "type": "frequencySink",
+          "title": "freq_plot_1",
+          "windowSize": "1024",
+          "samplingFreq": "48000.000000",
+          "frequencySink_dataSource": "Magnitudes"
+        },
         {
           "id": "waterfall_plot_1",
           "type": "waterFallSink",
@@ -29,35 +93,14 @@
       ]
     },
     {
-      "panel_name": "default_panel",
+      "panel_name": "Vector",
       "dashboardElement": [
         {
-          "id": "freq_checkBox",
-          "type": "checkBox",
-          "target": "current_val"
-        },
-        {
-          "id": "freq_button",
-          "type": "button",
-          "target": "button_current_val"
-        },
-        {
-          "id": "freq_dropdown",
-          "type": "dropdown",
-          "target": "frequency",
-          "options": [
-            "Low",
-            "High"
-          ]
-        },
-        {
-          "id": "text_input_1",
-          "type": "textBox"
-        },
-        {
-          "id": "freq_label",
-          "type": "textLabel",
-          "target": "text_current_val"
+          "id": "vector_plot_1",
+          "panel_name": "Vector",
+          "type": "vector",
+          "title": "vector_plot_1",
+          "vectorSize": "1024"
         }
       ]
     }

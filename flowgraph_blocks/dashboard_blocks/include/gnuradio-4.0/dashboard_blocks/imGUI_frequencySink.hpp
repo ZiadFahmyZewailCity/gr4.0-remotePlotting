@@ -88,6 +88,7 @@ namespace gr::dashboard_blocks {
             imGUI_DashboardRegistry::getInstance().register_imGUI_block([this]() -> std::string {
                 std::string json_data = "{";
                 json_data += "\"id\": \"" + this->title.value + "\", ";
+                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", ";
                 json_data += "\"type\": \"frequencySink\", ";
                 json_data += "\"title\": \"" + this->title.value + "\", ";
                 json_data += "\"windowSize\": \"" + std::to_string(this->windowSize.value) + "\", ";
@@ -98,7 +99,7 @@ namespace gr::dashboard_blocks {
             });
         }
 
-        GR_MAKE_REFLECTABLE(imGUI_frequencySink, in, title, windowSize, sampleRate, windowType, outputInDb, typeOfTrigger, typeOfAveraging, endpoint);
+        GR_MAKE_REFLECTABLE(imGUI_frequencySink, in, title, panel_name ,windowSize, sampleRate, windowType, outputInDb, typeOfTrigger, typeOfAveraging, endpoint);
 
         void start() {
 

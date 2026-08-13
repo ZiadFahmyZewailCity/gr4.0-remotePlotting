@@ -92,7 +92,8 @@ namespace gr::dashboard_blocks {
             imGUI_DashboardRegistry::getInstance().register_imGUI_block([this]() -> std::string {
                 std::string json_data = "{";
                 json_data += "\"id\": \"" + this->widget_id.value + "\", ";
-                json_data += "\"type\": \"dropdown\", ";           // TODO: confirm widget type tag matches frontend
+                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", ";
+                json_data += "\"type\": \"dropdown\", ";           
                 json_data += "\"target\": \"" + this->target_property.value + "\",";
                 
                 //Create a list of options 
@@ -112,7 +113,7 @@ namespace gr::dashboard_blocks {
         }
 
         // TODO: ADD ANY NEW ANNOTATED FIELDS TO THIS LIST
-        GR_MAKE_REFLECTABLE(imGUI_dropDownMenu, out, widget_id, target_property, endpoint, dashboard_server, options, current_val);
+        GR_MAKE_REFLECTABLE(imGUI_dropDownMenu, out, widget_id, panel_name, target_property, endpoint, dashboard_server, options, current_val);
 
         //ZMQ subscriber to the ZMQ publisher in the dashboard_server graph for updating widgets
         void start() {
@@ -186,7 +187,9 @@ namespace gr::dashboard_blocks {
                                 //Ignore 
                             } 
                             else {
-                                this->on_val_update(options.value[static_cast<std::size_t>(selected_index)]);
+                                if (this->on_val_update) {
+                                    this->on_val_update(options.value[static_cast<std::size_t>(selected_index)]);
+                                }
                                 current_val.value = static_cast<uint8_t>(selected_index);
                                 publishCurrentVal();
                             }
@@ -236,6 +239,6 @@ namespace gr::dashboard_blocks {
 } // namespace gr::dashboard_blocks
 
 // TODO: rename registration, set correct type list (e.g. [float], [bool], [int])
-GR_REGISTER_BLOCK("gr::dashboard_blocks::imGUI_dropDownMenu", gr::dashboard_blocks::imGUI_dropDownMenu>>, [float])
+GR_REGISTER_BLOCK("gr::dashboard_blocks::imGUI_dropDownMenu", gr::dashboard_blocks::imGUI_dropDownMenu, [float])
 
 #endif

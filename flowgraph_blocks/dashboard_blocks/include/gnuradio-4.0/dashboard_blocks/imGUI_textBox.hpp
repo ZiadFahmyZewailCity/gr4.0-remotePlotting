@@ -50,6 +50,7 @@ namespace gr::dashboard_blocks {
             imGUI_DashboardRegistry::getInstance().register_imGUI_block([this]() -> std::string {
                 std::string json_data = "{";
                 json_data += "\"id\": \"" + this->widget_id.value + "\", ";
+                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", ";
                 json_data += "\"type\": \"textBox\"";           
                 json_data += "}";
                 return json_data;
@@ -57,7 +58,7 @@ namespace gr::dashboard_blocks {
         }
 
         // TODO: ADD ANY NEW ANNOTATED FIELDS TO THIS LIST
-        GR_MAKE_REFLECTABLE(imGUI_textBox, out, widget_id, endpoint);
+        GR_MAKE_REFLECTABLE(imGUI_textBox, out, widget_id, panel_name ,endpoint);
 
         //ZMQ subscriber to the ZMQ publisher in the dashboard_server graph for updating widgets
         void start() {

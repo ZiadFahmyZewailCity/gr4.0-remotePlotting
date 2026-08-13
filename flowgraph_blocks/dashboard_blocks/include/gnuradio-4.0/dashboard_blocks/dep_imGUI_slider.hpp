@@ -73,6 +73,7 @@ namespace gr::dashboard_blocks {
             imGUI_DashboardRegistry::getInstance().register_imGUI_block([this]() -> std::string {
                 std::string json_data = "{";
                 json_data += "\"id\": \"" + this->widget_id.value + "\", ";
+                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", ";
                 json_data += "\"type\": \"slider\", ";
                 json_data += "\"target\": \"" + this->target_property.value + "\"";
                 json_data += "}";
@@ -82,7 +83,7 @@ namespace gr::dashboard_blocks {
 
         
         //Widgets are meant to vary already existing variables 
-        GR_MAKE_REFLECTABLE(dep_imGUI_slider,out  ,widget_id, target_property, endpoint, dashboard_server, current_val);
+        GR_MAKE_REFLECTABLE(dep_imGUI_slider,out  ,widget_id, panel_name, target_property, endpoint, dashboard_server, current_val);
 
         //ZMQ subscriber to the ZMQ publisher in the dashboard_server graph for updating widgets
         void start() {

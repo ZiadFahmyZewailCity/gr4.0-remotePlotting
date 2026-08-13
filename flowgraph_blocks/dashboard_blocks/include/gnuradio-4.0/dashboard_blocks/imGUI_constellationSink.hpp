@@ -1,5 +1,5 @@
-#ifndef GNURADIO_DASHBOARDBLOCKS_DEP_IMGUI_SINKNAME_HPP
-#define GNURADIO_DASHBOARDBLOCKS_DEP_IMGUI_SINKNAME_HPP
+#ifndef GNURADIO_DASHBOARDBLOCKS_IMGUI_CONSTELLATIONSINK_HPP
+#define GNURADIO_DASHBOARDBLOCKS_IMGUI_CONSTELLATIONSINK_HPP
 
 //TO DO: Standardize comments across sinks
 
@@ -87,6 +87,7 @@ namespace gr::dashboard_blocks {
             imGUI_DashboardRegistry::getInstance().register_imGUI_block([this]() -> std::string {
                 std::string json_data = "{";
                 json_data += "\"id\": \"" + this->title.value + "\", ";
+                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", ";
                 json_data += "\"type\": \"constellationSink\", ";
                 json_data += "\"presistance_on\": ";
                 json_data += (this->state_presistance.value ? "true" : "false");
@@ -103,7 +104,7 @@ namespace gr::dashboard_blocks {
         }
 
         
-        GR_MAKE_REFLECTABLE(imGUI_constellationSink, in, title, endpoint, state_presistance, numberOfPoints, auto_scale, x_axis_min, x_axis_max, y_axis_min, y_axis_max);
+        GR_MAKE_REFLECTABLE(imGUI_constellationSink, in, title,panel_name, endpoint, state_presistance, numberOfPoints, auto_scale, x_axis_min, x_axis_max, y_axis_min, y_axis_max);
 
         void start() {
 

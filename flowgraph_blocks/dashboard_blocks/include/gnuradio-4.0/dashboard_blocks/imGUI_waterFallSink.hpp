@@ -1,5 +1,5 @@
-#ifndef GNURADIO_DASHBOARDBLOCKS_DEP_IMGUI_SINKNAME_HPP
-#define GNURADIO_DASHBOARDBLOCKS_DEP_IMGUI_SINKNAME_HPP
+#ifndef GNURADIO_DASHBOARDBLOCKS_IMGUI_WATERFALLSINK_HPP
+#define GNURADIO_DASHBOARDBLOCKS_IMGUI_WATERFALLSINK_HPP
 
 #include <cstddef>
 #include <gnuradio-4.0/Block.hpp>
@@ -25,24 +25,24 @@ namespace gr::dashboard_blocks {
 
 
     template <typename T>
-    struct extract_real { using type = T; };
+    struct waterfall_extract_real { using type = T; };
 
     template <typename T>
-    struct extract_real<std::complex<T>> { using type = T; };
+    struct waterfall_extract_real<std::complex<T>> { using type = T; };
 
 
     // TO DO: Figure out what type of triggers i want to implement
-    enum triggerType {
-        FREE_RUN,
-        AUTO,
-        NORMAL
+    enum waterfall_triggerType {
+        waterfall_FREE_RUN,
+        waterfall_AUTO,
+        waterfall_NORMAL
     };
 
     // TO DO: Figure out the type of averaging i want to implement
-    enum averagingType {
-        NONE,
-        MOVING_AVERAGE,
-        MAX_HOLD
+    enum waterfall_averagingType {
+        waterfall_NONE,
+        waterfall_MOVING_AVERAGE,
+        waterfall_MAX_HOLD
     };
 
 
@@ -71,9 +71,9 @@ namespace gr::dashboard_blocks {
         //Size of the FFT window
         gr::Annotated<size_t, "Window Size", gr::Visible> windowSize = 1024UL;
         //CURRENTLY PLACEHOLDER DOESNT DO ANYTHING
-        gr::Annotated<triggerType, "Trigger Type", gr::Visible> typeOfTrigger;
+        gr::Annotated<waterfall_triggerType, "Trigger Type", gr::Visible> typeOfTrigger;
         //CURRENTLY PLACE HOLDER DOESNT DO ANYTHING
-        gr::Annotated<averagingType, "Averaging Type",gr::Visible> typeOfAveraging;
+        gr::Annotated<waterfall_averagingType, "Averaging Type",gr::Visible> typeOfAveraging;
         //CURRENTLY PLACE HOLDER DOESNT DO ANYTHING
         gr::Annotated<float, "Sample Rate", gr::Visible, gr::Unit<"Hz">> sampleRate = 1.0f;
         gr::Annotated<bool, "Output in dB", gr::Visible> outputInDb = true;
@@ -149,7 +149,7 @@ namespace gr::dashboard_blocks {
 
                 static int dbg = 0;
 
-                using floattype = typename extract_real<T>::type;
+                using floattype = typename waterfall_extract_real<T>::type;
 
                 //TO DO: This is constantly being intalized, probably very heavy computaion wise. Statically allocate it somewhere else
                 //Probably just allocating it as a private member of the block would be good enough

@@ -89,6 +89,7 @@ namespace gr::dashboard_blocks {
             imGUI_DashboardRegistry::getInstance().register_imGUI_block([this]() -> std::string {
                 std::string json_data = "{";
                 json_data += "\"id\": \"" + this->widget_id.value + "\", ";
+                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", ";
                 json_data += "\"type\": \"<<widget_name>>\", ";           // TODO: confirm widget type tag matches frontend
                 json_data += "\"target\": \"" + this->target_property.value + "\"";
                 // TODO: ADD ANY EXTRA JSON FIELDS FOR WIDGET-SPECIFIC PARAMS HERE
@@ -99,7 +100,7 @@ namespace gr::dashboard_blocks {
         }
 
         // TODO: ADD ANY NEW ANNOTATED FIELDS TO THIS LIST
-        GR_MAKE_REFLECTABLE(dep_imGUI_<<widget_name>>, out, widget_id, target_property, endpoint, dashboard_server, current_val);
+        GR_MAKE_REFLECTABLE(dep_imGUI_<<widget_name>>, out, panel_name, widget_id, target_property, endpoint, dashboard_server, current_val);
 
         //ZMQ subscriber to the ZMQ publisher in the dashboard_server graph for updating widgets
         void start() {
