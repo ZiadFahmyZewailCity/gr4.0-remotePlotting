@@ -29,43 +29,47 @@ namespace gr::dashboard_blocks {
     template <typename T>
     struct imGUI_SINKNAME : gr::Block<imGUI_SINKNAME<T>> {
 
-        //TO DO: Give this a proper one line description, same pattern as the other sinks
+        //TO DO: Give a description
         using Description = gr::Doc<R""(SINKNAME)"">;
 
-        //Input Port
-        //TO DO: Confirm T is the right sample type for this sink (float / std::complex<float> / etc)
-        //Constellation for example needs to be complex only, so a static_assert here might be worth adding
-        gr::PortIn<T> in;
-
-        //Variables that can be adjusted by user
-        //Every sink needs a title/id, this is what ties it to the frontend widget + the ZMQ topic header
-        gr::Annotated<std::string, "title", gr::Visible> title = "SINKNAME_1";
+        //TO DO: This section should contain any variables which are relevant to the user interface with the sink block
+        // **Variables that can be adjusted by the user**
+        
+        
+        //Every sink needs a id, this must be unique to the instantiated block as the dashboard will create a dashboard element using this ID
+        gr::Annotated<std::string, "sink_id", gr::Visible> sink_id = "SINK_ID_1";
+        //Display name of the sink
+        gr::Annotated<std::string, "title", gr::Visible> title = "SINK_NAME_1";
         //All widgets or blocks with the same panel name will be placed in the same panel
         //The panel chosen purely has an affect on the widget or blocks location, has no affect on the data it displays or affects
         gr::Annotated<std::string, "panel", gr::Visible> panel_name = "default";
 
-        //TO DO: Add whatever settings this sink actually needs, following the same Annotated<> pattern
-        //e.g. windowSize for anything that batches N samples before publishing
-        //e.g. sampleRate if the frontend needs to label an axis in Hz
-        //e.g. historyDepth if its a scrolling/rolling display (frontend-only hint, backend doesnt need to store history)
 
-        //ZMQ related variables (Not to be adjusted by user)
+        //TO DO: This section should contain any variables which are not relevant to the user interface with the sink block
+        // **Internal variables of the sink**
+
+        //Input Port
+        gr::PortIn<T> in;
+
+        //ZMQ related variables (Connection to server process)
         gr::Annotated<std::string, "zmq_endpoint"> endpoint = "tcp://127.0.0.1:5555";
         zmq::context_t zmq_ctx{1};
         zmq::socket_t publisher;
 
+
+
+        //Block constructor
         imGUI_SINKNAME(gr::property_map initial_settings = {})
             : gr::Block<imGUI_SINKNAME<T>>(initial_settings)
         {
             // Register the sink config using the live variables
             // This is what ends up in config.json and tells dashboard.js how to draw the widget
-            //TO DO: Fill in the fields the frontend renderer for this "type" actually needs
             imGUI_DashboardRegistry::getInstance().register_imGUI_block([this]() -> std::string {
                 std::string json_data = "{";
-                json_data += "\"id\": \"" + this->title.value + "\", ";
-                json_data += "\"type\": \"SINKNAME\", "; //TO DO: pick the type string dashboard.js will switch on
-                json_data += "\"title\": \"" + this->title.value + "\" ";
-                //TO DO: append any extra metadata fields here, comma separated, same string-building style as the others
+                json_data += "\"id\": \"" + this->sink_id.value + "\", "; //Unique identifier of the block
+                json_data += "\"type\": \"SINKNAME\", "; //This is what is used by the dashboard to understand what type of sink this is
+                json_data += "\"title\": \"" + this->title.value + "\" "; //Will be the text above the sink
+                //TO DO: append any extra metadata fields here, comma separated, you will need to adjust the code in the dashboard in order to utilize this new field
                 json_data += "}";
                 return json_data;
             });
@@ -74,32 +78,47 @@ namespace gr::dashboard_blocks {
         //TO DO: List every member here that GR4 needs to know about (in port + all Annotated<> settings)
         GR_MAKE_REFLECTABLE(imGUI_SINKNAME, in, title, endpoint);
 
+
+        //Function that runs on start of the block
         void start() {
 
+            //This connects the block to a seperate process (IPC) which is a server that handles the communication with the dashboard in the browser
             publisher = zmq::socket_t(zmq_ctx, zmq::socket_type::pub);
             publisher.connect(endpoint.value);
 
             //TO DO: Any one-time setup goes here (configuring an FFT block, sizing internal buffers, etc)
 
-            //Which ever block reaches this first will start dashboard server
+
+
+
+            //Which ever block reaches this first will start dashboard server process
             imGUI_DashboardRegistry::getInstance().boot_dashboardServer_Once();
         }
 
+        //Function that runs upon shutting down of the flowgraph
         void stop() {
+
+            //Close connection to the server
             if (publisher) publisher.close();
 
-            //unregistering from singleton
+            //Required to be done to allow for proper closing of the server
             imGUI_DashboardRegistry::getInstance().unregisterBlockAndTeardown();
         }
 
+        //This is the part of the block thats actually runnin during the running of the flowgraph
         [[nodiscard]] gr::work::Status processBulk(gr::InputSpanLike auto& input) {
 
             //TO DO: Decide how many samples this sink needs before it can publish a frame
             //Timeseries just takes whatever it gets each call, frequencySink/vector/constellation
             //wait until they have a full windowSize/vectorSize/pointsPerFrame worth of samples
-            const std::size_t nSamples = input.size(); //TO DO: replace with a fixed size + INSUFFICIENT_INPUT_ITEMS check if needed
-            if (nSamples == 0) { return gr::work::Status::INSUFFICIENT_INPUT_ITEMS; }
+            
+            
+            //TO DO: decide how many samples are needed in order to run the rest of the code
+            //This could just be a simple check that the number of samples is not zero, or a check of if the number of samples has passed a threadhold
+            if (input.size() == 0) { return gr::work::Status::INSUFFICIENT_INPUT_ITEMS; }
 
+            //The number of samples which will be used 
+            size_t nSamples = input.size();
             std::span<const T> samples_frame(input.data(), nSamples);
 
             if (publisher) {
