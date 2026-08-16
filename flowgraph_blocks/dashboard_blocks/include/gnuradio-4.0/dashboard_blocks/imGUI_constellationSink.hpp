@@ -34,11 +34,18 @@ namespace gr::dashboard_blocks {
 
         //Variables that can be adjusted by user
 
-        //Title of the sink (Must be unique to the sink)
-        gr::Annotated<std::string, "title", gr::Visible> title = "SINKNAME_1";
+        //Every sink needs a id, this must be unique to the instantiated block as the dashboard will create a dashboard element using this ID
+        gr::Annotated<std::string, "sink_id", gr::Visible> sink_id = "SINK_ID_1";
+
         //All widgets or blocks with the same panel name will be placed in the same panel
         //The panel chosen purely has an affect on the widget or blocks location, has no affect on the data it displays or affects
         gr::Annotated<std::string, "panel", gr::Visible> panel_name = "default";
+
+        //Display name of the sink
+        gr::Annotated<std::string, "title", gr::Visible> title = "SINK_NAME_1";
+        // Axis Labeling 
+        gr::Annotated<std::string, "x_axis_label", gr::Visible> x_axis_label = "x_axis";
+        gr::Annotated<std::string, "y_axis_label", gr::Visible> y_axis_label = "y_axis";
 
         
         // **Control Plotting**
@@ -51,21 +58,6 @@ namespace gr::dashboard_blocks {
         gr::Annotated<bool, "presistance_on" ,gr::Visible> state_presistance  = true;
         //Total number of points that can be plotted at any given time
         gr::Annotated<size_t, "numberOfPoints", gr::Visible> numberOfPoints = 256UL;
-
-
-        //Control Axis:
-
-        //Set if the constellation should autoscale, if true ignores user set boundries
-        //TO DO: Add to config file and adjust front end to allow autoscalling
-        //Note currently working relys only on the user set boundries
-        gr::Annotated<bool, "autoscale",gr::Visible> auto_scale  = true;
-        //x-axis (imaginary)
-        gr::Annotated<size_t, "x_axis_min", gr::Visible> x_axis_min = 0;
-        gr::Annotated<size_t, "x_axis_max", gr::Visible> x_axis_max = 100;
-        //y-axis (imaginary)
-        gr::Annotated<size_t, "y_axis_min", gr::Visible> y_axis_min = 0;
-        gr::Annotated<size_t, "y_axis_max", gr::Visible> y_axis_max = 100;
-
 
 
         // **Irrlevant to user interface**
@@ -86,25 +78,22 @@ namespace gr::dashboard_blocks {
             // This is what ends up in config.json and tells dashboard.js how to draw the widget
             imGUI_DashboardRegistry::getInstance().register_imGUI_block([this]() -> std::string {
                 std::string json_data = "{";
-                json_data += "\"id\": \"" + this->title.value + "\", ";
-                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", ";
-                json_data += "\"type\": \"constellationSink\", ";
+                json_data += "\"id\": \"" + this->sink_id.value + "\", "; //Unique identifier of the block
+                json_data += "\"type\": \"constellationSink\", "; //This is what is used by the dashboard to understand what type of sink this is
+                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", "; //Which panel is this plot associated with
+                json_data += "\"title\": \"" + this->title.value + "\", "; //Will be the text above the sink
+                json_data += "\"x_axis_label\": \"" + this->x_axis_label.value + "\", "; //x-axis label 
+                json_data += "\"y_axis_label\": \"" + this->y_axis_label.value + "\", "; //y-axis label
                 json_data += "\"presistance_on\": ";
                 json_data += (this->state_presistance.value ? "true" : "false");
-                json_data += ", \"numberOfPoints\": \"" + std::to_string(this->numberOfPoints.value) + "\", ";
-                json_data += "\"autoscale\": ";
-                json_data += (this->auto_scale.value ? "true" : "false");
-                json_data += ", \"x_axis_min\": \"" + std::to_string(this->x_axis_min.value) + "\", ";
-                json_data += "\"x_axis_max\": \"" + std::to_string(this->x_axis_max.value) + "\", ";
-                json_data += "\"y_axis_min\": \"" + std::to_string(this->y_axis_min.value) + "\", ";
-                json_data += "\"y_axis_max\": \"" + std::to_string(this->y_axis_max.value) + "\"";
+                json_data += ", \"numberOfPoints\": \"" + std::to_string(this->numberOfPoints.value) + "\" ";
                 json_data += "}";
                 return json_data;
             });
         }
 
-        
-        GR_MAKE_REFLECTABLE(imGUI_constellationSink, in, title,panel_name, endpoint, state_presistance, numberOfPoints, auto_scale, x_axis_min, x_axis_max, y_axis_min, y_axis_max);
+        //TO DO: Remove the max and min options here
+        GR_MAKE_REFLECTABLE(imGUI_constellationSink, in,sink_id, title ,panel_name, x_axis_label, y_axis_label, endpoint, state_presistance, numberOfPoints);
 
         void start() {
 
@@ -131,7 +120,7 @@ namespace gr::dashboard_blocks {
             if (publisher) {
 
                 //1) Apply header - every message on the wire is "id:payload", daemon splits on the first ':'
-                std::string header = title.value + ":";
+                std::string header = sink_id.value + ":";
                 std::size_t payload_size = header.size() + (nSamples * sizeof(std::complex<T>));
 
                 //2) Message core

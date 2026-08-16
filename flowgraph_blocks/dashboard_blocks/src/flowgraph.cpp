@@ -55,6 +55,15 @@ int main() {
     freq_sink.sampleRate = 48000.0f;
     freq_sink.windowSize = 1024;
 
+    auto& time_sink = graph.emplaceBlock<dashboardBlocks::dep_imGUI_timeSeries<float>>();
+    time_sink.sink_id   = "time_plot_1";
+    time_sink.panel_name = "Time Domain";
+    time_sink.title = "Testing the title of the time block";
+    time_sink.x_axis_label = "Checking X axis works (#59)";
+    time_sink.y_axis_label = "Checking y axis works (@23)";
+
+
+
     auto& waterfall_sink = graph.emplaceBlock<dashboardBlocks::imGUI_waterFallSink<float>>();
     waterfall_sink.title        = "waterfall_plot_1";
     waterfall_sink.panel_name   = "Frequency Domain";
@@ -62,9 +71,6 @@ int main() {
     waterfall_sink.windowSize   = 1024;
     waterfall_sink.history_size = 100;
 
-    auto& time_sink = graph.emplaceBlock<dashboardBlocks::dep_imGUI_timeSeries<float>>();
-    time_sink.topic_id   = "time_plot_1";
-    time_sink.panel_name = "Time Domain";
 
     auto& tagger = graph.emplaceBlock<custom_testing::insertTag<float>>();
     tagger.interval = 1024;
@@ -104,8 +110,11 @@ int main() {
     auto& throttle_complex_drain = graph.emplaceBlock<testing::NullSink<std::complex<float>>>();
 
     auto& constellation_sink = graph.emplaceBlock<dashboardBlocks::imGUI_constellationSink<float>>();
-    constellation_sink.title      = "constellation_1";
-    constellation_sink.panel_name = "Constellation";
+    constellation_sink.sink_id = "constellation_1";
+    constellation_sink.title      = "checking_title_constellation";
+    constellation_sink.panel_name = "Constellation";    
+    constellation_sink.x_axis_label = "checking_x_axis_constellation";
+    constellation_sink.y_axis_label = "checking_y_axis_constellation";
     constellation_sink.numberOfPoints = 256;
 
     /*

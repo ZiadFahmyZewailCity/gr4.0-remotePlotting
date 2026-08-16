@@ -34,15 +34,19 @@ namespace gr::dashboard_blocks {
 
         //TO DO: This section should contain any variables which are relevant to the user interface with the sink block
         // **Variables that can be adjusted by the user**
-        
-        
+             
         //Every sink needs a id, this must be unique to the instantiated block as the dashboard will create a dashboard element using this ID
         gr::Annotated<std::string, "sink_id", gr::Visible> sink_id = "SINK_ID_1";
-        //Display name of the sink
-        gr::Annotated<std::string, "title", gr::Visible> title = "SINK_NAME_1";
+
         //All widgets or blocks with the same panel name will be placed in the same panel
         //The panel chosen purely has an affect on the widget or blocks location, has no affect on the data it displays or affects
         gr::Annotated<std::string, "panel", gr::Visible> panel_name = "default";
+
+        //Display name of the sink
+        gr::Annotated<std::string, "title", gr::Visible> title = "SINK_NAME_1";
+        // Axis Labeling 
+        gr::Annotated<std::string, "x_axis_label", gr::Visible> x_axis_label = "x_axis";
+        gr::Annotated<std::string, "y_axis_label", gr::Visible> y_axis_label = "y_axis";
 
 
         //TO DO: This section should contain any variables which are not relevant to the user interface with the sink block
@@ -68,7 +72,10 @@ namespace gr::dashboard_blocks {
                 std::string json_data = "{";
                 json_data += "\"id\": \"" + this->sink_id.value + "\", "; //Unique identifier of the block
                 json_data += "\"type\": \"SINKNAME\", "; //This is what is used by the dashboard to understand what type of sink this is
+                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", "; //Which panel is this plot associated with
                 json_data += "\"title\": \"" + this->title.value + "\" "; //Will be the text above the sink
+                json_data += "\"x_axis_label\": \"" + this->x_axis_label.value + "\" "; //x-axis label 
+                json_data += "\"y_axis_label\": \"" + this->y_axis_label.value + "\" "; //y-axis label
                 //TO DO: append any extra metadata fields here, comma separated, you will need to adjust the code in the dashboard in order to utilize this new field
                 json_data += "}";
                 return json_data;

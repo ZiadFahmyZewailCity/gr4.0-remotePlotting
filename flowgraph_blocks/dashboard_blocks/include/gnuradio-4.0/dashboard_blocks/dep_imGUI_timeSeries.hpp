@@ -15,22 +15,33 @@ namespace gr::dashboard_blocks {
     template <typename T>
     struct dep_imGUI_timeSeries : gr::Block<dep_imGUI_timeSeries<T>> {
 
-
+        //TO DO: Update description
         using Description = gr::Doc<R""(Ingests live DSP sample streams and broadcasts them over ZeroMQ. Preapends a topic header matching the frontend ImGui config ID.)"">;
 
-        gr::PortIn<T> in;
-
+        //Every sink needs a id, this must be unique to the instantiated block as the dashboard will create a dashboard element using this ID
+        gr::Annotated<std::string, "sink_id", gr::Visible> sink_id = "SINK_ID_1";
 
         //All widgets or blocks with the same panel name will be placed in the same panel
         //The panel chosen purely has an affect on the widget or blocks location, has no affect on the data it displays or affects
         gr::Annotated<std::string, "panel", gr::Visible> panel_name = "default";
 
-        gr::Annotated<std::string, "topic_id", gr::Visible> topic_id = "plot_1";
+        //Display name of the sink
+        gr::Annotated<std::string, "title", gr::Visible> title = "SINK_NAME_1";
+        // Axis Labeling 
+        gr::Annotated<std::string, "x_axis_label", gr::Visible> x_axis_label = "x_axis";
+        gr::Annotated<std::string, "y_axis_label", gr::Visible> y_axis_label = "y_axis";
 
+
+        // **Internal variables of the sink**
+
+        //Input Port
+        gr::PortIn<T> in;
+
+        //ZMQ related variables (Connection to server process)
         gr::Annotated<std::string, "zmq_endpoint"> endpoint = "tcp://127.0.0.1:5555";
-
         zmq::context_t zmq_ctx{1};
         zmq::socket_t publisher;
+
 
         dep_imGUI_timeSeries(gr::property_map initial_settings = {})
             : gr::Block<dep_imGUI_timeSeries<T>>(initial_settings) 
@@ -38,17 +49,19 @@ namespace gr::dashboard_blocks {
             // Register the sink config using the live variables
             imGUI_DashboardRegistry::getInstance().register_imGUI_block([this]() -> std::string {
                 std::string json_data = "{";
-                json_data += "\"id\": \"" + this->topic_id.value + "\", ";
-                json_data += "\"type\": \"timeseries\", ";
-                json_data += "\"title\": \"Real-Time Signal\", ";
-                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", ";
-                json_data += "\"data_source\": \"live_data\"";
+                json_data += "\"id\": \"" + this->sink_id.value + "\", "; //Unique identifier of the block
+                json_data += "\"type\": \"timeSeries\", "; //This is what is used by the dashboard to understand what type of sink this is
+                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", "; //Which panel is this plot associated with
+                json_data += "\"title\": \"" + this->title.value + "\", "; //Will be the text above the sink
+                json_data += "\"x_axis_label\": \"" + this->x_axis_label.value + "\", "; //x-axis label 
+                json_data += "\"y_axis_label\": \"" + this->y_axis_label.value + "\" "; //y-axis label
+                //TO DO: Add data sources
                 json_data += "}";
                 return json_data;
             });
         }
 
-        GR_MAKE_REFLECTABLE(dep_imGUI_timeSeries, in, topic_id, panel_name, endpoint);
+        GR_MAKE_REFLECTABLE(dep_imGUI_timeSeries, in, sink_id, title, panel_name, x_axis_label, y_axis_label ,endpoint);
 
         void start() {
             publisher = zmq::socket_t(zmq_ctx, zmq::socket_type::pub);
@@ -72,7 +85,10 @@ namespace gr::dashboard_blocks {
             if (nSamples == 0) return gr::work::Status::INSUFFICIENT_INPUT_ITEMS;
 
             if (publisher) {
-                std::string header = topic_id.value + ":";
+                
+                //TO DO: Still only supports one data source
+                //TO DO: SINK ID STILL USED AS HEADER HERE, SHOULD BE DATA SOURCE
+                std::string header = sink_id.value + ":";
                 std::size_t payload_size = header.size() + (nSamples * sizeof(T));
 
                 zmq::message_t z_msg(payload_size);

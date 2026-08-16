@@ -6,15 +6,13 @@
       "dashboardElement": [
         {
           "id": "constellation_1",
-          "panel_name": "Constellation",
           "type": "constellationSink",
+          "panel_name": "Constellation",
+          "title": "checking_title_constellation",
+          "x_axis_label": "checking_x_axis_constellation",
+          "y_axis_label": "checking_y_axis_constellation",
           "presistance_on": true,
-          "numberOfPoints": "256",
-          "autoscale": true,
-          "x_axis_min": "0",
-          "x_axis_max": "100",
-          "y_axis_min": "0",
-          "y_axis_max": "100"
+          "numberOfPoints": "256"
         }
       ]
     },
@@ -85,10 +83,11 @@
       "dashboardElement": [
         {
           "id": "time_plot_1",
-          "type": "timeseries",
-          "title": "Real-Time Signal",
+          "type": "timeSeries",
           "panel_name": "Time Domain",
-          "data_source": "live_data"
+          "title": "Testing the title of the time block",
+          "x_axis_label": "Checking X axis works (#59)",
+          "y_axis_label": "Checking y axis works (@23)"
         }
       ]
     },

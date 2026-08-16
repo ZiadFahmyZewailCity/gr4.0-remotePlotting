@@ -46,7 +46,6 @@ namespace gr::dashboard_blocks {
     };
 
 
-    //TO DO: Rename struct + Description doc string to match the sink
     template <typename T>
     struct imGUI_waterFallSink : gr::Block<imGUI_waterFallSink<T>> {
         

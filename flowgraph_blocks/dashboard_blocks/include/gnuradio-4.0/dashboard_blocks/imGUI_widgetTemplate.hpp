@@ -1,8 +1,12 @@
 #ifndef GNURADIO_DASHBOARDBLOCKS_DEP_IMGUI_<<WIDGET_NAME_UPPER>>_HPP
 #define GNURADIO_DASHBOARDBLOCKS_DEP_IMGUI_<<WIDGET_NAME_UPPER>>_HPP
 
-#include <cstring>
-#include <exception>
+
+//TEMPLATE FOR NEW DASHBOARD WIDGETS
+//Copy this file, rename <<widget_name>> -> whatever the widget is (e.g. slider, toggle)
+//and fill in the TO DO's. 
+
+//GNU Radio includes
 #include <gnuradio-4.0/Block.hpp>
 #include <gnuradio-4.0/BlockRegistry.hpp>
 #include <gnuradio-4.0/Port.hpp>
@@ -10,25 +14,34 @@
 #include <gnuradio-4.0/meta/reflection.hpp>
 #include <gnuradio-4.0/Message.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_management.hpp>
-#include <iostream>
+//TO DO: Add any extra GR4 headers this sink needs (fft.hpp / window.hpp for anything spectral, etc)
+
+//External Dependences
 #include <zmq.hpp>
-#include <string>
-#include <functional>
-
-
-//TEMPLATE MADE FOR HELPING CREATE WIDGETS FASTER
+#include <cstring>
 
 
 
 namespace gr::dashboard_blocks {
 
+    //TO DO: Rename struct 
     template <typename T>
-    struct dep_imGUI_<<widget_name>> : gr::Block<dep_imGUI_<<widget_name>><T>> {
+    struct imGUI_<<widget_name>> : gr::Block<imGUI_<<widget_name>><T>> {
+        
+        //TO DO: give a descripiton for your widget
+        using Description = gr::Doc<R""(Description)"">;
 
-        using Description = gr::Doc<R""(Widget for <<widget_name>>, listens to ZMQ commands from frontend to update variable in the flowgraph)"">;
 
-        //Widget ID (Must be given a unique id by user)
-        gr::Annotated<std::string, "widget_id", gr::Visible> widget_id = "<<widget_name>>_default";
+        //TO DO: This section should contain any variables which are relevant to the user interface with the widget block
+        // **Variables that can be adjusted by the user**
+
+
+        //Every widget needs a id, this must be unique to the instantiated block as the dashboard will create a dashboard element using this ID
+        gr::Annotated<std::string, "id", gr::Visible> widget_id = "<<widget_name>>_default";
+        
+        //Display name of the sink
+        gr::Annotated<std::string, "caption", gr::Visible> title = "WIDGET_NAME_1";
+
         //All widgets or blocks with the same panel name will be placed in the same panel
         //The panel chosen purely has an affect on the widget or blocks location, has no affect on the data it displays or affects
         gr::Annotated<std::string, "panel", gr::Visible> panel_name = "default";
@@ -44,18 +57,26 @@ namespace gr::dashboard_blocks {
         // e.g. dropdown -> options (comma separated string, or vector<string> if reflection supports it)
         // e.g. toggle -> (none needed, current_val as bool covers it)
 
+        //TO DO: This section should contain any variables which are not relevant to the user interface with the widget block
+        // **Internal variables of the widget**
+
+        //Output Port
         gr::PortOut<T> out;
 
-        //Lamdas for updating variable being controlled
+        //ZMQ related variables (Connection to server process)
+        gr::Annotated<std::string, "zmq_endpoint"> endpoint = "tcp://127.0.0.1:5556";
+        gr::Annotated<std::string, "zmq_SUB_dashboard_server", gr::Visible> dashboard_server = "tcp://127.0.0.1:5555";
+        
+        zmq::context_t zmq_ctx{1};
+        zmq::socket_t publisher;
+        zmq::socket_t subscriber;
+
+
+        //These two function calls are used to update the vairiable you are controlling
         //Lamda for updating value
         std::function<void(T)> on_val_update = nullptr;
         //Lamda for getting value from flowgraph
         std::function<T()> get_external_val = nullptr;
-
-        //ZMQ related variables
-        zmq::context_t zmq_ctx{1};
-        zmq::socket_t publisher;
-        zmq::socket_t subscriber;
 
         private:
         //Track whats the last value that has been published
@@ -83,14 +104,16 @@ namespace gr::dashboard_blocks {
 
         public:
 
-        dep_imGUI_<<widget_name>>(gr::property_map initial_settings = {})
-            : gr::Block<dep_imGUI_<<widget_name>><T>>(initial_settings)
+        imGUI_<<widget_name>>(gr::property_map initial_settings = {})
+            : gr::Block<imGUI_<<widget_name>><T>>(initial_settings)
         {
             imGUI_DashboardRegistry::getInstance().register_imGUI_block([this]() -> std::string {
                 std::string json_data = "{";
-                json_data += "\"id\": \"" + this->widget_id.value + "\", ";
-                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", ";
-                json_data += "\"type\": \"<<widget_name>>\", ";           // TODO: confirm widget type tag matches frontend
+                json_data += "\"id\": \"" + this->widget_id.value + "\", "; //Unique identifier of the block
+                json_data += "\"type\": \"WIDGET\", "; //This is what is used by the dashboard to understand what widget this is
+                //You will need to add adjust the code in the main of the dashboard to accomdate this new type and new widget
+                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", "; //Which panel is this plot associated with
+                json_data += "\"title\": \"" + this->title.value + "\" "; //Will be the text above the sink
                 json_data += "\"target\": \"" + this->target_property.value + "\"";
                 // TODO: ADD ANY EXTRA JSON FIELDS FOR WIDGET-SPECIFIC PARAMS HERE
                 // e.g. json_data += ", \"min\": " + std::to_string(this->min_val.value);
@@ -100,7 +123,7 @@ namespace gr::dashboard_blocks {
         }
 
         // TODO: ADD ANY NEW ANNOTATED FIELDS TO THIS LIST
-        GR_MAKE_REFLECTABLE(dep_imGUI_<<widget_name>>, out, panel_name, widget_id, target_property, endpoint, dashboard_server, current_val);
+        GR_MAKE_REFLECTABLE(imGUI_<<widget_name>>, out, panel_name, widget_id, title, target_property, endpoint, dashboard_server, current_val);
 
         //ZMQ subscriber to the ZMQ publisher in the dashboard_server graph for updating widgets
         void start() {
@@ -207,6 +230,6 @@ namespace gr::dashboard_blocks {
 } // namespace gr::dashboard_blocks
 
 // TODO: rename registration, set correct type list (e.g. [float], [bool], [int])
-GR_REGISTER_BLOCK("gr::dashboard_blocks::dep_imGUI_<<widget_name>>", gr::dashboard_blocks::dep_imGUI_<<widget_name>>, [float])
+GR_REGISTER_BLOCK("gr::dashboard_blocks::imGUI_<<widget_name>>", gr::dashboard_blocks::imGUI_<<widget_name>>, [float])
 
 #endif

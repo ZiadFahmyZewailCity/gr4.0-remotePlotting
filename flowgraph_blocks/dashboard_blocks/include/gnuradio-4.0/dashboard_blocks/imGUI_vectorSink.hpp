@@ -21,7 +21,7 @@ namespace gr::dashboard_blocks {
     template <typename T>
     struct imGUI_vectorSink : gr::Block<imGUI_vectorSink<T>> {
 
-        // TO DO: Add detailed description if needed
+        // TO DO: Add a description
         using Description = gr::Doc<R""())"">;
 
         // Input Port explicitly requires discrete vectors, not a stream of scalars

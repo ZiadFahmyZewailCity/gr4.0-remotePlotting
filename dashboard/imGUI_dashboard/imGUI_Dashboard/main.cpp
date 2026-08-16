@@ -55,22 +55,29 @@ enum class dashboardElementType { TIME_SERIES, VECTOR_SINK , FREQUENCY_SINK, CON
 struct dashboardElement {
 
     std::string id;
-    std::string title;
+    std::string title = "default";
     
     dashboardElementType type;
 
+    //Data sources 
     std::string data_source;
     std::vector<float> databuffer;
     float current_val = 0.0f;
     bool  current_val_bool = false;
 
-    //TO DO: These are dashboard element specific, it may be a good idea to make this a bit cleaner in the future, its very little overhead 
+    std::string x_axis_label  = "default_x_axis";
+    std::string y_axis_label  = "default_y_axis";
 
+    
     // Axis boundries
     int x_axis_min = 0;
     int x_axis_max = 100;
     int y_axis_min = 0;
     int y_axis_max = 100;
+
+
+    //TO DO: These are dashboard element specific, it may be a good idea to make this a bit cleaner in the future, its very little overhead 
+    
 
     // Tracks if the user is holding down the mouse on this widget
     bool is_being_edited = false; 
@@ -125,20 +132,35 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
                     dashboardElement new_dashboardElement;
                     
                     //Extract ID, give a fallback if id not found
-                    new_dashboardElement.id = item.value("id", "unknown_id");
+                    new_dashboardElement.id = item.value("id", "default_id");
+                    std::cout << new_dashboardElement.id << "\n";
                     //Extract title, give fallback if title not found
-                    new_dashboardElement.title = new_dashboardElement.id;
+                    new_dashboardElement.title = item.value("title", "default_title");
                     //Extract data source, give fallback if data_source not found
                     new_dashboardElement.data_source = item.value("data_source", "");
                 
                     //Sinks
-                    if (item["type"] == "timeseries") {
+                    if (item["type"] == "timeSeries") {
+
+
+                        //Read what the x & y axis labels are
+                        new_dashboardElement.x_axis_label = item.value("x_axis_label","default_x_axis");
+                        new_dashboardElement.y_axis_label = item.value("y_axis_label","default_x_axis");
+
+                        
                         new_dashboardElement.type = dashboardElementType::TIME_SERIES;
+
+                        //TO DO: Buffer size should be set by user
                         new_dashboardElement.databuffer.resize(100, 0.0f);
                     }
                     else if (item["type"] == "frequencySink"){
 
                         new_dashboardElement.type = dashboardElementType::FREQUENCY_SINK;
+
+                        //Read what the x & y axis labels are
+                        new_dashboardElement.x_axis_label = item.value("x_axis_label","default_x_axis");
+                        new_dashboardElement.y_axis_label = item.value("y_axis_label","default_x_axis");
+                        
                        
                         //Allocating the memory
                         try{
@@ -159,7 +181,9 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
                     }
                     else if (item["type"] == "waterFallSink"){
                         
-                        
+                        //Read what the x & y axis labels are
+                        new_dashboardElement.x_axis_label = item.value("x_axis_label","default_x_axis");
+                        new_dashboardElement.y_axis_label = item.value("y_axis_label","default_x_axis");
                         new_dashboardElement.type = dashboardElementType::WATERFALL_SINK;
                        
                         //Allocating the memory
@@ -183,6 +207,10 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
                     }
                     else if (item["type"] == "vector"){
 
+
+                        //Read what the x & y axis labels are
+                        new_dashboardElement.x_axis_label = item.value("x_axis_label","default_x_axis");
+                        new_dashboardElement.y_axis_label = item.value("y_axis_label","default_x_axis");
                         new_dashboardElement.type = dashboardElementType::VECTOR_SINK;
                         try {
                             new_dashboardElement.windowSize = std::stoi(item.value("vectorSize", "256"));
@@ -192,6 +220,11 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
                         new_dashboardElement.databuffer.resize(new_dashboardElement.windowSize, 0.0f);
                     }
                     else if (item["type"] == "constellationSink"){
+                        
+                        
+                        //Read what the x & y axis labels are
+                        new_dashboardElement.x_axis_label = item.value("x_axis_label","default_x_axis");
+                        new_dashboardElement.y_axis_label = item.value("y_axis_label","default_x_axis");
                         new_dashboardElement.type = dashboardElementType::CONSTELLATION_SINK;
                         
                         //Read Buffer size
@@ -199,13 +232,6 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
 
                             //Parse number of points 
                             new_dashboardElement.windowSize = std::stoi(item.value("numberOfPoints", "256"));
-
-                            //Parse axis values
-                            new_dashboardElement.x_axis_min = std::stoi(item.value("x_axis_min", "0"));
-                            new_dashboardElement.x_axis_max = std::stoi(item.value("x_axis_max", "100"));
-                            new_dashboardElement.y_axis_min = std::stoi(item.value("y_axis_min", "0"));
-                            new_dashboardElement.y_axis_max = std::stoi(item.value("y_axis_max", "100"));
-
 
                         }   catch (...){
                             new_dashboardElement.windowSize = 256;
@@ -679,7 +705,9 @@ void main_loop(){
                                 if (ImPlot::BeginPlot(object.title.c_str(), ImVec2(-1, 200))) {
                                     
                                     //Axis labels
-                                    ImPlot::SetupAxes("Samples", "Amplitude");
+                                    ImPlot::SetupAxes(object.x_axis_label.c_str(),object.y_axis_label.c_str());
+                                    
+                                    //TO DO: Should probably just remove this
                                     //Zooming in and out
                                     ImPlot::SetupAxisLimits(ImAxis_Y1, -2.0, 2.0, ImPlotCond_Once);
                                     
@@ -702,7 +730,8 @@ void main_loop(){
 
                                 if(ImPlot::BeginPlot(object.title.c_str(), ImVec2(-1, 300))){
 
-                                    ImPlot::SetupAxes("Frequency (Hz)", "Magnitude (dB)");
+                                    ImPlot::SetupAxes(object.x_axis_label.c_str(),object.y_axis_label.c_str());
+
                                     
                                     double freq_span = (double)object.databuffer.size() * object.step_freq;
                                     ImPlot::SetupAxisLimits(ImAxis_X1, object.start_freq, object.start_freq + freq_span, ImPlotCond_Always);
@@ -723,8 +752,8 @@ void main_loop(){
                                 std::string hidden_id = "##" + object.id;
                             
                                 if(ImPlot::BeginPlot(object.title.c_str(),ImVec2(-1,250))) {
-                                    ImPlot::SetupAxes("Index","Value");
-
+                                    
+                                    ImPlot::SetupAxes(object.x_axis_label.c_str(),object.y_axis_label.c_str());
                                     // Lock X-axis bounds to match the vector length
                                     ImPlot::SetupAxisLimits(ImAxis_X1, 0, (double)object.databuffer.size(), ImPlotCond_Always);
                                     ImPlot::SetupAxisLimits(ImAxis_Y1, -2.0, 2.0, ImPlotCond_Once);
@@ -746,7 +775,7 @@ void main_loop(){
                             
                                 // A square aspect ratio is usually best for constellation diagrams
                                 if (ImPlot::BeginPlot(object.title.c_str(), ImVec2(250, 250)))    {
-                                    ImPlot::SetupAxes("In-Phase (I)", "Quadrature (Q)");
+                                    ImPlot::SetupAxes(object.x_axis_label.c_str(),object.y_axis_label.c_str());
 
                                     // Apply the user-set boundaries from the JSON config
                                     ImPlot::SetupAxisLimits(ImAxis_X1, -100, 100, ImPlotCond_Once);
@@ -785,7 +814,8 @@ void main_loop(){
                                 if (ImPlot::BeginPlot(object.title.c_str(), ImVec2(-1, 300))) {
                                     
                                     // X-axis: Frequency limits. Y-axis: Time (0 to history size)
-                                    ImPlot::SetupAxes("Frequency (Hz)", "Time (Frames)");
+                                    ImPlot::SetupAxes(object.x_axis_label.c_str(),object.y_axis_label.c_str());
+
                                     
                                     // Bounds mapping for the corners of the heatmap image
                                     ImPlotPoint bounds_min(object.start_freq, object.history_size);
