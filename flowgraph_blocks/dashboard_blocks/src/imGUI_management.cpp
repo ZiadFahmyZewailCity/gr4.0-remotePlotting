@@ -115,15 +115,20 @@ namespace gr::dashboard_blocks {
         //Should probably check this
         ptrs_to_imGUIblocks_callbacks.push_back(std::move(callback));
         count_imGUI_blocks++;
+
+        //TO DO: Comment out Debug Message
+        std::cout << " [Registering] Number of imGUIBlocks registered: " << count_imGUI_blocks << "\n";
     }
 
     void imGUI_DashboardRegistry::unregisterBlockAndTeardown(){
+
         //Mutex as this function will be called in blocks stop function
         //Note: Lock removed on return of function 
         std::lock_guard<std::mutex> lock(registry_mutex);
 
         //Decrement the count of imGUI blocks
         count_imGUI_blocks--;
+        std::cout << " [Unregistering] Number of imGUIBlocks registered: " << count_imGUI_blocks << "\n";
 
         //Once there are not blocks left kill the server process & clear the vector block info
         if (count_imGUI_blocks == 0) {
