@@ -176,6 +176,7 @@ CMakeFiles/flowgraph.dir/src/flowgraph.cpp.o: /home/ziad/GNURADIO_DEVELOPMENT/fl
   /usr/include/c++/14/complex \
   /usr/include/c++/14/concepts \
   /usr/include/c++/14/condition_variable \
+  /usr/include/c++/14/csignal \
   /usr/include/c++/14/cstddef \
   /usr/include/c++/14/cstdint \
   /usr/include/c++/14/cstdio \
@@ -701,6 +702,7 @@ CMakeFiles/flowgraph.dir/src/imGUI_management.cpp.o: /home/ziad/GNURADIO_DEVELOP
   /usr/include/c++/14/bits/allocator.h \
   /usr/include/c++/14/bits/atomic_base.h \
   /usr/include/c++/14/bits/atomic_lockfree_defines.h \
+  /usr/include/c++/14/bits/atomic_timed_wait.h \
   /usr/include/c++/14/bits/atomic_wait.h \
   /usr/include/c++/14/bits/basic_ios.h \
   /usr/include/c++/14/bits/basic_ios.tcc \
@@ -774,6 +776,7 @@ CMakeFiles/flowgraph.dir/src/imGUI_management.cpp.o: /home/ziad/GNURADIO_DEVELOP
   /usr/include/c++/14/bits/ranges_util.h \
   /usr/include/c++/14/bits/refwrap.h \
   /usr/include/c++/14/bits/requires_hosted.h \
+  /usr/include/c++/14/bits/semaphore_base.h \
   /usr/include/c++/14/bits/shared_ptr.h \
   /usr/include/c++/14/bits/shared_ptr_atomic.h \
   /usr/include/c++/14/bits/shared_ptr_base.h \
@@ -783,6 +786,7 @@ CMakeFiles/flowgraph.dir/src/imGUI_management.cpp.o: /home/ziad/GNURADIO_DEVELOP
   /usr/include/c++/14/bits/std_abs.h \
   /usr/include/c++/14/bits/std_function.h \
   /usr/include/c++/14/bits/std_mutex.h \
+  /usr/include/c++/14/bits/std_thread.h \
   /usr/include/c++/14/bits/stl_algo.h \
   /usr/include/c++/14/bits/stl_algobase.h \
   /usr/include/c++/14/bits/stl_bvector.h \
@@ -807,6 +811,7 @@ CMakeFiles/flowgraph.dir/src/imGUI_management.cpp.o: /home/ziad/GNURADIO_DEVELOP
   /usr/include/c++/14/bits/streambuf_iterator.h \
   /usr/include/c++/14/bits/string_view.tcc \
   /usr/include/c++/14/bits/stringfwd.h \
+  /usr/include/c++/14/bits/this_thread_sleep.h \
   /usr/include/c++/14/bits/unicode-data.h \
   /usr/include/c++/14/bits/unicode.h \
   /usr/include/c++/14/bits/uniform_int_dist.h \
@@ -832,6 +837,7 @@ CMakeFiles/flowgraph.dir/src/imGUI_management.cpp.o: /home/ziad/GNURADIO_DEVELOP
   /usr/include/c++/14/codecvt \
   /usr/include/c++/14/compare \
   /usr/include/c++/14/concepts \
+  /usr/include/c++/14/csignal \
   /usr/include/c++/14/cstddef \
   /usr/include/c++/14/cstdint \
   /usr/include/c++/14/cstdio \
@@ -879,13 +885,16 @@ CMakeFiles/flowgraph.dir/src/imGUI_management.cpp.o: /home/ziad/GNURADIO_DEVELOP
   /usr/include/c++/14/pstl/pstl_config.h \
   /usr/include/c++/14/ranges \
   /usr/include/c++/14/ratio \
+  /usr/include/c++/14/semaphore \
   /usr/include/c++/14/span \
   /usr/include/c++/14/sstream \
   /usr/include/c++/14/stdexcept \
+  /usr/include/c++/14/stop_token \
   /usr/include/c++/14/streambuf \
   /usr/include/c++/14/string \
   /usr/include/c++/14/string_view \
   /usr/include/c++/14/system_error \
+  /usr/include/c++/14/thread \
   /usr/include/c++/14/tr1/bessel_function.tcc \
   /usr/include/c++/14/tr1/beta_function.tcc \
   /usr/include/c++/14/tr1/ell_integral.tcc \
@@ -966,6 +975,8 @@ CMakeFiles/flowgraph.dir/src/imGUI_management.cpp.o: /home/ziad/GNURADIO_DEVELOP
   /usr/include/nlohmann/thirdparty/hedley/hedley_undef.hpp \
   /usr/include/pthread.h \
   /usr/include/sched.h \
+  /usr/include/semaphore.h \
+  /usr/include/signal.h \
   /usr/include/stdc-predef.h \
   /usr/include/stdint.h \
   /usr/include/stdio.h \
@@ -1013,7 +1024,21 @@ CMakeFiles/flowgraph.dir/src/imGUI_management.cpp.o: /home/ziad/GNURADIO_DEVELOP
   /usr/include/x86_64-linux-gnu/bits/pthreadtypes.h \
   /usr/include/x86_64-linux-gnu/bits/sched.h \
   /usr/include/x86_64-linux-gnu/bits/select.h \
+  /usr/include/x86_64-linux-gnu/bits/semaphore.h \
   /usr/include/x86_64-linux-gnu/bits/setjmp.h \
+  /usr/include/x86_64-linux-gnu/bits/sigaction.h \
+  /usr/include/x86_64-linux-gnu/bits/sigcontext.h \
+  /usr/include/x86_64-linux-gnu/bits/sigevent-consts.h \
+  /usr/include/x86_64-linux-gnu/bits/siginfo-arch.h \
+  /usr/include/x86_64-linux-gnu/bits/siginfo-consts-arch.h \
+  /usr/include/x86_64-linux-gnu/bits/siginfo-consts.h \
+  /usr/include/x86_64-linux-gnu/bits/signal_ext.h \
+  /usr/include/x86_64-linux-gnu/bits/signum-arch.h \
+  /usr/include/x86_64-linux-gnu/bits/signum-generic.h \
+  /usr/include/x86_64-linux-gnu/bits/sigstack.h \
+  /usr/include/x86_64-linux-gnu/bits/sigstksz.h \
+  /usr/include/x86_64-linux-gnu/bits/sigthread.h \
+  /usr/include/x86_64-linux-gnu/bits/ss_flags.h \
   /usr/include/x86_64-linux-gnu/bits/stdint-intn.h \
   /usr/include/x86_64-linux-gnu/bits/stdint-least.h \
   /usr/include/x86_64-linux-gnu/bits/stdint-uintn.h \
@@ -1035,17 +1060,24 @@ CMakeFiles/flowgraph.dir/src/imGUI_management.cpp.o: /home/ziad/GNURADIO_DEVELOP
   /usr/include/x86_64-linux-gnu/bits/types/__locale_t.h \
   /usr/include/x86_64-linux-gnu/bits/types/__mbstate_t.h \
   /usr/include/x86_64-linux-gnu/bits/types/__sigset_t.h \
+  /usr/include/x86_64-linux-gnu/bits/types/__sigval_t.h \
   /usr/include/x86_64-linux-gnu/bits/types/clock_t.h \
   /usr/include/x86_64-linux-gnu/bits/types/clockid_t.h \
   /usr/include/x86_64-linux-gnu/bits/types/cookie_io_functions_t.h \
   /usr/include/x86_64-linux-gnu/bits/types/error_t.h \
   /usr/include/x86_64-linux-gnu/bits/types/locale_t.h \
   /usr/include/x86_64-linux-gnu/bits/types/mbstate_t.h \
+  /usr/include/x86_64-linux-gnu/bits/types/sig_atomic_t.h \
+  /usr/include/x86_64-linux-gnu/bits/types/sigevent_t.h \
+  /usr/include/x86_64-linux-gnu/bits/types/siginfo_t.h \
   /usr/include/x86_64-linux-gnu/bits/types/sigset_t.h \
+  /usr/include/x86_64-linux-gnu/bits/types/sigval_t.h \
+  /usr/include/x86_64-linux-gnu/bits/types/stack_t.h \
   /usr/include/x86_64-linux-gnu/bits/types/struct_FILE.h \
   /usr/include/x86_64-linux-gnu/bits/types/struct___jmp_buf_tag.h \
   /usr/include/x86_64-linux-gnu/bits/types/struct_itimerspec.h \
   /usr/include/x86_64-linux-gnu/bits/types/struct_sched_param.h \
+  /usr/include/x86_64-linux-gnu/bits/types/struct_sigstack.h \
   /usr/include/x86_64-linux-gnu/bits/types/struct_timespec.h \
   /usr/include/x86_64-linux-gnu/bits/types/struct_timeval.h \
   /usr/include/x86_64-linux-gnu/bits/types/struct_tm.h \
@@ -1083,7 +1115,9 @@ CMakeFiles/flowgraph.dir/src/imGUI_management.cpp.o: /home/ziad/GNURADIO_DEVELOP
   /usr/include/x86_64-linux-gnu/sys/select.h \
   /usr/include/x86_64-linux-gnu/sys/single_threaded.h \
   /usr/include/x86_64-linux-gnu/sys/syscall.h \
+  /usr/include/x86_64-linux-gnu/sys/time.h \
   /usr/include/x86_64-linux-gnu/sys/types.h \
+  /usr/include/x86_64-linux-gnu/sys/ucontext.h \
   /usr/lib/gcc/x86_64-linux-gnu/14/include/limits.h \
   /usr/lib/gcc/x86_64-linux-gnu/14/include/stdarg.h \
   /usr/lib/gcc/x86_64-linux-gnu/14/include/stddef.h \
@@ -1299,8 +1333,6 @@ CMakeFiles/flowgraph.dir/src/imGUI_management.cpp.o: /home/ziad/GNURADIO_DEVELOP
 
 /usr/lib/gcc/x86_64-linux-gnu/14/include/cmpccxaddintrin.h:
 
-/usr/include/x86_64-linux-gnu/bits/sched.h:
-
 /usr/local/include/gnuradio-4.0/Settings.hpp:
 
 /usr/include/c++/14/pstl/parallel_impl.h:
@@ -1387,16 +1419,6 @@ CMakeFiles/flowgraph.dir/src/imGUI_management.cpp.o: /home/ziad/GNURADIO_DEVELOP
 
 /usr/include/c++/14/experimental/bits/simd_converter.h:
 
-/usr/include/c++/14/experimental/bits/numeric_traits.h:
-
-/usr/local/include/gnuradio-4.0/algorithm/signal/SignalGeneratorCore.hpp:
-
-/usr/local/include/gnuradio-4.0/LifeCycle.hpp:
-
-/usr/include/c++/14/bits/ios_base.h:
-
-/usr/include/x86_64-linux-gnu/bits/posix2_lim.h:
-
 /usr/lib/gcc/x86_64-linux-gnu/14/include/popcntintrin.h:
 
 /usr/include/c++/14/exception:
@@ -1430,6 +1452,18 @@ CMakeFiles/flowgraph.dir/src/imGUI_management.cpp.o: /home/ziad/GNURADIO_DEVELOP
 /usr/local/include/gnuradio-4.0/algorithm/dataset/DataSetHelper.hpp:
 
 /usr/include/c++/14/cstddef:
+
+/usr/include/c++/14/experimental/bits/numeric_traits.h:
+
+/usr/local/include/gnuradio-4.0/algorithm/signal/SignalGeneratorCore.hpp:
+
+/usr/local/include/gnuradio-4.0/LifeCycle.hpp:
+
+/usr/include/c++/14/bits/ios_base.h:
+
+/usr/include/x86_64-linux-gnu/bits/posix2_lim.h:
+
+/usr/include/c++/14/csignal:
 
 /usr/include/c++/14/pstl/glue_algorithm_impl.h:
 
@@ -1542,16 +1576,6 @@ CMakeFiles/flowgraph.dir/src/imGUI_management.cpp.o: /home/ziad/GNURADIO_DEVELOP
 /usr/include/c++/14/bits/basic_string.h:
 
 /usr/include/c++/14/bits/locale_facets.h:
-
-/usr/local/include/gnuradio-4.0/algorithm/ImChart.hpp:
-
-/usr/include/c++/14/ratio:
-
-/usr/include/x86_64-linux-gnu/bits/fcntl.h:
-
-/usr/include/x86_64-linux-gnu/asm/errno.h:
-
-/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/src/flowgraph.cpp:
 
 /usr/include/c++/14/bits/quoted_string.h:
 
@@ -1730,6 +1754,10 @@ CMakeFiles/flowgraph.dir/src/imGUI_management.cpp.o: /home/ziad/GNURADIO_DEVELOP
 /usr/lib/gcc/x86_64-linux-gnu/14/include/x86intrin.h:
 
 /usr/include/c++/14/istream:
+
+/usr/include/x86_64-linux-gnu/bits/timesize.h:
+
+/usr/include/c++/14/algorithm:
 
 /usr/include/c++/14/bits/chrono_io.h:
 
@@ -2020,6 +2048,18 @@ CMakeFiles/flowgraph.dir/src/imGUI_management.cpp.o: /home/ziad/GNURADIO_DEVELOP
 /usr/include/x86_64-linux-gnu/c++/14/bits/c++locale.h:
 
 /usr/include/c++/14/bits/stl_heap.h:
+
+/usr/local/include/gnuradio-4.0/algorithm/ImChart.hpp:
+
+/usr/include/x86_64-linux-gnu/bits/fcntl.h:
+
+/usr/include/x86_64-linux-gnu/asm/errno.h:
+
+/home/ziad/GNURADIO_DEVELOPMENT/flowgraph_blocks/dashboard_blocks/src/flowgraph.cpp:
+
+/usr/include/c++/14/ratio:
+
+/usr/include/x86_64-linux-gnu/bits/sched.h:
 
 /usr/local/include/gnuradio-4.0/algorithm/dataset/DataSetUtils.hpp:
 
@@ -2362,10 +2402,6 @@ CMakeFiles/flowgraph.dir/src/imGUI_management.cpp.o: /home/ziad/GNURADIO_DEVELOP
 /usr/lib/gcc/x86_64-linux-gnu/14/include/avx5124fmapsintrin.h:
 
 /usr/include/x86_64-linux-gnu/bits/time64.h:
-
-/usr/include/c++/14/algorithm:
-
-/usr/include/x86_64-linux-gnu/bits/timesize.h:
 
 /usr/include/x86_64-linux-gnu/bits/signal_ext.h:
 

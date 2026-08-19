@@ -286,6 +286,11 @@ int main() {
         return 1;
     }
 
+    //If the flowgraph will be killed using a SIGINT call, then you have to attach the schedluer to this lamda or define your own handler
+    gr::dashboard_blocks::imGUI_DashboardRegistry::getInstance().set_stop_callback([&scheduler]() {
+        std::ignore = scheduler.changeStateTo(gr::lifecycle::REQUESTED_STOP);
+    });
+
     scheduler.runAndWait();
 
     return 0;

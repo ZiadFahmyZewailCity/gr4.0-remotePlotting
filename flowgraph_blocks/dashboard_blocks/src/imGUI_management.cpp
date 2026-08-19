@@ -99,12 +99,14 @@ namespace gr::dashboard_blocks {
     
         // Build the command: e.g., "./dashBoard_daemon &"
         std::string command = dashBoard_daemon_path + " &";
-        
+
         // Execute the program
         int result = system(command.c_str());
         if (result != 0) {
             std::cerr << "[Registry] WARNING: Failed to start daemon!" << std::endl;
         }
+
+        start_signal_watcher();
         
         is_server_booted = true;
     }
@@ -137,13 +139,41 @@ namespace gr::dashboard_blocks {
             std::cout << "[Registry] Last block destroyed. Clearing registry." << std::endl;
             
             //Kill dashBoard server process
-            system("pkill dashboard_daemon"); 
+            system("pkill -f dashboard_daemon"); 
             
             //Clear vector of block info
             ptrs_to_imGUIblocks_callbacks.clear();
             
             is_server_booted = false;
         }
+    }
+
+
+
+    // Handling closing of the dashboard server
+    std::atomic<bool> imGUI_DashboardRegistry::sigint_received{false};
+
+    void imGUI_DashboardRegistry::sigint_handler(int) {
+        sigint_received.store(true, std::memory_order_relaxed);
+    }
+
+    void imGUI_DashboardRegistry::set_stop_callback(std::function<void()> cb) {
+        stop_callback = std::move(cb);
+    }
+
+    void imGUI_DashboardRegistry::start_signal_watcher() {
+        std::signal(SIGINT, &imGUI_DashboardRegistry::sigint_handler);
+        std::signal(SIGTERM, &imGUI_DashboardRegistry::sigint_handler);
+
+        std::thread([this]() {
+            while (!sigint_received.load(std::memory_order_relaxed)) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(200));
+            }
+            std::cout << "[Registry] SIGINT/SIGTERM received, requesting scheduler stop...\n";
+            if (stop_callback) {
+                stop_callback();
+            }
+        }).detach();
     }
 
 } // namespace gr::dashboard_blocks

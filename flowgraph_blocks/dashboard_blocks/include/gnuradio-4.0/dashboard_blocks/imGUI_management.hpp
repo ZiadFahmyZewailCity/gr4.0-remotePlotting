@@ -6,6 +6,8 @@
 #include <atomic>
 #include <mutex>
 #include <functional>
+#include <csignal>
+#include <thread>
 
 namespace gr::dashboard_blocks {
 
@@ -38,10 +40,21 @@ namespace gr::dashboard_blocks {
         //To Do: Check this is the best way to pass the config file parameters
         void config_fileGenerator();
 
+
+        //Paremeters required for setting up proper SIGINT handling to close dashboard server
+        //Lamda for handling calling stop funciton
+        std::function<void()>     stop_callback;
+        static std::atomic<bool>  sigint_received;
+        static void               sigint_handler(int);
+        void                      start_signal_watcher();
+
     public:
         //deleting the cpy & move constructors
         imGUI_DashboardRegistry(const imGUI_DashboardRegistry&) = delete;
         imGUI_DashboardRegistry& operator=(const imGUI_DashboardRegistry&) = delete;
+
+        void set_stop_callback(std::function<void()> callback);
+
 
         //The function by which the instance is generated, every subsequent function call after the first will return the same instance
         static imGUI_DashboardRegistry& getInstance() {
