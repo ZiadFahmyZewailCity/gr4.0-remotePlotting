@@ -35,30 +35,20 @@ namespace gr::dashboard_blocks {
         //TO DO: This section should contain any variables which are relevant to the user interface with the widget block
         // **Variables that can be adjusted by the user**
 
-
         //Every widget needs a id, this must be unique to the instantiated block as the dashboard will create a dashboard element using this ID
         gr::Annotated<std::string, "id", gr::Visible> widget_id = "<<widget_name>>_default";
         
-        //Display name of the sink
-        gr::Annotated<std::string, "caption", gr::Visible> title = "WIDGET_NAME_1";
-
         //All widgets or blocks with the same panel name will be placed in the same panel
         //The panel chosen purely has an affect on the widget or blocks location, has no affect on the data it displays or affects
         gr::Annotated<std::string, "panel", gr::Visible> panel_name = "default";
+        
+        //Caption thats on or to the right of the widget
+        gr::Annotated<std::string, "title", gr::Visible> title = "WIDGET_NAME_1";
+        
         gr::Annotated<std::string, "target_property", gr::Visible> target_property = "current_val";
 
-        gr::Annotated<std::string, "zmq_endpoint"> endpoint = "tcp://127.0.0.1:5556";
-        gr::Annotated<std::string, "zmq_SUB_dashboard_server", gr::Visible> dashboard_server = "tcp://127.0.0.1:5555";
-
-        gr::Annotated<T, "current_val", gr::Visible> current_val = static_cast<T>(1.0);
-
-        // TODO: ADD WIDGET-SPECIFIC ANNOTATED FIELDS HERE
-        // e.g. slider -> min_val, max_val, step
-        // e.g. dropdown -> options (comma separated string, or vector<string> if reflection supports it)
-        // e.g. toggle -> (none needed, current_val as bool covers it)
-
-        //TO DO: This section should contain any variables which are not relevant to the user interface with the widget block
-        // **Internal variables of the widget**
+        //TO DO: This section should contain any variables which are not relevant to the user interface with the sink block
+        // **Irrlevant to user interface**
 
         //Output Port
         gr::PortOut<T> out;
@@ -73,9 +63,10 @@ namespace gr::dashboard_blocks {
 
 
         //These two function calls are used to update the vairiable you are controlling
-        //Lamda for updating value
+        //On update of variable widget is tracking, call this function to update it in the flowgraph, function must be defined in the flowgraph 
         std::function<void(T)> on_val_update = nullptr;
-        //Lamda for getting value from flowgraph
+        //Use this function to track the current state of the variable the widget is tracking the in the flowgraph, function must be defined in the flowgraph 
+        //Function definition should just return variable value 
         std::function<T()> get_external_val = nullptr;
 
         private:
@@ -113,7 +104,7 @@ namespace gr::dashboard_blocks {
                 json_data += "\"type\": \"WIDGET\", "; //This is what is used by the dashboard to understand what widget this is
                 //You will need to add adjust the code in the main of the dashboard to accomdate this new type and new widget
                 json_data += "\"panel_name\": \"" + this->panel_name.value + "\", "; //Which panel is this plot associated with
-                json_data += "\"title\": \"" + this->title.value + "\" "; //Will be the text above the sink
+                json_data += "\"title\": \"" + this->title.value + "\", "; //Text next to the widget
                 json_data += "\"target\": \"" + this->target_property.value + "\"";
                 // TODO: ADD ANY EXTRA JSON FIELDS FOR WIDGET-SPECIFIC PARAMS HERE
                 // e.g. json_data += ", \"min\": " + std::to_string(this->min_val.value);

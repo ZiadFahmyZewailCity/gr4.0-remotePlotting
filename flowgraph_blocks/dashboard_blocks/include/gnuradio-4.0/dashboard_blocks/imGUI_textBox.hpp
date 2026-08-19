@@ -1,8 +1,7 @@
 #ifndef GNURADIO_DASHBOARDBLOCKS_IMGUI_TEXTBOX_HPP
 #define GNURADIO_DASHBOARDBLOCKS_IMGUI_TEXTBOX_HPP
 
-#include <cstring>
-#include <exception>
+//GNU Radio includes
 #include <gnuradio-4.0/Block.hpp>
 #include <gnuradio-4.0/BlockRegistry.hpp>
 #include <gnuradio-4.0/Port.hpp>
@@ -10,10 +9,11 @@
 #include <gnuradio-4.0/meta/reflection.hpp>
 #include <gnuradio-4.0/Message.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_management.hpp>
-#include <iostream>
+
+//External Dependences
 #include <zmq.hpp>
-#include <string>
-#include <functional>
+#include <cstring>
+#include <functional> 
 
 
 namespace gr::dashboard_blocks {
@@ -24,41 +24,58 @@ namespace gr::dashboard_blocks {
         //TO DO: Add Proper Description
         using Description = gr::Doc<R""()"">;
 
-        //Widget ID (Must be given a unique id by user)
-        gr::Annotated<std::string, "widget_id", gr::Visible> widget_id = "imGUI_textBox_default";
+        // **Variables that can be adjusted by the user**
+
+        //Every widget needs a id, this must be unique to the instantiated block as the dashboard will create a dashboard element using this ID
+        gr::Annotated<std::string, "id", gr::Visible> widget_id = "textBox_default";
+        
         //All widgets or blocks with the same panel name will be placed in the same panel
         //The panel chosen purely has an affect on the widget or blocks location, has no affect on the data it displays or affects
         gr::Annotated<std::string, "panel", gr::Visible> panel_name = "default";
-
-        gr::Annotated<std::string, "zmq_endpoint"> endpoint = "tcp://127.0.0.1:5556";
         
+        //Caption thats on or to the right of the widget
+        gr::Annotated<std::string, "title", gr::Visible> title = "WIDGET_NAME_1";
+        
+        gr::Annotated<std::string, "target_property", gr::Visible> target_property = "current_val";
+
+       //TO DO: This section should contain any variables which are not relevant to the user interface with the sink block
+        // **Irrlevant to user interface**
+
+        //Output Port
         gr::PortOut<T> out;
+        //The text currently displayed, only ever set by the flowgraph via get_external_val, not by the user
+        gr::Annotated<std::string, "current_val", gr::Visible> current_val = "";
 
-        //Lamdas for updating variable being controlled
-        //Lamda for updating value
-        std::function<void(std::string)> on_val_update = nullptr;
-
-        //ZMQ related variables
+        //ZMQ related variables (Connection to server process)
+        gr::Annotated<std::string, "zmq_endpoint"> endpoint = "tcp://127.0.0.1:5556";
+        gr::Annotated<std::string, "zmq_SUB_dashboard_server", gr::Visible> dashboard_server = "tcp://127.0.0.1:5555";
+        
         zmq::context_t zmq_ctx{1};
+        zmq::socket_t publisher;
         zmq::socket_t subscriber;
 
-        public:
+
+        //These two function calls are used to update the vairiable you are controlling
+        //Lamda for updating value
+        std::function<void(std::string)> on_val_update = nullptr;
 
         imGUI_textBox(gr::property_map initial_settings = {})
             : gr::Block<imGUI_textBox<T>>(initial_settings)
         {
             imGUI_DashboardRegistry::getInstance().register_imGUI_block([this]() -> std::string {
                 std::string json_data = "{";
-                json_data += "\"id\": \"" + this->widget_id.value + "\", ";
-                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", ";
-                json_data += "\"type\": \"textBox\"";           
+                json_data += "\"id\": \"" + this->widget_id.value + "\", "; //Unique identifier of the block
+                json_data += "\"type\": \"textbox\", "; //This is what is used by the dashboard to understand what widget this is
+                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", "; //Which panel is this plot associated with
+                json_data += "\"title\": \"" + this->title.value + "\", "; //Will be the text above the sink
+                json_data += "\"target\": \"" + this->target_property.value + "\"";
                 json_data += "}";
                 return json_data;
             });
         }
 
         // TODO: ADD ANY NEW ANNOTATED FIELDS TO THIS LIST
-        GR_MAKE_REFLECTABLE(imGUI_textBox, out, widget_id, panel_name ,endpoint);
+        GR_MAKE_REFLECTABLE(imGUI_textBox, out, widget_id, title, panel_name ,endpoint);
 
         //ZMQ subscriber to the ZMQ publisher in the dashboard_server graph for updating widgets
         void start() {

@@ -27,42 +27,53 @@ namespace gr::dashboard_blocks {
         //To Do: Add a proper description
         using Description = gr::Doc<R""()"">;
 
-        //Widget ID (Must be given a unique id by user)
-        gr::Annotated<std::string, "widget_id", gr::Visible> widget_id = "dropDownMenu_default";
+        // **Variables that can be adjusted by the user**
+
+        //Every widget needs a id, this must be unique to the instantiated block as the dashboard will create a dashboard element using this ID
+        gr::Annotated<std::string, "id", gr::Visible> widget_id = "dropDownMenu_default";
+        
         //All widgets or blocks with the same panel name will be placed in the same panel
         //The panel chosen purely has an affect on the widget or blocks location, has no affect on the data it displays or affects
         gr::Annotated<std::string, "panel", gr::Visible> panel_name = "default";
-
-        //Ptr to a vector of the names of the options
-        gr::Annotated<std::string, "target_property", gr::Visible> target_property = "box_current_val";
-
-        gr::Annotated<std::string, "zmq_endpoint"> endpoint = "tcp://127.0.0.1:5556";
-        gr::Annotated<std::string, "zmq_SUB_dashboard_server", gr::Visible> dashboard_server = "tcp://127.0.0.1:5555";
-
+        
+        //Caption thats on or to the right of the widget
+        gr::Annotated<std::string, "title", gr::Visible> title = "WIDGET_NAME_1";
+        
         //List of options the user sets for the drop down menu
         //Defaults to 5 options
         gr::Annotated<std::vector<std::string>, "Options", gr::Visible> options = std::vector<std::string>{"option_1","option_2","option_3","option_4","option_5"};
         
+        //TO DO: Probably remove
+        gr::Annotated<std::string, "target_property", gr::Visible> target_property = "current_val";
+
+
+        // **Irrlevant to user interface**
+
         //Current value stored an index of the option currently selected 
         gr::Annotated<uint8_t, "current_val", gr::Visible> current_val = 0;
-
+        
+        //Output Port
         gr::PortOut<uint8_t> out;
 
-        //Lamdas for updating variable being controlled
-        //Lamda for updating value
-        std::function<void(std::string)> on_val_update = nullptr;
-        //Lamda for getting value from flowgraph
-        std::function<std::string()> get_external_val = nullptr;
-
-
-        //ZMQ related variables
+        //ZMQ related variables (Connection to server process)
+        gr::Annotated<std::string, "zmq_endpoint"> endpoint = "tcp://127.0.0.1:5556";
+        gr::Annotated<std::string, "zmq_SUB_dashboard_server", gr::Visible> dashboard_server = "tcp://127.0.0.1:5555";
+        
         zmq::context_t zmq_ctx{1};
         zmq::socket_t publisher;
         zmq::socket_t subscriber;
 
+
+        //These two function calls are used to update the vairiable you are controlling
+        //On update of variable widget is tracking, call this function to update it in the flowgraph, function must be defined in the flowgraph 
+        std::function<void(std::string)> on_val_update = nullptr;
+        //Use this function to track the current state of the variable the widget is tracking the in the flowgraph, function must be defined in the flowgraph 
+        //Function definition should just return variable value 
+        std::function<std::string()> get_external_val = nullptr;
+
         private:
         //Track whats the last value that has been published
-        uint8_t lastPublishedValue = current_val.value;
+        T lastPublishedValue = current_val.value;
 
         //Helper function for publishing variable
         void publishCurrentVal() {
@@ -94,6 +105,7 @@ namespace gr::dashboard_blocks {
                 json_data += "\"id\": \"" + this->widget_id.value + "\", ";
                 json_data += "\"panel_name\": \"" + this->panel_name.value + "\", ";
                 json_data += "\"type\": \"dropdown\", ";           
+                json_data += "\"title\": \"" + this->title.value + "\", "; //Will be the text above the sink
                 json_data += "\"target\": \"" + this->target_property.value + "\",";
                 
                 //Create a list of options 

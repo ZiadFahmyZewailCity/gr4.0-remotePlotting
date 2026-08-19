@@ -50,13 +50,16 @@ int main() {
     auto& throttle_drain = graph.emplaceBlock<testing::NullSink<float>>();
 
     auto& freq_sink = graph.emplaceBlock<dashboardBlocks::imGUI_frequencySink<float>>();
-    freq_sink.title      = "freq_plot_1";
+    freq_sink.id = "freq_sink";
+    freq_sink.title = "Testing the title of the freq block";
     freq_sink.panel_name = "Frequency Domain";
+    freq_sink.x_axis_label = "check_x_frequency";
+    freq_sink.y_axis_label = "check_y_frequency";
     freq_sink.sampleRate = 48000.0f;
     freq_sink.windowSize = 1024;
 
     auto& time_sink = graph.emplaceBlock<dashboardBlocks::dep_imGUI_timeSeries<float>>();
-    time_sink.sink_id   = "time_plot_1";
+    time_sink.id   = "time_plot_1";
     time_sink.panel_name = "Time Domain";
     time_sink.title = "Testing the title of the time block";
     time_sink.x_axis_label = "Checking X axis works (#59)";
@@ -65,7 +68,10 @@ int main() {
 
 
     auto& waterfall_sink = graph.emplaceBlock<dashboardBlocks::imGUI_waterFallSink<float>>();
-    waterfall_sink.title        = "waterfall_plot_1";
+    waterfall_sink.sink_id = "waterfall_id";
+    waterfall_sink.title        = "check_waterfall_title";
+    waterfall_sink.x_axis_label = "check_x-axis label";
+    waterfall_sink.y_axis_label = "check_y-axis label";
     waterfall_sink.panel_name   = "Frequency Domain";
     waterfall_sink.sampleRate   = 48000.0f;
     waterfall_sink.windowSize   = 1024;
@@ -84,7 +90,10 @@ int main() {
     s2ds.n_post = 1024;
 
     auto& vector_sink = graph.emplaceBlock<dashboardBlocks::imGUI_vectorSink<float>>();
-    vector_sink.title      = "vector_plot_1";
+    vector_sink.title = "check_vector_title";
+    vector_sink.sink_id = "vector_ID";
+    vector_sink.x_axis_label = "check_x_vector";
+    vector_sink.y_axis_label = "check_x_vector";
     vector_sink.panel_name = "Vector";
     vector_sink.vectorSize = 1024;
 
@@ -110,7 +119,7 @@ int main() {
     auto& throttle_complex_drain = graph.emplaceBlock<testing::NullSink<std::complex<float>>>();
 
     auto& constellation_sink = graph.emplaceBlock<dashboardBlocks::imGUI_constellationSink<float>>();
-    constellation_sink.sink_id = "constellation_1";
+    constellation_sink.id = "constellation_1";
     constellation_sink.title      = "checking_title_constellation";
     constellation_sink.panel_name = "Constellation";    
     constellation_sink.x_axis_label = "checking_x_axis_constellation";
@@ -124,9 +133,9 @@ int main() {
     Text box drives the complex source's offset live. Label reports the real frequency.
     ============================================================
     */
-    auto& checkBox_src = graph.emplaceBlock<dashboardBlocks::dep_imGUI_checkBox<bool>>();
-    checkBox_src.widget_id  = "freq_checkBox";
-    checkBox_src.panel_name = "Controls";
+    auto& checkBox = graph.emplaceBlock<dashboardBlocks::dep_imGUI_checkBox<bool>>();
+    checkBox.widget_id  = "freq_checkBox";
+    checkBox.panel_name = "Controls";
 
     auto& button_src = graph.emplaceBlock<dashboardBlocks::dep_imGUI_button<bool>>();
     button_src.widget_id  = "freq_button";
@@ -135,11 +144,11 @@ int main() {
     auto& checkBox_drain = graph.emplaceBlock<testing::NullSink<uint8_t>>();
     auto& button_drain   = graph.emplaceBlock<testing::NullSink<uint8_t>>();
 
-    auto& dropdown_src = graph.emplaceBlock<dashboardBlocks::imGUI_dropDownMenu<float>>();
-    dropdown_src.widget_id     = "freq_dropdown";
-    dropdown_src.panel_name    = "Controls";
-    dropdown_src.target_property = "frequency";
-    dropdown_src.options       = std::vector<std::string>{"Low", "High"};
+    auto& dropdownMenu = graph.emplaceBlock<dashboardBlocks::imGUI_dropDownMenu<float>>();
+    dropdownMenu.widget_id     = "freq_dropdown";
+    dropdownMenu.panel_name    = "Controls";
+    dropdownMenu.target_property = "frequency";
+    dropdownMenu.options       = std::vector<std::string>{"Low", "High"};
     auto& dropdown_drain = graph.emplaceBlock<testing::NullSink<uint8_t>>();
 
     auto& text_box = graph.emplaceBlock<dashboardBlocks::imGUI_textBox<float>>();
@@ -169,11 +178,11 @@ int main() {
         std::cout << "[Coordinator] Frequency shifted to: " << new_freq << " Hz" << std::endl;
     };
 
-    checkBox_src.on_val_update = [&freq_toggle_state, apply_freq_toggle](bool new_state) {
+    checkBox.on_val_update = [&freq_toggle_state, apply_freq_toggle](bool new_state) {
         freq_toggle_state = new_state;
         apply_freq_toggle(freq_toggle_state);
     };
-    checkBox_src.get_external_val = [&freq_toggle_state]() -> bool {
+    checkBox.get_external_val = [&freq_toggle_state]() -> bool {
         return freq_toggle_state;
     };
 
@@ -182,11 +191,12 @@ int main() {
         apply_freq_toggle(freq_toggle_state);
     };
 
-    dropdown_src.on_val_update = [&freq_toggle_state, apply_freq_toggle](std::string selected_option) {
+    dropdownMenu.on_val_update = [&freq_toggle_state, apply_freq_toggle](std::string selected_option) {
         freq_toggle_state = (selected_option == "High");
         apply_freq_toggle(freq_toggle_state);
     };
-    dropdown_src.get_external_val = [&freq_toggle_state]() -> std::string {
+    
+    dropdownMenu.get_external_val = [&freq_toggle_state]() -> std::string {
         return freq_toggle_state ? "High" : "Low";
     };
 
@@ -254,13 +264,13 @@ int main() {
     if (!sourceC_to_constellation.has_value()) { return 1; }
 
     // Widget uplinks -> NullSinks
-    auto checkBox_to_drain = graph.connect<"out", "in">(checkBox_src, checkBox_drain);
+    auto checkBox_to_drain = graph.connect<"out", "in">(checkBox, checkBox_drain);
     if (!checkBox_to_drain.has_value()) { return 1; }
 
     auto button_to_drain = graph.connect<"out", "in">(button_src, button_drain);
     if (!button_to_drain.has_value()) { return 1; }
 
-    auto dropdown_to_drain = graph.connect<"out", "in">(dropdown_src, dropdown_drain);
+    auto dropdown_to_drain = graph.connect<"out", "in">(dropdownMenu, dropdown_drain);
     if (!dropdown_to_drain.has_value()) { return 1; }
 
     auto text_to_drain = graph.connect<"out", "in">(text_box, text_drain);

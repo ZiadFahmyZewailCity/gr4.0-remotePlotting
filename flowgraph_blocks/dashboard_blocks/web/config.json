@@ -21,20 +21,23 @@
       "dashboardElement": [
         {
           "id": "freq_checkBox",
-          "panel_name": "Controls",
           "type": "checkBox",
+          "panel_name": "Controls",
+          "title": "WIDGET_NAME_1",
           "target": "current_val"
         },
         {
           "id": "freq_button",
           "type": "button",
           "panel_name": "Controls",
-          "target": "button_current_val"
+          "title": "WIDGET_NAME_1",
+          "target": "current_val"
         },
         {
           "id": "freq_dropdown",
           "panel_name": "Controls",
           "type": "dropdown",
+          "title": "WIDGET_NAME_1",
           "target": "frequency",
           "options": [
             "Low",
@@ -43,14 +46,17 @@
         },
         {
           "id": "offset_input_1",
+          "type": "textbox",
           "panel_name": "Controls",
-          "type": "textBox"
+          "title": "WIDGET_NAME_1",
+          "target": "current_val"
         },
         {
           "id": "freq_label",
           "panel_name": "Controls",
           "type": "textLabel",
-          "target": "text_current_val"
+          "title": "WIDGET_NAME_1",
+          "target": "current_val"
         }
       ]
     },
@@ -58,19 +64,23 @@
       "panel_name": "Frequency Domain",
       "dashboardElement": [
         {
-          "id": "freq_plot_1",
-          "panel_name": "Frequency Domain",
+          "id": "freq_sink",
           "type": "frequencySink",
-          "title": "freq_plot_1",
+          "panel_name": "Frequency Domain",
+          "title": "Testing the title of the freq block",
+          "x_axis_label": "check_x_frequency",
+          "y_axis_label": "check_y_frequency",
           "windowSize": "1024",
           "samplingFreq": "48000.000000",
           "frequencySink_dataSource": "Magnitudes"
         },
         {
-          "id": "waterfall_plot_1",
+          "id": "waterfall_id",
           "type": "waterFallSink",
-          "title": "waterfall_plot_1",
           "panel_name": "Frequency Domain",
+          "title": "check_waterfall_title",
+          "x_axis_label": "check_x-axis label",
+          "y_axis_label": "check_y-axis label",
           "windowSize": "1024",
           "samplingFreq": "48000.000000",
           "historySize": "100",
@@ -95,10 +105,12 @@
       "panel_name": "Vector",
       "dashboardElement": [
         {
-          "id": "vector_plot_1",
+          "id": "vector_ID",
+          "type": "vectorSink",
           "panel_name": "Vector",
-          "type": "vector",
-          "title": "vector_plot_1",
+          "title": "check_vector_title",
+          "x_axis_label": "check_x_vector",
+          "y_axis_label": "check_x_vector",
           "vectorSize": "1024"
         }
       ]

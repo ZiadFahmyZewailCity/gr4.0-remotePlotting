@@ -205,7 +205,7 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
                         new_dashboardElement.databuffer.resize(new_dashboardElement.windowSize * new_dashboardElement.history_size, -140.0f);
 
                     }
-                    else if (item["type"] == "vector"){
+                    else if (item["type"] == "vectorSink"){
 
 
                         //Read what the x & y axis labels are
@@ -220,8 +220,7 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
                         new_dashboardElement.databuffer.resize(new_dashboardElement.windowSize, 0.0f);
                     }
                     else if (item["type"] == "constellationSink"){
-                        
-                        
+                                       
                         //Read what the x & y axis labels are
                         new_dashboardElement.x_axis_label = item.value("x_axis_label","default_x_axis");
                         new_dashboardElement.y_axis_label = item.value("y_axis_label","default_x_axis");
@@ -229,7 +228,6 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
                         
                         //Read Buffer size
                         try {
-
                             //Parse number of points 
                             new_dashboardElement.windowSize = std::stoi(item.value("numberOfPoints", "256"));
 

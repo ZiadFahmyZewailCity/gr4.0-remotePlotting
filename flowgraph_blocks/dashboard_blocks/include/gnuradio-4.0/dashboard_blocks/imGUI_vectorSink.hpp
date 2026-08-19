@@ -24,18 +24,27 @@ namespace gr::dashboard_blocks {
         // TO DO: Add a description
         using Description = gr::Doc<R""())"">;
 
-        // Input Port explicitly requires discrete vectors, not a stream of scalars
-        gr::PortIn<gr::DataSet<T>> in;
+        // **Variables that can be adjusted by the user**
 
-        // Variables that can be adjusted by user
-        gr::Annotated<std::string, "title", gr::Visible> title = "vectorSink_default";
+        //Every sink needs a id, this must be unique to the instantiated block as the dashboard will create a dashboard element using this ID
+        gr::Annotated<std::string, "sink_id", gr::Visible> sink_id = "SINK_ID_1";
+
         //All widgets or blocks with the same panel name will be placed in the same panel
         //The panel chosen purely has an affect on the widget or blocks location, has no affect on the data it displays or affects
         gr::Annotated<std::string, "panel", gr::Visible> panel_name = "default";
 
+        //Display name of the sink
+        gr::Annotated<std::string, "title", gr::Visible> title = "SINK_NAME_1";
+        // Axis Labeling 
+        gr::Annotated<std::string, "x_axis_label", gr::Visible> x_axis_label = "x_axis";
+        gr::Annotated<std::string, "y_axis_label", gr::Visible> y_axis_label = "y_axis";
+
         // Size of vector (Used primarily for UI setup/scaling on the dashboard side)
         gr::Annotated<size_t, "vector Size", gr::Visible> vectorSize = 256UL;
         
+
+        // Input Port explicitly requires discrete vectors, not a stream of scalars
+        gr::PortIn<gr::DataSet<T>> in;
         // ZMQ related variables
         gr::Annotated<std::string, "zmq_endpoint"> endpoint = "tcp://127.0.0.1:5555";
         zmq::context_t zmq_ctx{1};
@@ -47,10 +56,12 @@ namespace gr::dashboard_blocks {
             // Register the sink config using the live variables
             imGUI_DashboardRegistry::getInstance().register_imGUI_block([this]() -> std::string {
                 std::string json_data = "{";
-                json_data += "\"id\": \"" + this->title.value + "\", ";
-                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", ";
-                json_data += "\"type\": \"vector\", "; 
-                json_data += "\"title\": \"" + this->title.value + "\", ";
+                json_data += "\"id\": \"" + this->sink_id.value + "\", "; //Unique identifier of the block
+                json_data += "\"type\": \"vectorSink\", "; //This is what is used by the dashboard to understand what type of sink this is
+                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", "; //Which panel is this plot associated with
+                json_data += "\"title\": \"" + this->title.value + "\", "; //Will be the text above the sink
+                json_data += "\"x_axis_label\": \"" + this->x_axis_label.value + "\", "; //x-axis label 
+                json_data += "\"y_axis_label\": \"" + this->y_axis_label.value + "\", "; //y-axis label
                 json_data += "\"vectorSize\": \"" + std::to_string(this->vectorSize.value) + "\" ";
                 json_data += "}";
                 return json_data;
@@ -58,7 +69,7 @@ namespace gr::dashboard_blocks {
         }
 
         
-        GR_MAKE_REFLECTABLE(imGUI_vectorSink, in, title, vectorSize, endpoint);
+        GR_MAKE_REFLECTABLE(imGUI_vectorSink, in, sink_id, title, x_axis_label, y_axis_label, vectorSize, endpoint);
 
         void start() {
             publisher = zmq::socket_t(zmq_ctx, zmq::socket_type::pub);
@@ -104,7 +115,7 @@ namespace gr::dashboard_blocks {
 
             if (publisher) {
                 
-                std::string header = title.value + ":";
+                std::string header = sink_id.value + ":";
                 std::cout << "[vectorSink] got vec.extents[0]=" << vec.extents[0] << std::endl;
                 
                 //Has to be unsigned to work with the T

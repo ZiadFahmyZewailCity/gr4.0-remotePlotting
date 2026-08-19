@@ -55,14 +55,21 @@ namespace gr::dashboard_blocks {
         //TO DO: Create a representive description for this block
         using Description = gr::Doc<R""(FrequencySink)"">;
 
-        //Input Port
-        gr::PortIn<T> in;
+        // **Variables that can be adjusted by the user**
 
-        //Variables that can be adjusted by user
-        gr::Annotated<std::string, "title", gr::Visible> title = "plot_1";
+        //Every sink needs a id, this must be unique to the instantiated block as the dashboard will create a dashboard element using this ID
+        gr::Annotated<std::string, "sink", gr::Visible> id = "frequency_default_id";
+
         //All widgets or blocks with the same panel name will be placed in the same panel
         //The panel chosen purely has an affect on the widget or blocks location, has no affect on the data it displays or affects
         gr::Annotated<std::string, "panel", gr::Visible> panel_name = "default";
+
+        //Display name of the sink
+        gr::Annotated<std::string, "title", gr::Visible> title = "FREQUENCY_SINK";
+        // Axis Labeling 
+        gr::Annotated<std::string, "x_axis_label", gr::Visible> x_axis_label = "x_axis";
+        gr::Annotated<std::string, "y_axis_label", gr::Visible> y_axis_label = "y_axis";
+
         gr::Annotated<size_t, "Window Size", gr::Visible> windowSize = 1024UL;
         //TO DO: Any reason to default to something in specific, currently default to Hann
         gr::Annotated<gr::algorithm::window::Type, "Window Type", gr::Visible> windowType = gr::algorithm::window::Type::Hann;
@@ -72,6 +79,11 @@ namespace gr::dashboard_blocks {
         gr::Annotated<averagingType, "Averaging Type",gr::Visible> typeOfAveraging;
         gr::Annotated<float, "Sample Rate", gr::Visible, gr::Unit<"Hz">> sampleRate = 1.0f;
         gr::Annotated<bool, "Output in dB", gr::Visible> outputInDb = true;
+
+
+        // **Internal variables of the sink**
+        //Input Port
+        gr::PortIn<T> in;
 
         //The FFT block wrapped inside the imGUI block
         gr::blocks::fft::DefaultFFT<T> FFTblock{};
@@ -87,19 +99,21 @@ namespace gr::dashboard_blocks {
             // Register the sink config using the live variables
             imGUI_DashboardRegistry::getInstance().register_imGUI_block([this]() -> std::string {
                 std::string json_data = "{";
-                json_data += "\"id\": \"" + this->title.value + "\", ";
-                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", ";
-                json_data += "\"type\": \"frequencySink\", ";
-                json_data += "\"title\": \"" + this->title.value + "\", ";
+                json_data += "\"id\": \"" + this->id.value + "\", "; //Unique identifier of the block
+                json_data += "\"type\": \"frequencySink\", "; //This is what is used by the dashboard to understand what type of sink this is
+                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", "; //Which panel is this plot associated with
+                json_data += "\"title\": \"" + this->title.value + "\", "; //Will be the text above the sink
+                json_data += "\"x_axis_label\": \"" + this->x_axis_label.value + "\", "; //x-axis label 
+                json_data += "\"y_axis_label\": \"" + this->y_axis_label.value + "\", "; //y-axis label
                 json_data += "\"windowSize\": \"" + std::to_string(this->windowSize.value) + "\", ";
                 json_data += "\"samplingFreq\": \"" + std::to_string(this->sampleRate.value) + "\", ";
-                json_data += "\"frequencySink_dataSource\": \"Magnitudes\" ";
+                json_data += "\"frequencySink_dataSource\": \"Magnitudes\" "; //TODO: Not in use currently
                 json_data += "}";
                 return json_data;
             });
         }
 
-        GR_MAKE_REFLECTABLE(imGUI_frequencySink, in, title, panel_name ,windowSize, sampleRate, windowType, outputInDb, typeOfTrigger, typeOfAveraging, endpoint);
+        GR_MAKE_REFLECTABLE(imGUI_frequencySink, in,id , title, panel_name, x_axis_label, y_axis_label ,windowSize, sampleRate, windowType, outputInDb, typeOfTrigger, typeOfAveraging, endpoint);
 
         void start() {
 
@@ -168,7 +182,7 @@ namespace gr::dashboard_blocks {
                 //Send over ZMQ to the server
 
                 //1) Apply header
-                std::string header = title.value + ":";
+                std::string header = id.value + ":";
                 std::size_t payload_size = header.size() + (num_bins * sizeof(floattype));
 
                 //2) Message core

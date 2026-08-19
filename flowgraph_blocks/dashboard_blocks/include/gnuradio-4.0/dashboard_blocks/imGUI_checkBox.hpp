@@ -1,8 +1,7 @@
 #ifndef GNURADIO_DASHBOARDBLOCKS_DEP_IMGUI_CHECKBOX_HPP
 #define GNURADIO_DASHBOARDBLOCKS_DEP_IMGUI_CHECKBOX_HPP
 
-#include <cstring>
-#include <exception>
+//GNU Radio includes
 #include <gnuradio-4.0/Block.hpp>
 #include <gnuradio-4.0/BlockRegistry.hpp>
 #include <gnuradio-4.0/Port.hpp>
@@ -10,10 +9,11 @@
 #include <gnuradio-4.0/meta/reflection.hpp>
 #include <gnuradio-4.0/Message.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_management.hpp>
-#include <iostream>
+
+//External Dependences
 #include <zmq.hpp>
-#include <string>
-#include <functional>
+#include <cstring>
+#include <functional> 
 
 namespace gr::dashboard_blocks {
 
@@ -22,35 +22,47 @@ namespace gr::dashboard_blocks {
 
         //TO DO: Add a proper description
         using Description = gr::Doc<R""()"">;
+        
+        // **Variables that can be adjusted by the user**
 
-        //Widget ID (Must be given a unique id by user)
-        gr::Annotated<std::string, "widget_id", gr::Visible> widget_id = "imGUI_checkBox";
+        //Every widget needs a id, this must be unique to the instantiated block as the dashboard will create a dashboard element using this ID
+        gr::Annotated<std::string, "id", gr::Visible> widget_id = "checkBox_default";
+        
         //All widgets or blocks with the same panel name will be placed in the same panel
         //The panel chosen purely has an affect on the widget or blocks location, has no affect on the data it displays or affects
         gr::Annotated<std::string, "panel", gr::Visible> panel_name = "default";
+        
+        //Caption thats on or to the right of the widget
+        gr::Annotated<std::string, "title", gr::Visible> title = "WIDGET_NAME_1";
+        
         gr::Annotated<std::string, "target_property", gr::Visible> target_property = "current_val";
 
-        gr::Annotated<std::string, "zmq_endpoint"> endpoint = "tcp://127.0.0.1:5556";
-        gr::Annotated<std::string, "zmq_SUB_dashboard_server", gr::Visible> dashboard_server = "tcp://127.0.0.1:5555";
 
+        // **Irrlevant to user interface**
         gr::Annotated<bool, "current_val", gr::Visible> current_val = true;
 
+        //Output Port
         gr::PortOut<uint8_t> out;
 
-        //Lamdas for updating variable being controlled
+        //ZMQ related variables (Connection to server process)
+        gr::Annotated<std::string, "zmq_endpoint"> endpoint = "tcp://127.0.0.1:5556";
+        gr::Annotated<std::string, "zmq_SUB_dashboard_server", gr::Visible> dashboard_server = "tcp://127.0.0.1:5555";
+        
+        zmq::context_t zmq_ctx{1};
+        zmq::socket_t publisher;
+        zmq::socket_t subscriber;
+
+
+        //These two function calls are used to update the vairiable you are controlling
         //Lamda for updating value
         std::function<void(bool)> on_val_update = nullptr;
         //Lamda for getting value from flowgraph
         std::function<bool()> get_external_val = nullptr;
 
-        //ZMQ related variables
-        zmq::context_t zmq_ctx{1};
-        zmq::socket_t publisher;
-        zmq::socket_t subscriber;
-
         private:
         //Track whats the last value that has been published
-        bool lastPublishedValue = current_val.value;
+        T lastPublishedValue = current_val.value;
+
 
         //Helper function for publishing variable
         void publishCurrentVal() {
@@ -80,8 +92,9 @@ namespace gr::dashboard_blocks {
             imGUI_DashboardRegistry::getInstance().register_imGUI_block([this]() -> std::string {
                 std::string json_data = "{";
                 json_data += "\"id\": \"" + this->widget_id.value + "\", ";
-                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", ";
                 json_data += "\"type\": \"checkBox\", ";           
+                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", ";
+                json_data += "\"title\": \"" + this->title.value + "\", "; //Will be the text above the sink
                 json_data += "\"target\": \"" + this->target_property.value + "\"";
                 json_data += "}";
                 return json_data;

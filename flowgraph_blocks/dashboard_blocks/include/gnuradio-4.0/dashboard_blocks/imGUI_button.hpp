@@ -1,8 +1,7 @@
 #ifndef GNURADIO_DASHBOARDBLOCKS_DEP_IMGUI_BUTTON_HPP
 #define GNURADIO_DASHBOARDBLOCKS_DEP_IMGUI_BUTTON_HPP
 
-#include <cstring>
-#include <exception>
+//GNU Radio includes
 #include <gnuradio-4.0/Block.hpp>
 #include <gnuradio-4.0/BlockRegistry.hpp>
 #include <gnuradio-4.0/Port.hpp>
@@ -10,10 +9,11 @@
 #include <gnuradio-4.0/meta/reflection.hpp>
 #include <gnuradio-4.0/Message.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_management.hpp>
-#include <iostream>
+
+//External Dependences
 #include <zmq.hpp>
-#include <string>
-#include <functional>
+#include <cstring>
+#include <functional> 
 
 namespace gr::dashboard_blocks {
 
@@ -23,31 +23,41 @@ namespace gr::dashboard_blocks {
         //TO DO: Add a proper description
         using Description = gr::Doc<R""()"">;
 
-        //Widget ID (Must be given a unique id by user)
-        gr::Annotated<std::string, "widget_id", gr::Visible> widget_id = "imGUI_button";
+        //TO DO: This section should contain any variables which are relevant to the user interface with the widget block
+        // **Variables that can be adjusted by the user**
+
+        //Every widget needs a id, this must be unique to the instantiated block as the dashboard will create a dashboard element using this ID
+        gr::Annotated<std::string, "id", gr::Visible> widget_id = "button_default";
         
         //All widgets or blocks with the same panel name will be placed in the same panel
         //The panel chosen purely has an affect on the widget or blocks location, has no affect on the data it displays or affects
         gr::Annotated<std::string, "panel", gr::Visible> panel_name = "default";
-        gr::Annotated<std::string, "target_property", gr::Visible> target_property = "button_current_val";
-
-        gr::Annotated<std::string, "zmq_endpoint"> endpoint = "tcp://127.0.0.1:5556";
-        gr::Annotated<std::string, "zmq_SUB_dashboard_server", gr::Visible> dashboard_server = "tcp://127.0.0.1:5555";
+        
+        //Caption thats on or to the right of the widget
+        gr::Annotated<std::string, "title", gr::Visible> title = "WIDGET_NAME_1";
+        
+        //TO DO: Probably should be removed 
+        gr::Annotated<std::string, "target_property", gr::Visible> target_property = "current_val";
 
         //Button has no persisted state, this is just the payload sent out on a press
         gr::Annotated<bool, "current_val"> current_val = true;
 
+        //Output Port
         gr::PortOut<uint8_t> out;
 
+        //ZMQ related variables (Connection to server process)
+        gr::Annotated<std::string, "zmq_endpoint"> endpoint = "tcp://127.0.0.1:5556";
+        gr::Annotated<std::string, "zmq_SUB_dashboard_server", gr::Visible> dashboard_server = "tcp://127.0.0.1:5555";
+        
+        zmq::context_t zmq_ctx{1};
+        zmq::socket_t publisher;
+        zmq::socket_t subscriber;
+
+       
         //Lamdas for updating variable being controlled
         //Lamda for updating value, this is the only thing that actually ties the button to the flowgraph
         std::function<void(bool)> on_val_update = nullptr;
         //NOTE: No get_external_val here, a pulse button has no state to reconcile against
-
-        //ZMQ related variables
-        zmq::context_t zmq_ctx{1};
-        zmq::socket_t publisher;
-        zmq::socket_t subscriber;
 
         private:
         //Helper function for publishing the press pulse out to other dashboard instances
@@ -77,7 +87,8 @@ namespace gr::dashboard_blocks {
                 std::string json_data = "{";
                 json_data += "\"id\": \"" + this->widget_id.value + "\", ";
                 json_data += "\"type\": \"button\", ";       
-                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", ";    
+                json_data += "\"panel_name\": \"" + this->panel_name.value + "\", ";
+                json_data += "\"title\": \"" + this->title.value + "\", ";   
                 json_data += "\"target\": \"" + this->target_property.value + "\"";
                 json_data += "}";
                 return json_data;

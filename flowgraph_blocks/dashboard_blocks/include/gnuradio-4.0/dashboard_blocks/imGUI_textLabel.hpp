@@ -1,8 +1,7 @@
 #ifndef GNURADIO_DASHBOARDBLOCKS_DEP_IMGUI_TEXTLABEL_HPP
 #define GNURADIO_DASHBOARDBLOCKS_DEP_IMGUI_TEXTLABEL_HPP
 
-#include <cstring>
-#include <exception>
+//GNU Radio includes
 #include <gnuradio-4.0/Block.hpp>
 #include <gnuradio-4.0/BlockRegistry.hpp>
 #include <gnuradio-4.0/Port.hpp>
@@ -10,11 +9,11 @@
 #include <gnuradio-4.0/meta/reflection.hpp>
 #include <gnuradio-4.0/Message.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_management.hpp>
-#include <iostream>
+
+//External Dependences
 #include <zmq.hpp>
-#include <string>
-#include <cstdint>
-#include <functional>
+#include <cstring>
+#include <functional> 
 
 namespace gr::dashboard_blocks {
 
@@ -24,30 +23,42 @@ namespace gr::dashboard_blocks {
         //TO DO: Add a proper description
         using Description = gr::Doc<R""(Widget for a text label, displays text set by the flowgraph, not user editable)"">;
 
-        //Widget ID (Must be given a unique id by user)
-        gr::Annotated<std::string, "widget_id", gr::Visible> widget_id = "textLabel_default";
+        //TO DO: This section should contain any variables which are relevant to the user interface with the widget block
+        // **Variables that can be adjusted by the user**
+
+        //Every widget needs a id, this must be unique to the instantiated block as the dashboard will create a dashboard element using this ID
+        gr::Annotated<std::string, "id", gr::Visible> widget_id = "textLabel_default";
+        
         //All widgets or blocks with the same panel name will be placed in the same panel
         //The panel chosen purely has an affect on the widget or blocks location, has no affect on the data it displays or affects
         gr::Annotated<std::string, "panel", gr::Visible> panel_name = "default";
-        gr::Annotated<std::string, "target_property", gr::Visible> target_property = "text_current_val";
 
-        gr::Annotated<std::string, "zmq_endpoint"> endpoint = "tcp://127.0.0.1:5556";
-        gr::Annotated<std::string, "zmq_SUB_dashboard_server", gr::Visible> dashboard_server = "tcp://127.0.0.1:5555";
+        //Caption thats on or to the right of the widget
+        gr::Annotated<std::string, "title", gr::Visible> title = "WIDGET_NAME_1";
+        
+        gr::Annotated<std::string, "target_property", gr::Visible> target_property = "current_val";
 
+
+        //TO DO: This section should contain any variables which are not relevant to the user interface with the sink block
+        // **Irrlevant to user interface**
+
+        //Output Port
+        gr::PortOut<T> out;
         //The text currently displayed, only ever set by the flowgraph via get_external_val, not by the user
         gr::Annotated<std::string, "current_val", gr::Visible> current_val = "";
 
-        //Not needed
-        gr::PortOut<std::uint8_t> out;
-
-        //Lamda for getting the text from the flowgraph, this is the only tie a label has to the flowgraph
-        //NOTE: No on_val_update here, a label is display only, nothing flows back from the dashboard
-        std::function<std::string()> get_external_val = nullptr;
-
-        //ZMQ related variables
+        //ZMQ related variables (Connection to server process)
+        gr::Annotated<std::string, "zmq_endpoint"> endpoint = "tcp://127.0.0.1:5556";
+        gr::Annotated<std::string, "zmq_SUB_dashboard_server", gr::Visible> dashboard_server = "tcp://127.0.0.1:5555";
+        
         zmq::context_t zmq_ctx{1};
         zmq::socket_t publisher;
         zmq::socket_t subscriber;
+
+
+        //These two function calls are used to update the vairiable you are controlling
+        //NOTE: No on_val_update here, a label is display only, nothing flows back from the dashboard
+        std::function<std::string()> get_external_val = nullptr;
 
         private:
         //Track whats the last value that has been published
@@ -85,13 +96,14 @@ namespace gr::dashboard_blocks {
                 json_data += "\"id\": \"" + this->widget_id.value + "\", ";
                 json_data += "\"panel_name\": \"" + this->panel_name.value + "\", ";
                 json_data += "\"type\": \"textLabel\", ";           
+                json_data += "\"title\": \"" + this->title.value + "\", "; 
                 json_data += "\"target\": \"" + this->target_property.value + "\"";
                 json_data += "}";
                 return json_data;
             });
         }
 
-        GR_MAKE_REFLECTABLE(imGUI_textLabel, out, widget_id, panel_name, target_property, endpoint, dashboard_server, current_val);
+        GR_MAKE_REFLECTABLE(imGUI_textLabel, out, widget_id, title, panel_name, target_property, endpoint, dashboard_server, current_val);
 
         //ZMQ subscriber to the ZMQ publisher in the dashboard_server graph for updating widgets
         void start() {
