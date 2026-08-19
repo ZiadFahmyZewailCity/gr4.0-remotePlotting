@@ -68,6 +68,10 @@ struct dashboardElement {
     std::string x_axis_label  = "default_x_axis";
     std::string y_axis_label  = "default_y_axis";
 
+
+    //This flag is meant to prevent plotting of zeros if no data is being sent to the sink
+    //Instead it will either display the last frame or if no data has been sent, it'll display a waiting for data message
+    bool has_rcved_data = false;
     
     // Axis boundries
     int x_axis_min = 0;
@@ -76,7 +80,8 @@ struct dashboardElement {
     int y_axis_max = 100;
 
 
-    //TO DO: These are dashboard element specific, it may be a good idea to make this a bit cleaner in the future, its very little overhead 
+    //TO DO: These are dashboard element specific, 
+    //it may be a good idea to make this a bit cleaner in the future, its very little overhead 
     
 
     // Tracks if the user is holding down the mouse on this widget
@@ -341,13 +346,20 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
                     || object.type == dashboardElementType::WATERFALL_SINK) { 
                     
                     size_t topic_len = object.id.size();
-                    
                     // Match incoming binary packet header against this plot's topic ID
                     // Checks if buffer has more bytes than the length of the id
                     // Then compare the first N bytes (Length of the ID) of the packet with the ID of the plot 
                     if (websocketEvent->numBytes > topic_len && 
                         std::strncmp((const char*)websocketEvent->data, object.id.c_str(), topic_len) == 0) {
                         
+                        //Dashboard element has rcved data, no longer want it to display its awaiting data
+                        if (!object.has_rcved_data){
+                            
+                            //Dashboard element has rcved data, no longer want it to display its awaiting data
+                            object.has_rcved_data = true;
+
+                        }
+
                         size_t data_offset = topic_len;
                         // Move data offset past the delimter 
                         // TO DO: Consider using reinterpret_cast instead of c-style cast
@@ -706,7 +718,7 @@ void main_loop(){
                         if (object.type == dashboardElementType::TIME_SERIES){
                             
                             //Check if we actually have data in the buffer
-                            if (object.databuffer.size() > 0) {
+                            if (object.has_rcved_data) {
                                 
                                 std::string hidden_id = "##" + object.id;
                                 
@@ -733,7 +745,7 @@ void main_loop(){
                         }
                         else if (object.type == dashboardElementType::FREQUENCY_SINK){
                             
-                            if(object.databuffer.size() > 0){
+                            if(object.has_rcved_data){
                                 std::string hidden_id = "##" + object.id;
 
                                 if(ImPlot::BeginPlot(object.title.c_str(), ImVec2(-1, 300))){
@@ -756,7 +768,8 @@ void main_loop(){
                             }
                         }
                         else if (object.type == dashboardElementType::VECTOR_SINK){
-                            if(!object.databuffer.empty()){
+                            
+                            if(object.has_rcved_data){
                                 std::string hidden_id = "##" + object.id;
                             
                                 if(ImPlot::BeginPlot(object.title.c_str(),ImVec2(-1,250))) {
@@ -778,7 +791,8 @@ void main_loop(){
                             
                         }
                         else if (object.type == dashboardElementType::CONSTELLATION_SINK) {
-                            if (!object.databuffer.empty()) {
+                            
+                            if (object.has_rcved_data) {
                                 std::string hidden_id = "##" + object.id;
                             
                                 // A square aspect ratio is usually best for constellation diagrams
@@ -813,7 +827,7 @@ void main_loop(){
                         }
                         else if (object.type == dashboardElementType::WATERFALL_SINK){
 
-                            if (!object.databuffer.empty()) {
+                            if (object.has_rcved_data) {
                                 std::string hidden_id = "##" + object.id;
 
                                 // Apply a colormap (This is the look that looked most like waterfall plots i usually see)

@@ -148,8 +148,6 @@ namespace gr::dashboard_blocks {
         }
     }
 
-
-
     // Handling closing of the dashboard server
     std::atomic<bool> imGUI_DashboardRegistry::sigint_received{false};
 
