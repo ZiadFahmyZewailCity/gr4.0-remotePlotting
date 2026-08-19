@@ -848,8 +848,13 @@ void main_loop(){
                         //Widgets
                         else if (object.type == dashboardElementType::SLIDER) { 
                             
-                            //Needed for imGUIs id system
-                            std::string hidden_id = "##" + object.id;
+
+                            //To write the title of the widget (Above the widget)
+                            ImGui::Text("%s", object.title.c_str());
+
+                            ImGui::SetNextItemWidth(-1.0f);
+       
+                            std::string hidden_id = "##" + object.id;                     
                             if (ImGui::SliderFloat(hidden_id.c_str(), &object.current_val, 0.1f, 100.0f)) {
                                 
                                 // Package the ID of the widget and the value into a JSON object
@@ -874,9 +879,11 @@ void main_loop(){
                         }
                         else if (object.type == dashboardElementType::BUTTON) {
                             
-                            std::string hidden_id = "##" + object.id;
-                            //No checkbox specific to implot so use ImGui here
-                            if(ImGui::Button(hidden_id.c_str())){
+
+                            //Title will be rendered inside the button
+                            std::string hidden_id = object.title + "##" + object.id;
+                            //No checkbox specific to implot so we use standard ImGui here
+                            if(ImGui::Button(hidden_id.c_str() , ImVec2(-1.0f, 0.0f))){
                                 
                                 // Package the ID of the widget and the value into a JSON object
                                 nlohmann::json command_msg;
@@ -892,9 +899,13 @@ void main_loop(){
                         }
                         else if (object.type == dashboardElementType::CHECKBOX){
                             
+                            //To write the title of the widget (Above the widget)
+                            ImGui::Text("%s", object.title.c_str());
+                            
                             std::string hidden_id = "##" + object.id;
+                            ImGui::SetNextItemWidth(-1.0f);
                             //No checkbox specific to implot so just use the one which comes from ImGui
-                            if(ImGui::Checkbox(object.title.c_str(), &object.current_val_bool)){
+                            if(ImGui::Checkbox(hidden_id.c_str(), &object.current_val_bool)){
                             
                                 // Package the ID of the widget and the value into a JSON object
                                 nlohmann::json command_msg;
@@ -920,6 +931,10 @@ void main_loop(){
                         }
                         else if (object.type == dashboardElementType::DROPDOWN){
 
+
+                            //To write the title of the widget (Above the widget)
+                            ImGui::Text("%s", object.title.c_str());
+                            
                             std::string hidden_id = "##" + object.id;
                             //Checks the options list was correctly created (Exists)
                             if(!object.options.empty()){
@@ -958,9 +973,15 @@ void main_loop(){
                         }
                         else if (object.type == dashboardElementType::TEXTBOX){
                             
+                            //To write the title of the widget (Above the widget)
+                            ImGui::Text("%s", object.title.c_str());
+
+                           
+                            //Debug Message
+                            //std::cout << "Check Id of textBox: " << hidden_id << "\n";
                             
                             std::string hidden_id = "##" + object.id;
-                            std::cout << "Check Id of textBox: " << hidden_id << "\n";
+                            ImGui::SetNextItemWidth(-1.0f);
                             //Returns true when user presses enter
                             if (ImGui::InputText(hidden_id.c_str(), object.text_buffer, sizeof(object.text_buffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
                                 
