@@ -49,7 +49,7 @@ EM_JS(char*, get_websocket_url, (), {
 
 
 //Structs for dashboard elements 
-enum class dashboardElementType { TIME_SERIES, VECTOR_SINK , FREQUENCY_SINK, CONSTELLATION_SINK, WATERFALL_SINK , SLIDER, TEXTLABEL, BUTTON, CHECKBOX, DROPDOWN, TEXTBOX };
+enum class dashboardElementType { TIME_SERIES, VECTOR_SINK , FREQUENCY_SINK, CONSTELLATION_SINK, WATERFALL_SINK , SLIDER, TEXTLABEL, BUTTON, CHECKBOX, DROPDOWN, TEXTBOX, UNKNOWN };
 
 //Simplified dashboard element struct
 struct dashboardElement {
@@ -269,6 +269,16 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
                     }
                     else if (item["type"] == "textLabel") {
                         new_dashboardElement.type = dashboardElementType::TEXTLABEL;
+                    }
+                    else 
+                    {
+                        //This can only exist if the config file is somehow malformed so one of the types either
+                        //Had an incorrectly written type
+                        //Did not have a type
+                        new_dashboardElement.type = dashboardElementType::UNKNOWN;
+
+                        //Debug Message
+                        std::cout << "There is a unknown element with id: " << new_dashboardElement.id << "\n";
                     }
 
                     newPanel.dashboardObjects.push_back(new_dashboardElement);
@@ -910,9 +920,10 @@ void main_loop(){
                         }
                         else if (object.type == dashboardElementType::DROPDOWN){
 
-                            
+                            std::string hidden_id = "##" + object.id;
                             //Checks the options list was correctly created (Exists)
                             if(!object.options.empty()){
+
                                 //The dashboard used ImGui combo which requires a const char* array, this is built each frame currently
                                 //should be a very negligiable amount of overhead
                                 std::vector<const char*> items;
@@ -920,13 +931,12 @@ void main_loop(){
                                 //Reserve the space required right away instead of having each push_back allocate it for a bit of optimization in the main loop
                                 items.reserve(object.options.size());
 
-
                                 //Converting each option to the const char* and placing in the vector
                                 for (auto& option: object.options) { 
                                     items.push_back(option.c_str()); 
                                 }
 
-                                std::string hidden_id = "##" + object.id;
+                                
                                 if(ImGui::Combo(hidden_id.c_str(),&object.current_val_int, items.data(), (int)items.size())){
 
                                     // Package the ID of the widget and the selected INDEX into a JSON object
@@ -940,13 +950,17 @@ void main_loop(){
                                 }
                             }
                             else {
-                                    ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "No options configured for this dropdown");
+                                ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "No options configured for this dropdown");
+                                
+                                //std::cout << "In else block" << hidden_id << "\n";
                             }
 
                         }
                         else if (object.type == dashboardElementType::TEXTBOX){
                             
+                            
                             std::string hidden_id = "##" + object.id;
+                            std::cout << "Check Id of textBox: " << hidden_id << "\n";
                             //Returns true when user presses enter
                             if (ImGui::InputText(hidden_id.c_str(), object.text_buffer, sizeof(object.text_buffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
                                 

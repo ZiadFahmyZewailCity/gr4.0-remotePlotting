@@ -65,7 +65,7 @@ namespace gr::dashboard_blocks {
             imGUI_DashboardRegistry::getInstance().register_imGUI_block([this]() -> std::string {
                 std::string json_data = "{";
                 json_data += "\"id\": \"" + this->widget_id.value + "\", "; //Unique identifier of the block
-                json_data += "\"type\": \"textbox\", "; //This is what is used by the dashboard to understand what widget this is
+                json_data += "\"type\": \"textBox\", "; //This is what is used by the dashboard to understand what widget this is
                 json_data += "\"panel_name\": \"" + this->panel_name.value + "\", "; //Which panel is this plot associated with
                 json_data += "\"title\": \"" + this->title.value + "\", "; //Will be the text above the sink
                 json_data += "\"target\": \"" + this->target_property.value + "\"";

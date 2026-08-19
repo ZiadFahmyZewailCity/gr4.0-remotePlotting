@@ -35,8 +35,8 @@
         },
         {
           "id": "freq_dropdown",
-          "panel_name": "Controls",
           "type": "dropdown",
+          "panel_name": "Controls",
           "title": "WIDGET_NAME_1",
           "target": "frequency",
           "options": [
@@ -46,7 +46,7 @@
         },
         {
           "id": "offset_input_1",
-          "type": "textbox",
+          "type": "textBox",
           "panel_name": "Controls",
           "title": "WIDGET_NAME_1",
           "target": "current_val"
