@@ -1,10 +1,7 @@
-#include <cstdint>
-#include <vector>
 #ifndef GNURADIO_DASHBOARDBLOCKS_DEP_IMGUI_DROPDOWNMENU_HPP
 #define GNURADIO_DASHBOARDBLOCKS_DEP_IMGUI_DROPDOWNMENU_HPP
 
-#include <cstring>
-#include <exception>
+//GNU Radio includes
 #include <gnuradio-4.0/Block.hpp>
 #include <gnuradio-4.0/BlockRegistry.hpp>
 #include <gnuradio-4.0/Port.hpp>
@@ -12,11 +9,13 @@
 #include <gnuradio-4.0/meta/reflection.hpp>
 #include <gnuradio-4.0/Message.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_management.hpp>
-#include <iostream>
-#include <zmq.hpp>
-#include <string>
-#include <functional>
 
+//External Dependences
+#include <zmq.hpp>
+#include <cstring>
+#include <functional> 
+#include <cstdint>
+#include <vector>
 
 
 namespace gr::dashboard_blocks {

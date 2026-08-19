@@ -838,7 +838,9 @@ void main_loop(){
                         //Widgets
                         else if (object.type == dashboardElementType::SLIDER) { 
                             
-                            if (ImGui::SliderFloat(object.title.c_str(), &object.current_val, 0.1f, 100.0f)) {
+                            //Needed for imGUIs id system
+                            std::string hidden_id = "##" + object.id;
+                            if (ImGui::SliderFloat(hidden_id.c_str(), &object.current_val, 0.1f, 100.0f)) {
                                 
                                 // Package the ID of the widget and the value into a JSON object
                                 nlohmann::json command_msg;
@@ -861,8 +863,10 @@ void main_loop(){
                             }
                         }
                         else if (object.type == dashboardElementType::BUTTON) {
+                            
+                            std::string hidden_id = "##" + object.id;
                             //No checkbox specific to implot so use ImGui here
-                            if(ImGui::Button(object.title.c_str())){
+                            if(ImGui::Button(hidden_id.c_str())){
                                 
                                 // Package the ID of the widget and the value into a JSON object
                                 nlohmann::json command_msg;
@@ -877,6 +881,8 @@ void main_loop(){
 
                         }
                         else if (object.type == dashboardElementType::CHECKBOX){
+                            
+                            std::string hidden_id = "##" + object.id;
                             //No checkbox specific to implot so just use the one which comes from ImGui
                             if(ImGui::Checkbox(object.title.c_str(), &object.current_val_bool)){
                             
@@ -904,6 +910,7 @@ void main_loop(){
                         }
                         else if (object.type == dashboardElementType::DROPDOWN){
 
+                            
                             //Checks the options list was correctly created (Exists)
                             if(!object.options.empty()){
                                 //The dashboard used ImGui combo which requires a const char* array, this is built each frame currently
@@ -919,7 +926,8 @@ void main_loop(){
                                     items.push_back(option.c_str()); 
                                 }
 
-                                if(ImGui::Combo(object.title.c_str(),&object.current_val_int, items.data(), (int)items.size())){
+                                std::string hidden_id = "##" + object.id;
+                                if(ImGui::Combo(hidden_id.c_str(),&object.current_val_int, items.data(), (int)items.size())){
 
                                     // Package the ID of the widget and the selected INDEX into a JSON object
                                     nlohmann::json command_msg;
@@ -938,8 +946,9 @@ void main_loop(){
                         }
                         else if (object.type == dashboardElementType::TEXTBOX){
                             
+                            std::string hidden_id = "##" + object.id;
                             //Returns true when user presses enter
-                            if (ImGui::InputText(object.title.c_str(), object.text_buffer, sizeof(object.text_buffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
+                            if (ImGui::InputText(hidden_id.c_str(), object.text_buffer, sizeof(object.text_buffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
                                 
                                 object.string_current_text = std::string(object.text_buffer);
                                 

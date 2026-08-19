@@ -94,7 +94,7 @@ namespace gr::dashboard_blocks {
                 json_data += "\"id\": \"" + this->widget_id.value + "\", ";
                 json_data += "\"type\": \"checkBox\", ";           
                 json_data += "\"panel_name\": \"" + this->panel_name.value + "\", ";
-                json_data += "\"title\": \"" + this->title.value + "\", "; //Will be the text above the sink
+                json_data += "\"title\": \"" + this->title.value + "\", "; 
                 json_data += "\"target\": \"" + this->target_property.value + "\"";
                 json_data += "}";
                 return json_data;
