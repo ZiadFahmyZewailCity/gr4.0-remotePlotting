@@ -41,8 +41,9 @@ namespace gr::dashboard_blocks {
        //TO DO: This section should contain any variables which are not relevant to the user interface with the sink block
         // **Irrlevant to user interface**
 
-        //Output Port
-        gr::PortOut<T> out;
+        //Output Port (This is a dummy port which should be attached to a null sink, it never outputs anything)
+        gr::PortOut<T, gr::Async> out;
+
         //The text currently displayed, only ever set by the flowgraph via get_external_val, not by the user
         gr::Annotated<std::string, "current_val", gr::Visible> current_val = "";
 
@@ -101,8 +102,6 @@ namespace gr::dashboard_blocks {
         }
 
         [[nodiscard]] gr::work::Status processBulk(gr::OutputSpanLike auto& output) {
-            const std::size_t nSamples = output.size();
-            if (nSamples == 0) return gr::work::Status::INSUFFICIENT_OUTPUT_ITEMS;
 
             //This while loop is for checking updates coming from the dashboards
             //Check if we have recieved a message frame from SUB ZMQ 
@@ -135,9 +134,8 @@ namespace gr::dashboard_blocks {
                 }
             }
 
-            // Fill dummy output port with zeroes just to consume the scheduler cycle
-            std::fill_n(output.data(), nSamples, T{});
-            output.publish(nSamples);
+            //Nothing it every actually published from the output port
+            output.publish(0);
             return gr::work::Status::OK;
         }
     };

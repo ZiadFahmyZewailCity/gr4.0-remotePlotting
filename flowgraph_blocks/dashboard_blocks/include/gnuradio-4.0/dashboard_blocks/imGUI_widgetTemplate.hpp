@@ -50,8 +50,8 @@ namespace gr::dashboard_blocks {
         //TO DO: This section should contain any variables which are not relevant to the user interface with the sink block
         // **Irrlevant to user interface**
 
-        //Output Port
-        gr::PortOut<T> out;
+        //Output Port (This is a dummy port which should be attached to a null sink, it never outputs anything)
+        gr::PortOut<T, gr::Async> out;
 
         //ZMQ related variables (Connection to server process)
         gr::Annotated<std::string, "zmq_endpoint"> endpoint = "tcp://127.0.0.1:5556";
@@ -146,8 +146,6 @@ namespace gr::dashboard_blocks {
         }
 
         [[nodiscard]] gr::work::Status processBulk(gr::OutputSpanLike auto& output) {
-            const std::size_t nSamples = output.size();
-            if (nSamples == 0) return gr::work::Status::INSUFFICIENT_OUTPUT_ITEMS;
 
             //This while loop is for checking updates coming from the dashboards
             //Check if we have recieved a message frame from SUB ZMQ 
@@ -212,8 +210,7 @@ namespace gr::dashboard_blocks {
                 publishCurrentVal();
             }
 
-            std::fill_n(output.data(), nSamples, current_val.value);
-            output.publish(nSamples);
+
             return gr::work::Status::OK;
         }
     };

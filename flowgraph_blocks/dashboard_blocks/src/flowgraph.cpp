@@ -133,33 +133,33 @@ int main() {
     Text box drives the complex source's offset live. Label reports the real frequency.
     ============================================================
     */
-    auto& checkBox_src = graph.emplaceBlock<dashboardBlocks::dep_imGUI_checkBox<bool>>();
+    auto& checkBox_src = graph.emplaceBlock<dashboardBlocks::dep_imGUI_checkBox<float>>();
     checkBox_src.widget_id  = "freq_checkBox";
     checkBox_src.panel_name = "Controls";
 
-    auto& button_src = graph.emplaceBlock<dashboardBlocks::dep_imGUI_button<bool>>();
+    auto& button_src = graph.emplaceBlock<dashboardBlocks::dep_imGUI_button<float>>();
     button_src.widget_id  = "freq_button";
     button_src.panel_name = "Controls";
 
-    auto& checkBox_drain = graph.emplaceBlock<testing::NullSink<uint8_t>>();
-    auto& button_drain   = graph.emplaceBlock<testing::NullSink<uint8_t>>();
+    auto& checkBox_drain = graph.emplaceBlock<testing::NullSink<float>>();
+    auto& button_drain   = graph.emplaceBlock<testing::NullSink<float>>();
 
     auto& dropdown_src = graph.emplaceBlock<dashboardBlocks::imGUI_dropDownMenu<float>>();
     dropdown_src.widget_id     = "freq_dropdown";
     dropdown_src.panel_name    = "Controls";
     dropdown_src.target_property = "frequency";
     dropdown_src.options       = std::vector<std::string>{"Low", "High"};
-    auto& dropdown_drain = graph.emplaceBlock<testing::NullSink<uint8_t>>();
+    auto& dropdown_drain = graph.emplaceBlock<testing::NullSink<float>>();
 
     auto& text_box = graph.emplaceBlock<dashboardBlocks::imGUI_textBox<float>>();
     text_box.widget_id  = "offset_input_1";
     text_box.panel_name = "Controls";
     auto& text_drain = graph.emplaceBlock<testing::NullSink<float>>();
 
-    auto& freq_label = graph.emplaceBlock<dashboardBlocks::imGUI_textLabel<uint8_t>>();
+    auto& freq_label = graph.emplaceBlock<dashboardBlocks::imGUI_textLabel<float>>();
     freq_label.widget_id  = "freq_label";
     freq_label.panel_name = "Controls";
-    auto& freq_label_drain = graph.emplaceBlock<testing::NullSink<uint8_t>>();
+    auto& freq_label_drain = graph.emplaceBlock<testing::NullSink<float>>();
 
     // Shared toggle state driving the real source's frequency
     bool freq_toggle_state = false;
