@@ -95,7 +95,7 @@ namespace gr::dashboard_blocks {
         gr::blocks::fft::DefaultFFT<T> FFTblock{};
 
         //ZMQ related variables (Not to be adjusted by user)
-        gr::Annotated<std::string, "zmq_endpoint"> endpoint = "tcp://127.0.0.1:5555";
+        gr::Annotated<std::string, "zmq_endpoint"> endpoint = "ipc:///tmp/gr4_dashboard_data.sock";
         zmq::context_t zmq_ctx{1};
         zmq::socket_t publisher;
 
@@ -156,7 +156,7 @@ namespace gr::dashboard_blocks {
             
             if (publisher) {
 
-                static int dbg = 0;
+                
 
                 using floattype = typename waterfall_extract_real<T>::type;
 
@@ -174,7 +174,9 @@ namespace gr::dashboard_blocks {
                 std::size_t num_bins = static_cast<std::size_t>(dataset.extents[0]); 
                 auto* magnitudes_ptr = dataset.signal_values.data();
 
-                //TO DO: Remove for debugging 
+                //Debug Message (Comment out when not needed)
+                /*
+                static int dbg = 0;
                 if (dbg++ % 60 == 0) {
                     std::cout << "RAW: ";
                     for (std::size_t i = 0; i < 8; i++) std::cout << samples_frame[i] << " ";
@@ -182,7 +184,8 @@ namespace gr::dashboard_blocks {
                     for (std::size_t i = 0; i < 8; i++) std::cout << magnitudes_ptr[i] << " ";
                     std::cout << std::endl;
                 }
-
+                */
+                
                 //TO DO: Add averaging
                 //Send over ZMQ to the server
 

@@ -8,7 +8,6 @@
 #include <websocketpp/http/constants.hpp>
 #include <websocketpp/logger/levels.hpp>
 #include <websocketpp/server.hpp>
-#include <iostream>
 #include <memory>
 #include <set>
 #include <string>

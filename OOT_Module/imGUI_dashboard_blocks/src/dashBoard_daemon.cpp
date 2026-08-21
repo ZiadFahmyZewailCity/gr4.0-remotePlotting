@@ -111,15 +111,19 @@ int main(){
     read_config_file(data_aggregation ,config_path);
 
     data_aggregation.set(zmq::sockopt::subscribe, "");
-    data_aggregation.bind("tcp://*:5555");
+
+    //Files for IPC
+    const std::string data_socket_path = "/tmp/gr4_dashboard_data.sock";
+    const std::string cmd_socket_path  = "/tmp/gr4_dashboard_cmds.sock";
+    //Remove in case pre-existing files exist
+    std::remove(data_socket_path.c_str());
+    std::remove(cmd_socket_path.c_str());
 
     //Socket connections
-    //TO DO: Should find a way to automate this to avoid port conflict 
-    commands_toFlowGraph.bind("tcp://*:5556");
-
+    data_aggregation.bind("ipc://" + data_socket_path);
+    commands_toFlowGraph.bind("ipc://" + cmd_socket_path);
 
     //Start Up server thread after completing the ZMQ is fully intialized
-    //TO DO: Dont fully understand this syntax in particular for starting up a thread 
     std::thread serverThread([&dashBoard_server]()
     {
         dashBoard_server.runServer();
