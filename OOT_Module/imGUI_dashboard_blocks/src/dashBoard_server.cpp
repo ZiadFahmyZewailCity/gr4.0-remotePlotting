@@ -37,13 +37,30 @@ DashboardServer::DashboardServer(std::string web_root_path)
 }
 
 //Set port variable and sets dashboardServer to listen to port
+//If you pass a 0, will do a dynamic port allocation
 //The address is set to be resuable
-//TO DO: Perhaphs not a good idea to reset the reuse address here, breaks function doing single thing idea
 void DashboardServer::set_port(uint16_t port) {
-    
+ 
     //Set so the address is reusable
     dashBoardServer.set_reuse_addr(true);
     dashBoardServer.listen(port);
+ 
+    websocketpp::lib::asio::error_code ec;
+    //This is how we get the dynamically allocated port
+    auto bound_endpoint = dashBoardServer.get_local_endpoint(ec);
+ 
+    //Set server port
+    if (!ec) {
+        server_port = bound_endpoint.port();
+    } else {
+        // Shouldn't happen if listen() above succeeded, but fall back to the
+        // requested value rather than leaving server_port uninitialized.
+        server_port = port;
+    }
+}
+
+uint16_t DashboardServer::get_port() const {
+    return server_port;
 }
 
 void DashboardServer::runServer() {

@@ -28,8 +28,8 @@ set_property(GLOBAL PROPERTY _CMAKE_FindGit_GIT_EXECUTABLE_VERSION
 include(ExternalProject)
 ExternalProject_Add(packageproject.cmake-populate
                      "UPDATE_DISCONNECTED" "False" "GIT_REPOSITORY" "https://github.com/TheLartians/PackageProject.cmake.git" "EXTERNALPROJECT_INTERNAL_ARGUMENT_SEPARATOR" "GIT_TAG" "v1.10.0"
-                    SOURCE_DIR          "/home/ziad/GR4/gr4.0-remotePlotting/flowgraph_blocks/dashboard_blocks/build/_deps/packageproject.cmake-src"
-                    BINARY_DIR          "/home/ziad/GR4/gr4.0-remotePlotting/flowgraph_blocks/dashboard_blocks/build/_deps/packageproject.cmake-build"
+                    SOURCE_DIR          "/home/ziad/GNURADIO_DEVELOPMENT/OOT_Module/imGUI_dashboard_blocks/build/_deps/packageproject.cmake-src"
+                    BINARY_DIR          "/home/ziad/GNURADIO_DEVELOPMENT/OOT_Module/imGUI_dashboard_blocks/build/_deps/packageproject.cmake-build"
                     CONFIGURE_COMMAND   ""
                     BUILD_COMMAND       ""
                     INSTALL_COMMAND     ""

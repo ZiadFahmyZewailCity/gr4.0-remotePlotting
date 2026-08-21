@@ -1,4 +1,4 @@
-# Install script for directory: /home/ziad/GR4/gr4.0-remotePlotting/flowgraph_blocks/dashboard_blocks/build/_deps/packageproject.cmake-subbuild
+# Install script for directory: /home/ziad/GNURADIO_DEVELOPMENT/OOT_Module/imGUI_dashboard_blocks/build/_deps/packageproject.cmake-subbuild
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -45,5 +45,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/ziad/GR4/gr4.0-remotePlotting/flowgraph_blocks/dashboard_blocks/build/_deps/packageproject.cmake-subbuild/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/ziad/GNURADIO_DEVELOPMENT/OOT_Module/imGUI_dashboard_blocks/build/_deps/packageproject.cmake-subbuild/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

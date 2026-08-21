@@ -52,7 +52,6 @@ void read_config_file(zmq::socket_t & flowgraphSocket, const std::string &config
             }
 
 
-
         }
     }
 
@@ -62,14 +61,6 @@ void read_config_file(zmq::socket_t & flowgraphSocket, const std::string &config
     {
         return ;
     }
-
-
-
-
-
-
-
-
 
 
 }
@@ -83,13 +74,14 @@ int main(){
     //Pass path to the config file
     std::string config_path = web_root + "config.json";
     
-    //Hardcoded for now should be changed to be configured by the flowgraph
-    dashBoard_server.set_port(9090);
+    //Passing zero will dynamically allocate the port
+    //If you want to use a specific port, you can pass whatever port number you want to set port without issue
+    dashBoard_server.set_port(0);
+    std::cout << "Dashboard is available at: http://localhost:"
+              << dashBoard_server.get_port() << std::endl;
 
 
     //Note The server thread is started up later in the main
-
-
     /*
         Data from multiple blocks must be aggregated, this means 
         we either open IPC for each block or somehow put all the data into one socket

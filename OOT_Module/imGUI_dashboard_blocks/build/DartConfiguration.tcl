@@ -4,8 +4,8 @@
 
 
 # Configuration directories and files
-SourceDirectory: /home/ziad/GR4/gr4.0-remotePlotting/flowgraph_blocks/dashboard_blocks
-BuildDirectory: /home/ziad/GR4/gr4.0-remotePlotting/flowgraph_blocks/dashboard_blocks/build
+SourceDirectory: /home/ziad/GNURADIO_DEVELOPMENT/OOT_Module/imGUI_dashboard_blocks
+BuildDirectory: /home/ziad/GNURADIO_DEVELOPMENT/OOT_Module/imGUI_dashboard_blocks/build
 
 # Where to place the cost data store
 CostDataFile: 
@@ -27,7 +27,7 @@ SubmitInactivityTimeout:
 NightlyStartTime: 00:00:00 EDT
 
 # Commands for the build/test/submit cycle
-ConfigureCommand: "/usr/bin/cmake" "/home/ziad/GR4/gr4.0-remotePlotting/flowgraph_blocks/dashboard_blocks"
+ConfigureCommand: "/usr/bin/cmake" "/home/ziad/GNURADIO_DEVELOPMENT/OOT_Module/imGUI_dashboard_blocks"
 MakeCommand: /usr/bin/cmake --build . --config "${CTEST_CONFIGURATION_TYPE}"
 DefaultCTestConfigurationType: Release
 
