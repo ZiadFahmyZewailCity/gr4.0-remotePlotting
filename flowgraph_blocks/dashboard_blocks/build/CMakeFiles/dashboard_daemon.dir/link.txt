@@ -1,1 +1,0 @@
-/usr/bin/g++-14 CMakeFiles/dashboard_daemon.dir/src/dashBoard_daemon.cpp.o CMakeFiles/dashboard_daemon.dir/src/dashBoard_server.cpp.o -o dashboard_daemon  /usr/lib/x86_64-linux-gnu/libzmq.so 
