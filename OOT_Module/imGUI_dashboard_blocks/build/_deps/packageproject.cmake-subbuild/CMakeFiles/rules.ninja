@@ -23,7 +23,7 @@ rule CUSTOM_COMMAND
 # Rule for re-running cmake.
 
 rule RERUN_CMAKE
-  command = /usr/bin/cmake --regenerate-during-build -S/home/ziad/GR4/gr4.0-remotePlotting/flowgraph_blocks/dashboard_blocks/build/_deps/packageproject.cmake-subbuild -B/home/ziad/GR4/gr4.0-remotePlotting/flowgraph_blocks/dashboard_blocks/build/_deps/packageproject.cmake-subbuild
+  command = /usr/bin/cmake --regenerate-during-build -S/home/ziad/GNURADIO_DEVELOPMENT/OOT_Module/imGUI_dashboard_blocks/build/_deps/packageproject.cmake-subbuild -B/home/ziad/GNURADIO_DEVELOPMENT/OOT_Module/imGUI_dashboard_blocks/build/_deps/packageproject.cmake-subbuild
   description = Re-running CMake...
   generator = 1
 

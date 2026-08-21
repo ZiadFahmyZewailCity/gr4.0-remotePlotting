@@ -46,7 +46,7 @@ namespace gr::dashboard_blocks {
         // Input Port explicitly requires discrete vectors, not a stream of scalars
         gr::PortIn<gr::DataSet<T>> in;
         // ZMQ related variables
-        gr::Annotated<std::string, "zmq_endpoint"> endpoint = "tcp://127.0.0.1:5555";
+        gr::Annotated<std::string, "zmq_endpoint"> endpoint = "ipc:///tmp/gr4_dashboard_data.sock";
         zmq::context_t zmq_ctx{1};
         zmq::socket_t publisher;
 
@@ -104,19 +104,22 @@ namespace gr::dashboard_blocks {
             //If the vector size is smaller than the vector size set by the user, the dashboard will zero out the tail 
             const std::size_t nSamples = static_cast<std::size_t>(vec.extents[0]);
             if (nSamples > vectorSize.value) {
-                std::cout << "[vectorSink] Dropping frame: got vector of size " << nSamples
-                           << " which exceeds configured vectorSize " << vectorSize.value << "\n";
+                
+                //Debug Message (Comment out when not needed)
+                //std::cout << "[vectorSink] Dropping frame: got vector of size " << nSamples
+                //           << " which exceeds configured vectorSize " << vectorSize.value << "\n";
                 std::ignore = input.consume(in_span.size());
                 return gr::work::Status::OK;
             }
 
-            //TO DO: Debug message for check what extents gives
-            std::cout << "[vectorSink] extents[0]=" << vec.extents[0] << " signal_values.size()=" << vec.signal_values.size() << std::endl;
+            //Debug Message (Comment out when not needed)
+            //std::cout << "[vectorSink] extents[0]=" << vec.extents[0] << " signal_values.size()=" << vec.signal_values.size() << std::endl;
 
             if (publisher) {
                 
                 std::string header = sink_id.value + ":";
-                std::cout << "[vectorSink] got vec.extents[0]=" << vec.extents[0] << std::endl;
+                //Debug Message (Comment out when not needed)
+                //std::cout << "[vectorSink] got vec.extents[0]=" << vec.extents[0] << std::endl;
                 
                 //Has to be unsigned to work with the T
                 const std::size_t nExtents = static_cast<std::size_t>(vec.extents[0]);

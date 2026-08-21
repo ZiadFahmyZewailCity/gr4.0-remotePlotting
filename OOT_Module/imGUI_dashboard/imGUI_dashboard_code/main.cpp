@@ -33,14 +33,13 @@ EMSCRIPTEN_WEBSOCKET_T g_WebSocket = 0;
 bool is_connected = false;
 bool recieved_config = false;
 
-//TO DO: Dont fully understand this 
-// Determines the WebSocket host at runtime from whatever address the browser
-// actually used to load this page (localhost, a LAN IP, a hostname, etc).
-// This means the same compiled .wasm works from any device on the network
-// without needing to hardcode/rebuild for a specific IP.
+//Determines the WebSocket host AND port at runtime from whatever address/port the
+//browser actually used to load this page. Since the dashboard server serves both
+//the HTTP page and the WebSocket upgrade on the same listening socket, the port
 EM_JS(char*, get_websocket_url, (), {
     var host = window.location.hostname;
-    var url = "ws://" + host + ":9090";
+    var port = window.location.port;
+    var url = "ws://" + host + ":" + port;
     var lengthBytes = lengthBytesUTF8(url) + 1;
     var stringOnWasmHeap = _malloc(lengthBytes);
     stringToUTF8(url, stringOnWasmHeap, lengthBytes);

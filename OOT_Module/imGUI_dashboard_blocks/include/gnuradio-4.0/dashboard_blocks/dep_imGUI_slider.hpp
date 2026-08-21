@@ -48,8 +48,8 @@ namespace gr::dashboard_blocks {
         gr::PortOut<T, gr::Async> out;
 
         //ZMQ related variables (Connection to server process)
-        gr::Annotated<std::string, "zmq_endpoint"> endpoint = "tcp://127.0.0.1:5556";
-        gr::Annotated<std::string, "zmq_SUB_dashboard_server", gr::Visible> dashboard_server = "tcp://127.0.0.1:5555";
+        gr::Annotated<std::string, "zmq_endpoint"> endpoint = "ipc:///tmp/gr4_dashboard_cmds.sock";
+        gr::Annotated<std::string, "zmq_SUB_dashboard_server", gr::Visible> dashboard_server = "ipc:///tmp/gr4_dashboard_data.sock";
         
         zmq::context_t zmq_ctx{1};
         zmq::socket_t publisher;

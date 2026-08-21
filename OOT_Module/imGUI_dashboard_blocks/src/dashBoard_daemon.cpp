@@ -52,7 +52,6 @@ void read_config_file(zmq::socket_t & flowgraphSocket, const std::string &config
             }
 
 
-
         }
     }
 
@@ -62,14 +61,6 @@ void read_config_file(zmq::socket_t & flowgraphSocket, const std::string &config
     {
         return ;
     }
-
-
-
-
-
-
-
-
 
 
 }
@@ -83,13 +74,14 @@ int main(){
     //Pass path to the config file
     std::string config_path = web_root + "config.json";
     
-    //Hardcoded for now should be changed to be configured by the flowgraph
-    dashBoard_server.set_port(9090);
+    //Passing zero will dynamically allocate the port
+    //If you want to use a specific port, you can pass whatever port number you want to set port without issue
+    dashBoard_server.set_port(0);
+    std::cout << "Dashboard is available at: http://localhost:"
+              << dashBoard_server.get_port() << std::endl;
 
 
     //Note The server thread is started up later in the main
-
-
     /*
         Data from multiple blocks must be aggregated, this means 
         we either open IPC for each block or somehow put all the data into one socket
@@ -119,15 +111,19 @@ int main(){
     read_config_file(data_aggregation ,config_path);
 
     data_aggregation.set(zmq::sockopt::subscribe, "");
-    data_aggregation.bind("tcp://*:5555");
+
+    //Files for IPC
+    const std::string data_socket_path = "/tmp/gr4_dashboard_data.sock";
+    const std::string cmd_socket_path  = "/tmp/gr4_dashboard_cmds.sock";
+    //Remove in case pre-existing files exist
+    std::remove(data_socket_path.c_str());
+    std::remove(cmd_socket_path.c_str());
 
     //Socket connections
-    //TO DO: Should find a way to automate this to avoid port conflict 
-    commands_toFlowGraph.bind("tcp://*:5556");
-
+    data_aggregation.bind("ipc://" + data_socket_path);
+    commands_toFlowGraph.bind("ipc://" + cmd_socket_path);
 
     //Start Up server thread after completing the ZMQ is fully intialized
-    //TO DO: Dont fully understand this syntax in particular for starting up a thread 
     std::thread serverThread([&dashBoard_server]()
     {
         dashBoard_server.runServer();

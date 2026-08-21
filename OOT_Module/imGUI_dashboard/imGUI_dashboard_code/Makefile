@@ -11,19 +11,19 @@ TARGET = $(BUILD_DIR)/dashboard.html
 
 # Relative path math from: dashboard/imGUI_dashboard/imGUI_Dashboard/
 # ../.. lands in "dashboard/"
-INCLUDES = -I. -I../../imgui -I../../implot -I../..
+INCLUDES = -I. -I../imgui -I../implot -I../..
 
 # Source files
 SOURCES = \
     main.cpp \
-    ../../imgui/imgui.cpp \
-    ../../imgui/imgui_draw.cpp \
-    ../../imgui/imgui_tables.cpp \
-    ../../imgui/imgui_widgets.cpp \
-    ../../imgui/backends/imgui_impl_sdl2.cpp \
-    ../../imgui/backends/imgui_impl_opengl3.cpp \
-    ../../implot/implot.cpp \
-    ../../implot/implot_items.cpp
+    ../imgui/imgui.cpp \
+    ../imgui/imgui_draw.cpp \
+    ../imgui/imgui_tables.cpp \
+    ../imgui/imgui_widgets.cpp \
+    ../imgui/backends/imgui_impl_sdl2.cpp \
+    ../imgui/backends/imgui_impl_opengl3.cpp \
+    ../implot/implot.cpp \
+    ../implot/implot_items.cpp
 
 # Emscripten Compilation Flags
 EMFLAGS = -s USE_SDL=2 \

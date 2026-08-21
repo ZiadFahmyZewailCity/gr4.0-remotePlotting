@@ -8,14 +8,11 @@
 #include <websocketpp/http/constants.hpp>
 #include <websocketpp/logger/levels.hpp>
 #include <websocketpp/server.hpp>
-#include <iostream>
 #include <memory>
 #include <set>
 #include <string>
 #include <zmq.h>
 #include <zmq.hpp>
-
-//TO DO: IPC Handling using ZMQ
 
 //Defining server
 typedef websocketpp::server<websocketpp::config::asio> server;
@@ -62,13 +59,20 @@ private:
     //Helper function for sending messages internally to the ZMQ side of the process
     void dispatch_internal_message(const std::string& cmd);
 
+
 public:
 
     //Constructor Initalizes callbacks 
     explicit DashboardServer(std::string web_root_path);
 
-    //Set port being used to communicate with internet
+    //Set port variable and sets dashboardServer to listen to port
+    //If you pass a 0 will do a dynamic port allocation
+    //The address is set to be resuable
     void set_port(uint16_t port);
+
+    //Function used to get the port assigned for communicating with the dashboards
+    uint16_t get_port() const;
+
     //ZMQ Context shared with thread handling ZMQ communication with the flowgraph
     void set_ZMQ_context(zmq::context_t &context);
     //Starts up the server

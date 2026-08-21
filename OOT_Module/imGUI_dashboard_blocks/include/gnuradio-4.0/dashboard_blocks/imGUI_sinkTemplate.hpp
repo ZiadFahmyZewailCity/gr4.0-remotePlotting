@@ -56,7 +56,7 @@ namespace gr::dashboard_blocks {
         gr::PortIn<T> in;
 
         //ZMQ related variables (Connection to server process)
-        gr::Annotated<std::string, "zmq_endpoint"> endpoint = "tcp://127.0.0.1:5555";
+        gr::Annotated<std::string, "zmq_endpoint"> endpoint = "ipc:///tmp/gr4_dashboard_data.sock";
         zmq::context_t zmq_ctx{1};
         zmq::socket_t publisher;
 

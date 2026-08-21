@@ -37,10 +37,15 @@ struct insertTag : Block<insertTag<T>> {
     gr::work::Status processBulk(auto& inSamples, auto& outSamples) {
         const size_t n = std::min(inSamples.size(), outSamples.size());
 
+
+
+        //Debug Message (Comment out when not needed)
+        /*
         std::cout << "[insertTag] processBulk called: n=" << n
                    << " _total_samples=" << _total_samples
                    << " interval=" << interval.value
                    << " offset=" << offset.value << std::endl;
+        */
 
         // Pass the signal data through directly
         std::ranges::copy_n(inSamples.begin(), static_cast<std::ptrdiff_t>(n), outSamples.begin());
@@ -57,10 +62,13 @@ struct insertTag : Block<insertTag<T>> {
                 tagData[gr::property_map::key_type(gr::tag::TRIGGER_NAME.shortKey())] = tag_key.value;
                 tagData[gr::property_map::key_type(gr::tag::CONTEXT.shortKey())] = std::string("");
 
+                //Debug Message (Comment out when not needed)
+                /*
                 std::cout << "[insertTag] publishing tag TRIGGER_NAME='" << tag_key.value
                            << "' at local index " << i
                            << " (absolute sample " << _total_samples << ")" << std::endl;
-
+                */
+                
                 outSamples.publishTag(tagData, i);
             }
             _total_samples++;

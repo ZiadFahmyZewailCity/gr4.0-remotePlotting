@@ -138,7 +138,7 @@ rule CXX_EXECUTABLE_LINKER__qa_dashBoardServer_
 # Rule for re-running cmake.
 
 rule RERUN_CMAKE
-  command = /usr/bin/cmake --regenerate-during-build -S/home/ziad/GR4/gr4.0-remotePlotting/flowgraph_blocks/dashboard_blocks -B/home/ziad/GR4/gr4.0-remotePlotting/flowgraph_blocks/dashboard_blocks/build
+  command = /usr/bin/cmake --regenerate-during-build -S/home/ziad/GNURADIO_DEVELOPMENT/OOT_Module/imGUI_dashboard_blocks -B/home/ziad/GNURADIO_DEVELOPMENT/OOT_Module/imGUI_dashboard_blocks/build
   description = Re-running CMake...
   generator = 1
 

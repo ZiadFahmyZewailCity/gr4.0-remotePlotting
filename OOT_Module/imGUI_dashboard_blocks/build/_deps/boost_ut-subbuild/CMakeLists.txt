@@ -28,8 +28,8 @@ set_property(GLOBAL PROPERTY _CMAKE_FindGit_GIT_EXECUTABLE_VERSION
 include(ExternalProject)
 ExternalProject_Add(boost_ut-populate
                      "UPDATE_DISCONNECTED" "False" "GIT_REPOSITORY" "https://github.com/boost-ext/ut.git" "EXTERNALPROJECT_INTERNAL_ARGUMENT_SEPARATOR" "GIT_TAG" "v2.0.1"
-                    SOURCE_DIR          "/home/ziad/GR4/gr4.0-remotePlotting/flowgraph_blocks/dashboard_blocks/build/_deps/boost_ut-src"
-                    BINARY_DIR          "/home/ziad/GR4/gr4.0-remotePlotting/flowgraph_blocks/dashboard_blocks/build/_deps/boost_ut-build"
+                    SOURCE_DIR          "/home/ziad/GNURADIO_DEVELOPMENT/OOT_Module/imGUI_dashboard_blocks/build/_deps/boost_ut-src"
+                    BINARY_DIR          "/home/ziad/GNURADIO_DEVELOPMENT/OOT_Module/imGUI_dashboard_blocks/build/_deps/boost_ut-build"
                     CONFIGURE_COMMAND   ""
                     BUILD_COMMAND       ""
                     INSTALL_COMMAND     ""
