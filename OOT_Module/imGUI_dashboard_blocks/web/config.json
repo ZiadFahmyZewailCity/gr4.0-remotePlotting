@@ -12,7 +12,12 @@
           "x_axis_label": "checking_x_axis_constellation",
           "y_axis_label": "checking_y_axis_constellation",
           "presistance_on": true,
-          "numberOfPoints": "256"
+          "numberOfPoints": "256",
+          "dataSources": [
+            "complex_1",
+            "complex_2",
+            "complex_3"
+          ]
         }
       ]
     },
@@ -72,7 +77,9 @@
           "y_axis_label": "check_y_frequency",
           "windowSize": "1024",
           "samplingFreq": "48000.000000",
-          "frequencySink_dataSource": "Magnitudes"
+          "dataSources": [
+            "channel_1"
+          ]
         },
         {
           "id": "waterfall_id",
@@ -84,7 +91,9 @@
           "windowSize": "1024",
           "samplingFreq": "48000.000000",
           "historySize": "100",
-          "waterFallSink_dataSource": "Magnitudes"
+          "dataSources": [
+            "default_source_1"
+          ]
         }
       ]
     },
@@ -97,7 +106,12 @@
           "panel_name": "Time Domain",
           "title": "Testing the title of the time block",
           "x_axis_label": "Checking X axis works (#59)",
-          "y_axis_label": "Checking y axis works (@23)"
+          "y_axis_label": "Checking y axis works (@23)",
+          "dataSources": [
+            "wave_toggle",
+            "wave_1khz",
+            "wave_3khz"
+          ]
         }
       ]
     },
@@ -111,7 +125,12 @@
           "title": "check_vector_title",
           "x_axis_label": "check_x_vector",
           "y_axis_label": "check_x_vector",
-          "vectorSize": "1024"
+          "vectorSize": "1024",
+          "dataSources": [
+            "vec_toggle",
+            "vec_1khz",
+            "vec_3khz"
+          ]
         }
       ]
     }
