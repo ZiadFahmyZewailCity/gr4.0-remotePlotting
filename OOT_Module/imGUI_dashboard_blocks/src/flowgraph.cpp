@@ -59,7 +59,7 @@ int main() {
     auto& source2 = graph.emplaceBlock<basicBlocks::SignalGenerator<float>>();
     source2.sample_rate = 48000.f;
     source2.frequency   = FREQ_CH2;
-    source2.amplitude   = 1.0f;
+    source2.amplitude   = 0.6f;
     source2.offset      = 0.0f;
     source2.phase       = 0.0f;
     source2.signal_type = basicBlocks::signal_generator::Type::Sin;
@@ -74,7 +74,7 @@ int main() {
     auto& source3 = graph.emplaceBlock<basicBlocks::SignalGenerator<float>>();
     source3.sample_rate = 48000.f;
     source3.frequency   = FREQ_CH3;
-    source3.amplitude   = 1.0f;
+    source3.amplitude   = 0.3f;
     source3.offset      = 0.0f;
     source3.phase       = 0.0f;
     source3.signal_type = basicBlocks::signal_generator::Type::Sin;
@@ -203,7 +203,7 @@ int main() {
     auto& source_complex = graph.emplaceBlock<basicBlocks::SignalGenerator<std::complex<float>>>();
     source_complex.sample_rate = 48000.f;
     source_complex.frequency   = 500.0f;
-    source_complex.amplitude   = 40.0f;
+    source_complex.amplitude   = 2.0f;
     source_complex.offset      = 50.0f;
     source_complex.phase       = 0.0f;
     source_complex.signal_type = basicBlocks::signal_generator::Type::Sin;
@@ -218,8 +218,8 @@ int main() {
     auto& source_complex2 = graph.emplaceBlock<basicBlocks::SignalGenerator<std::complex<float>>>();
     source_complex2.sample_rate = 48000.f;
     source_complex2.frequency   = 750.0f;
-    source_complex2.amplitude   = 40.0f;
-    source_complex2.offset      = 50.0f;
+    source_complex2.amplitude   = 30.0f;
+    source_complex2.offset      = 0.0f;
     source_complex2.phase       = 0.0f;
     source_complex2.signal_type = basicBlocks::signal_generator::Type::Sin;
     source_complex2.chunk_size  = 1024;
@@ -232,8 +232,8 @@ int main() {
     auto& source_complex3 = graph.emplaceBlock<basicBlocks::SignalGenerator<std::complex<float>>>();
     source_complex3.sample_rate = 48000.f;
     source_complex3.frequency   = 1000.0f;
-    source_complex3.amplitude   = 40.0f;
-    source_complex3.offset      = 50.0f;
+    source_complex3.amplitude   = 100.0f;
+    source_complex3.offset      = 100.0f;
     source_complex3.phase       = 0.0f;
     source_complex3.signal_type = basicBlocks::signal_generator::Type::Sin;
     source_complex3.chunk_size  = 1024;
