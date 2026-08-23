@@ -1,5 +1,5 @@
-#ifndef GNURADIO_DASHBOARDBLOCKS_DEP_IMGUI_SLIDER_HPP
-#define GNURADIO_DASHBOARDBLOCKS_DEP_IMGUI_SLIDER_HPP
+#ifndef GNURADIO_DASHBOARDBLOCKS_IMGUI_SLIDER_HPP
+#define GNURADIO_DASHBOARDBLOCKS_IMGUI_SLIDER_HPP
 
 //GNU Radio includes
 #include <gnuradio-4.0/Block.hpp>
@@ -20,7 +20,7 @@ namespace gr::dashboard_blocks {
     template <typename T>
     //REMOVE LATER (comment for my understanding), This CRTP, Its when you state that the type of the object you are inheriting from is the struct/class
     //thats inheriting it, This achieves polymorphism but staticlly
-    struct dep_imGUI_slider : gr::Block<dep_imGUI_slider<T>> {
+    struct imGUI_slider : gr::Block<imGUI_slider<T>> {
 
         using Description = gr::Doc<R""(Widget for slider, listens to ZMQ commands from frontend to update variable in the flowgraph)"">;
 
@@ -89,8 +89,8 @@ namespace gr::dashboard_blocks {
 
         public:
 
-        dep_imGUI_slider(gr::property_map initial_settings = {})
-            : gr::Block<dep_imGUI_slider<T>>(initial_settings) 
+        imGUI_slider(gr::property_map initial_settings = {})
+            : gr::Block<imGUI_slider<T>>(initial_settings) 
         {
             // Register the widget config using the live variables
             imGUI_DashboardRegistry::getInstance().register_imGUI_block([this]() -> std::string {
@@ -107,7 +107,7 @@ namespace gr::dashboard_blocks {
 
         
         //Widgets are meant to vary already existing variables 
-        GR_MAKE_REFLECTABLE(dep_imGUI_slider,out  ,widget_id, panel_name, target_property, endpoint, dashboard_server, current_val);
+        GR_MAKE_REFLECTABLE(imGUI_slider,out  ,widget_id, panel_name, target_property, endpoint, dashboard_server, current_val);
 
         //ZMQ subscriber to the ZMQ publisher in the dashboard_server graph for updating widgets
         void start() {
@@ -230,6 +230,6 @@ namespace gr::dashboard_blocks {
 
 } // namespace gr::dashboard_blocks
 
-GR_REGISTER_BLOCK("gr::dashboard_blocks::dep_imGUI_slider", gr::dashboard_blocks::dep_imGUI_slider, [float])
+GR_REGISTER_BLOCK("gr::dashboard_blocks::imGUI_slider", gr::dashboard_blocks::imGUI_slider, [float])
 
 #endif

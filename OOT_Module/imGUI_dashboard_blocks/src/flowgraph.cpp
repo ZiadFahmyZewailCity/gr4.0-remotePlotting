@@ -4,6 +4,8 @@
 #include <gnuradio-4.0/basic/StreamToDataSet.hpp>
 #include <gnuradio-4.0/testing/NullSources.hpp>
 #include <gnuradio-4.0/dashboard_blocks/insertTag.hpp>
+#include <gnuradio-4.0/dashboard_blocks/imGUI_timeSeries.hpp>
+#include <gnuradio-4.0/dashboard_blocks/imGUI_frequencySink.hpp>
 #include <gnuradio-4.0/dashboard_blocks/dep_imGUI_timeSeries.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_waterFallSink.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_vectorSink.hpp>
