@@ -36,13 +36,16 @@ namespace gr::dashboard_blocks {
         //Each port connected to the sink should have a dataSource name added to it
         gr::Annotated<std::vector<std::string>, "data_sources", gr::Visible> dataSources = std::vector<std::string>{"default_source_1"};
 
+        gr::Annotated<size_t, "max_buffered_samples", gr::Visible> maxBufferedSamples = 4096UL;
+
         // **Internal variables of the sink**
 
         //Input Ports (one per data source)
-        //Defaults to 1 element to match dataSources' default of {"default_source_1"} - without this,
-        //a plain-constructed block (no initial_settings) would have an empty port vector and every
-        //connect() to "in#0" would fail before the scheduler even starts
         std::vector<gr::PortIn<T>> in = std::vector<gr::PortIn<T>>(1);
+
+        //Buffers
+        std::vector<std::vector<T>> internal_buffers = std::vector<std::vector<T>>(1);
+
 
         //ZMQ related variables (Connection to server process)
         gr::Annotated<std::string, "zmq_endpoint"> endpoint = "ipc:///tmp/gr4_dashboard_data.sock";
@@ -79,10 +82,11 @@ namespace gr::dashboard_blocks {
         void settingsChanged(const gr::property_map&, const gr::property_map& newSettings) {
             if (newSettings.contains("data_sources")) {
                 in.resize(dataSources.value.size());
+                internal_buffers.resize(dataSources.value.size());
             }
         }
 
-        GR_MAKE_REFLECTABLE(dep_imGUI_timeSeries, in, id, title, panel_name, x_axis_label, y_axis_label, dataSources, endpoint);
+        GR_MAKE_REFLECTABLE(dep_imGUI_timeSeries, in, id, title, panel_name, x_axis_label, y_axis_label, dataSources, maxBufferedSamples, endpoint);
 
         void start() {
             publisher = zmq::socket_t(zmq_ctx, zmq::socket_type::pub);
@@ -109,10 +113,19 @@ namespace gr::dashboard_blocks {
                 //Skip the port if its empty
                 if (inSpan.size() == 0) { continue; }
 
-                const std::size_t nSamples = inSpan.size();
+                //Copy the data of the port into the internal buffer
+                auto& buffer = internal_buffers[i];
+                buffer.insert(buffer.end(), inSpan.begin(), inSpan.end());
+                std::ignore = inSpan.consume(inSpan.size());
+                
+                //Drop the oldest samples if this source has fallen behind publishing
+                if (buffer.size() > maxBufferedSamples.value) {
+                    buffer.erase(buffer.begin(), buffer.begin() + static_cast<std::ptrdiff_t>(buffer.size() - maxBufferedSamples.value));
+                }
 
                 if (publisher) {
 
+                    const std::size_t nSamples = inSpan.size();
                     //1) Apply header - "id:dataSource:payload" so the daemon/frontend can demux per source
                     std::string header = id.value + ":" + dataSources.value[i] + ":";
                     std::size_t payload_size = header.size() + (nSamples * sizeof(T));
@@ -122,13 +135,15 @@ namespace gr::dashboard_blocks {
 
                     //3) Cpy into zmq message buffer
                     std::memcpy(z_msg.data(), header.data(), header.size());
-                    std::memcpy(static_cast<char*>(z_msg.data()) + header.size(), inSpan.data(), nSamples * sizeof(T));
+                    std::memcpy(static_cast<char*>(z_msg.data()) + header.size(), buffer.data(), nSamples * sizeof(T));
 
                     //4) Send
                     publisher.send(z_msg, zmq::send_flags::dontwait);
+
+                    //5) Clear out the temporary buffer
+                    buffer.clear();
                 }
 
-                std::ignore = inSpan.consume(nSamples);
             }
             return gr::work::Status::OK;
         }

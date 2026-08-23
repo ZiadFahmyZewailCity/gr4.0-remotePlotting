@@ -804,6 +804,7 @@ void main_loop(){
 
                                 if(ImPlot::BeginPlot(object.title.c_str(), ImVec2(-1, 300))){
 
+
                                     ImPlot::SetupAxes(object.x_axis_label.c_str(),object.y_axis_label.c_str());
 
                                     size_t buf_size = object.dataSources[0].databuffer.size();
@@ -811,11 +812,21 @@ void main_loop(){
                                     ImPlot::SetupAxisLimits(ImAxis_X1, object.start_freq, object.start_freq + freq_span, ImPlotCond_Always);
                                     ImPlot::SetupAxisLimits(ImAxis_Y1, -140.0, 20.0, ImPlotCond_Once);
                                     
+
+                                    //Frequency x-axis
+                                    static std::vector<float> frequency_x_axis;
+                                    frequency_x_axis.resize(buf_size);
+                                    //We dynamically create x-axis according to the start frequency, step frequency, and buffer size
+                                    for (std::size_t i = 0; i < buf_size; i++) {
+                                        frequency_x_axis[i] = static_cast<float>(object.start_freq + i * object.step_freq);
+                                    }
+
+
                                     //Create plotline
                                     for (auto& data_source : object.dataSources) {
                                         //This is used as a legend entry
                                         std::string series_label = data_source.name;   
-                                        ImPlot::PlotLine(series_label.c_str(), data_source.databuffer.data(), (int)data_source.databuffer.size());
+                                        ImPlot::PlotLine(series_label.c_str(), frequency_x_axis.data(), data_source.databuffer.data(), (int)data_source.databuffer.size());
                                     }
                                     ImPlot::EndPlot();
                                 }
