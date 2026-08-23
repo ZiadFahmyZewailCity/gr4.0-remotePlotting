@@ -67,8 +67,6 @@ namespace gr::dashboard_blocks {
         gr::Annotated<size_t, "max_buffered_samples", gr::Visible> maxBufferedSamples = numberOfPoints.value * 4;
 
 
-
-
         // **Irrlevant to user interface**
 
         //Input Port
@@ -81,6 +79,10 @@ namespace gr::dashboard_blocks {
         gr::Annotated<std::string, "zmq_endpoint"> endpoint = "ipc:///tmp/gr4_dashboard_data.sock";
         zmq::context_t zmq_ctx{1};
         zmq::socket_t publisher;
+
+        //Max and Min size for the number of points (Built in)
+        gr::Annotated<size_t, "minimumPoints"> minPoints = 1;
+        gr::Annotated<size_t, "maxPoints"> maxPoints = 65536;
 
         imGUI_constellationSink(gr::property_map initial_settings = {})
             : gr::Block<imGUI_constellationSink<T>>(initial_settings)
@@ -109,7 +111,7 @@ namespace gr::dashboard_blocks {
             });
         }
 
-        GR_MAKE_REFLECTABLE(imGUI_constellationSink, in, id, title, panel_name, x_axis_label, y_axis_label, dataSources, endpoint, state_presistance, numberOfPoints, maxBufferedSamples);
+        GR_MAKE_REFLECTABLE(imGUI_constellationSink, in, id, title, panel_name, x_axis_label, y_axis_label, dataSources, endpoint, state_presistance, maxPoints, minPoints, numberOfPoints, maxBufferedSamples);
         void start() {
 
             publisher = zmq::socket_t(zmq_ctx, zmq::socket_type::pub);
@@ -118,16 +120,25 @@ namespace gr::dashboard_blocks {
         }
 
         void stop() {
-
             if (publisher) publisher.close();
             imGUI_DashboardRegistry::getInstance().unregisterBlockAndTeardown();
         }
 
         void settingsChanged(const gr::property_map&, const gr::property_map& newSettings) {
+            if (newSettings.contains("numberOfPoints")) {
+                if (numberOfPoints.value < minPoints || numberOfPoints.value > maxPoints) {
+                    std::cerr << "imGUI_constellationSink[" << id.value
+                            << "]: numberOfPoints=" << numberOfPoints.value
+                            << " out of range, clamping to [" << minPoints << "," << maxPoints << "]\n";
+                    //Set it to one to show something is wrong     
+                   numberOfPoints.value = 1;
+                }
+                maxBufferedSamples.value = numberOfPoints.value * 4;
+            }
+
             if (newSettings.contains("data_sources")) {
                 in.resize(dataSources.value.size());
                 internal_buffers.resize(dataSources.value.size());
-
             }
         }
 

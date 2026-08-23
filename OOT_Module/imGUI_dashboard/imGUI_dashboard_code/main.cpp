@@ -766,8 +766,11 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
                         //Text is variable length, not a fixed sizeof(T) like the numeric widgets,
                         //so this just takes whatever bytes are left as the raw text
                         int valid_payload_bytes = websocketEvent->numBytes - data_offset;
+                        //Cap on length 
+                        constexpr int kMaxLabelBytes = 4096; 
                         if (valid_payload_bytes > 0) {
-                            object.string_current_text = std::string((const char*)websocketEvent->data + data_offset, valid_payload_bytes);
+                            valid_payload_bytes = std::min(valid_payload_bytes, kMaxLabelBytes);
+                                object.string_current_text = std::string((const char*)websocketEvent->data + data_offset, valid_payload_bytes);
                         }
 
                         break;

@@ -203,11 +203,8 @@ namespace gr::dashboard_blocks {
                                 publishCurrentVal();
                             }
 
-                            current_val.value = static_cast<uint8_t>(selected_index);
-                            publishCurrentVal();
-
-                            //TO DO: Remove Debug Message
-                            std::cout << "Message has been published to the dashboard_server" << "\n";
+                            //Debug message uncomment if needed
+                            //std::cout << "Message has been published to the dashboard_server" << "\n";
                         }
                         catch (const std::exception& e) {
                         }
