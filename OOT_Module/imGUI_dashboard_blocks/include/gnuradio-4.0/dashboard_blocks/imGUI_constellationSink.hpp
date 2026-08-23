@@ -14,17 +14,21 @@
 #include <gnuradio-4.0/annotated.hpp>
 #include <gnuradio-4.0/meta/reflection.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_management.hpp>
+#include <gnuradio-4.0/dashboard_blocks/imGUI_typeResolving.hpp>
+#include <gnuradio-4.0/meta/utils.hpp>
 
 //External dependencies
-#include <gnuradio-4.0/meta/utils.hpp>
 #include <zmq.hpp>
 #include <string>
 #include <cstring>
 #include <span>
+#include <concepts>
 
 namespace gr::dashboard_blocks {
 
     template <typename T>
+    //Constellation sink can only take complex types
+    requires(gr::meta::complex_like<T>)
     struct imGUI_constellationSink : gr::Block<imGUI_constellationSink<T>> {
 
         //TO DO: Give this a proper one line description, same pattern as the other sinks
@@ -68,11 +72,10 @@ namespace gr::dashboard_blocks {
         // **Irrlevant to user interface**
 
         //Input Port
-        //TO DO: Add a static assert to force complex
-        std::vector<gr::PortIn<std::complex<T>>> in;
+        std::vector<gr::PortIn<T>> in;
 
         //Internal buffers
-        std::vector<std::vector<std::complex<T>>> internal_buffers;
+        std::vector<std::vector<T>> internal_buffers;
 
         //ZMQ related variables (Not to be adjusted by user)
         gr::Annotated<std::string, "zmq_endpoint"> endpoint = "ipc:///tmp/gr4_dashboard_data.sock";
@@ -97,7 +100,7 @@ namespace gr::dashboard_blocks {
                 json_data += ", \"numberOfPoints\": \"" + std::to_string(this->numberOfPoints.value) + "\", ";
                 json_data += "\"dataSources\": [";
                 for (std::size_t i = 0; i < this->dataSources.value.size(); ++i) {
-                    json_data += "\"" + this->dataSources.value[i] + "\"";
+                    json_data += "\"" + this->dataSources.value[i] + ":" + dashboard_dtypeTag<T>() + "\"";
                     if (i + 1 < this->dataSources.value.size()) { json_data += ", "; }
                 }
                 json_data += "] ";
@@ -151,19 +154,19 @@ namespace gr::dashboard_blocks {
                 std::size_t offset = 0;
                 while( offset + numberOfPoints.value <= buffer.size()){
                     
-                    std::span<const std::complex<T>> samples_frame(buffer.data() + offset, numberOfPoints.value);
+                    std::span<const T> samples_frame(buffer.data() + offset, numberOfPoints.value);
                     if (publisher) {
 
                         //1) Apply header - every message on the wire is "id:dataSource:payload", daemon splits on the first two ':'
                         std::string header = id.value + ":" + dataSources.value[i] + ":";
-                        std::size_t payload_size = header.size() + (nSamples * sizeof(std::complex<T>));
+                        std::size_t payload_size = header.size() + (nSamples * sizeof(T));
 
                         //2) Message core
                         zmq::message_t z_msg(payload_size);
 
                         //3) Cpy into zmq message buffer
                         std::memcpy(z_msg.data(), header.data(), header.size());
-                        std::memcpy(static_cast<char*>(z_msg.data()) + header.size(), samples_frame.data(), nSamples * sizeof(std::complex<T>));
+                        std::memcpy(static_cast<char*>(z_msg.data()) + header.size(), samples_frame.data(), nSamples * sizeof(T));
                         //TO DO: if payload isnt raw samples (eg processed magnitudes) memcpy the processed buffer instead
 
                         //4) Send
@@ -185,6 +188,5 @@ namespace gr::dashboard_blocks {
 } // namespace gr::dashboard_blocks
 
 
-GR_REGISTER_BLOCK("gr::dashboard_blocks::imGUI_constellationSink", gr::dashboard_blocks::imGUI_constellationSink, [float])
-
+GR_REGISTER_BLOCK("gr::dashboard_blocks::imGUI_constellationSink", gr::dashboard_blocks::imGUI_constellationSink, [std::complex<float>, std::complex<double>])
 #endif

@@ -8,11 +8,13 @@
 #include <gnuradio-4.0/meta/reflection.hpp>
 #include <gnuradio-4.0/meta/utils.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_management.hpp>
+#include <gnuradio-4.0/dashboard_blocks/imGUI_typeResolving.hpp>
 #include <gnuradio-4.0/fourier/fft.hpp>
 #include <gnuradio-4.0/algorithm/fourier/window.hpp>
 
 //External dependecies
 #include <iostream>
+#include <concepts>
 #include <magic_enum.hpp>
 #include <span>
 #include <vector>
@@ -22,14 +24,6 @@
 
 
 namespace gr::dashboard_blocks {
-
-
-    template <typename T>
-    struct waterfall_extract_real { using type = T; };
-
-    template <typename T>
-    struct waterfall_extract_real<std::complex<T>> { using type = T; };
-
 
     // TO DO: Figure out what type of triggers i want to implement
     enum waterfall_triggerType {
@@ -47,8 +41,13 @@ namespace gr::dashboard_blocks {
 
 
     template <typename T>
+    //Frequency sink can take in complex types or floats
+    requires(gr::meta::complex_like<T> || std::floating_point<T>)
     struct imGUI_waterFallSink : gr::Block<imGUI_waterFallSink<T>> {
         
+        //TO DO: Add proper comment
+        using floatType = scalar_type_t<T>;
+
         //TO DO: Create a representive description for this block
         using Description = gr::Doc<R""()"">;
         
@@ -124,7 +123,7 @@ namespace gr::dashboard_blocks {
                 json_data += "\"historySize\": \"" + std::to_string(this->history_size.value) + "\", ";
                 json_data += "\"dataSources\": [";
                 for (std::size_t i = 0; i < this->dataSources.value.size(); ++i) {
-                    json_data += "\"" + this->dataSources.value[i] + "\"";
+                    json_data += "\"" + this->dataSources.value[i] + ":" + dashboard_dtypeTag<T>() + "\"";
                     if (i + 1 < this->dataSources.value.size()) { json_data += ", "; }
                 }
                 json_data += "]";
@@ -196,10 +195,8 @@ namespace gr::dashboard_blocks {
  
                     if (publisher) {
  
-                        using floattype = typename waterfall_extract_real<T>::type;
- 
                         //TO DO: This is constantly being intalized, probably very heavy computaion wise. Statically allocate it somewhere else
-                        std::vector<gr::DataSet<floattype>> FFT_output(1);
+                        std::vector<gr::DataSet<floatType>> FFT_output(1);
  
                         const gr::work::Status fftStatus = FFTblocks[i].processBulk(samples_frame, std::span{FFT_output});
                         if (fftStatus != gr::work::Status::OK) {
@@ -230,14 +227,14 @@ namespace gr::dashboard_blocks {
  
                         //1) Apply header
                         std::string header = sink_id.value + ":" + dataSources.value[i] + ":";
-                        std::size_t payload_size = header.size() + (num_bins * sizeof(floattype));
+                        std::size_t payload_size = header.size() + (num_bins * sizeof(floatType));
  
                         //2) Message core
                         zmq::message_t z_msg(payload_size);
  
                         //3) Cpy into zmq message buffer
                         std::memcpy(z_msg.data(), header.data(), header.size());
-                        std::memcpy(static_cast<char*>(z_msg.data()) + header.size(), magnitudes_ptr, num_bins * sizeof(floattype));
+                        std::memcpy(static_cast<char*>(z_msg.data()) + header.size(), magnitudes_ptr, num_bins * sizeof(floatType));
  
                         //4) Send
                         publisher.send(z_msg, zmq::send_flags::dontwait);
@@ -257,7 +254,6 @@ namespace gr::dashboard_blocks {
  
 } // namespace gr::dashboard_blocks
 
-//TO DO: Register the block, list every T this sink should be instantiable for
-GR_REGISTER_BLOCK("gr::dashboard_blocks::imGUI_waterFallSink", gr::dashboard_blocks::imGUI_waterFallSink, [float, std::complex<float>])
 
+GR_REGISTER_BLOCK("gr::dashboard_blocks::imGUI_waterFallSink", gr::dashboard_blocks::imGUI_waterFallSink, [float, double, std::complex<float>, std::complex<double>])
 #endif

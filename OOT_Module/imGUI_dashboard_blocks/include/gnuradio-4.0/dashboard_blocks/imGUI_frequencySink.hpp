@@ -5,6 +5,7 @@
 
 
 //GNU Related headers
+#include <concepts>
 #include <cstddef>
 #include <gnuradio-4.0/Block.hpp>
 #include <gnuradio-4.0/BlockRegistry.hpp>
@@ -13,6 +14,7 @@
 #include <gnuradio-4.0/meta/reflection.hpp>
 #include <gnuradio-4.0/meta/utils.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_management.hpp>
+#include <gnuradio-4.0/dashboard_blocks/imGUI_typeResolving.hpp>
 #include <gnuradio-4.0/fourier/fft.hpp>
 #include <gnuradio-4.0/algorithm/fourier/window.hpp>
 //External dependecies
@@ -27,13 +29,6 @@
 
 
 namespace gr::dashboard_blocks {
-
-    template <typename T>
-    struct extract_real { using type = T; };
-
-    template <typename T>
-    struct extract_real<std::complex<T>> { using type = T; };
-
 
     // TO DO: Figure out what type of triggers i want to implement
     enum triggerType {
@@ -50,10 +45,18 @@ namespace gr::dashboard_blocks {
     };
 
     template <typename T>
+    //Frequency sink can take in complex types or floats
+    requires(gr::meta::complex_like<T> || std::floating_point<T>)
     struct imGUI_frequencySink : gr::Block<imGUI_frequencySink<T>> {
+
+        //TO DO: Add proper comment
+        using floatType = scalar_type_t<T>;
 
         //TO DO: Create a representive description for this block
         using Description = gr::Doc<R""(FrequencySink)"">;
+
+        
+
 
         // **Variables that can be adjusted by the user**
 
@@ -121,7 +124,7 @@ namespace gr::dashboard_blocks {
                 json_data += "\"samplingFreq\": \"" + std::to_string(this->sampleRate.value) + "\", ";
                 json_data += "\"dataSources\": [";
                 for (std::size_t i = 0; i < this->dataSources.value.size(); ++i) {
-                    json_data += "\"" + this->dataSources.value[i] + "\"";
+                    json_data += "\"" + this->dataSources.value[i] + ":" + dashboard_dtypeTag<T>() + "\"";
                     if (i + 1 < this->dataSources.value.size()) { json_data += ", "; }
                 }
                 json_data += "] ";
@@ -210,8 +213,7 @@ namespace gr::dashboard_blocks {
                     std::span<const T> samples_frame(buffer.data() + offset, windowSize.value);
                     if (publisher) {
 
-                        using floattype = typename extract_real<T>::type;
-                        std::vector<gr::DataSet<floattype>> FFT_output(1);
+                        std::vector<gr::DataSet<floatType>> FFT_output(1);
 
                         const gr::work::Status fftStatus = FFTblock.processBulk(samples_frame, std::span{FFT_output});
                         if (fftStatus != gr::work::Status::OK) {
@@ -243,14 +245,14 @@ namespace gr::dashboard_blocks {
 
                         //1) Apply header - id:dataSource:payload
                         std::string header = id.value + ":" + dataSources.value[i] + ":";
-                        std::size_t payload_size = header.size() + (num_bins * sizeof(floattype));
+                        std::size_t payload_size = header.size() + (num_bins * sizeof(floatType));
 
                         //2) Message core
                         zmq::message_t z_msg(payload_size);
 
                         //3) Cpy into zmq message buffer
                         std::memcpy(z_msg.data(), header.data(), header.size());
-                        std::memcpy(static_cast<char*>(z_msg.data()) + header.size(), magnitudes_ptr, num_bins * sizeof(floattype));
+                        std::memcpy(static_cast<char*>(z_msg.data()) + header.size(), magnitudes_ptr, num_bins * sizeof(floatType));
 
                         //4) Send
                         publisher.send(z_msg, zmq::send_flags::dontwait);
@@ -271,5 +273,5 @@ namespace gr::dashboard_blocks {
 
 } // namespace gr::dashboard_blocks
 
-GR_REGISTER_BLOCK("gr::dashboard_blocks::imGUI_frequencySink", gr::dashboard_blocks::imGUI_frequencySink, [float, std::complex<float>])
+GR_REGISTER_BLOCK("gr::dashboard_blocks::imGUI_frequencySink", gr::dashboard_blocks::imGUI_frequencySink, [float, double, std::complex<float>, std::complex<double>])
 #endif
