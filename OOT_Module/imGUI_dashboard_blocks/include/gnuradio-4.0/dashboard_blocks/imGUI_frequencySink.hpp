@@ -70,6 +70,8 @@ namespace gr::dashboard_blocks {
         gr::Annotated<std::string, "x_axis_label", gr::Visible> x_axis_label = "x_axis";
         gr::Annotated<std::string, "y_axis_label", gr::Visible> y_axis_label = "y_axis";
 
+        gr::Annotated<std::vector<std::string>, "data_sources", gr::Visible> dataSources = std::vector<std::string>{"default_source_1"};
+
         gr::Annotated<size_t, "Window Size", gr::Visible> windowSize = 1024UL;
         //TO DO: Any reason to default to something in specific, currently default to Hann
         gr::Annotated<gr::algorithm::window::Type, "Window Type", gr::Visible> windowType = gr::algorithm::window::Type::Hann;
@@ -80,13 +82,23 @@ namespace gr::dashboard_blocks {
         gr::Annotated<float, "Sample Rate", gr::Visible, gr::Unit<"Hz">> sampleRate = 1.0f;
         gr::Annotated<bool, "Output in dB", gr::Visible> outputInDb = true;
 
+        gr::Annotated<size_t, "max_buffered_samples", gr::Visible> maxBufferedSamples = windowSize.value * 4;
+
 
         // **Internal variables of the sink**
-        //Input Port
-        gr::PortIn<T> in;
+        //Input Ports (one per data source) - back to vector ports now that scheduling is
+        //confirmed working in isolation. This tests multi-source specifically, separate
+        //from the still-open question of what in the full graph was blocking scheduling.
+        std::vector<gr::PortIn<T>> in = std::vector<gr::PortIn<T>>(1);
 
-        //The FFT block wrapped inside the imGUI block
+        //Internal Buffers (one per port)
+        std::vector<std::vector<T>> internal_buffers = std::vector<std::vector<T>>(1);
+
+        //A single shared FFT instance - windowSize/windowType/sampleRate/outputInDb are all
+        //single (not per-source) fields, so every source already uses identical FFT config.
+        //Called sequentially once per port per call, never concurrently.
         gr::blocks::fft::DefaultFFT<T> FFTblock{};
+
 
         //ZMQ related variables (Not to be adjusted by user)
         gr::Annotated<std::string, "zmq_endpoint"> endpoint = "ipc:///tmp/gr4_dashboard_data.sock";
@@ -107,25 +119,39 @@ namespace gr::dashboard_blocks {
                 json_data += "\"y_axis_label\": \"" + this->y_axis_label.value + "\", "; //y-axis label
                 json_data += "\"windowSize\": \"" + std::to_string(this->windowSize.value) + "\", ";
                 json_data += "\"samplingFreq\": \"" + std::to_string(this->sampleRate.value) + "\", ";
-                json_data += "\"frequencySink_dataSource\": \"Magnitudes\" "; //TODO: Not in use currently
+                json_data += "\"dataSources\": [";
+                for (std::size_t i = 0; i < this->dataSources.value.size(); ++i) {
+                    json_data += "\"" + this->dataSources.value[i] + "\"";
+                    if (i + 1 < this->dataSources.value.size()) { json_data += ", "; }
+                }
+                json_data += "] ";
                 json_data += "}";
                 return json_data;
             });
         }
 
-        GR_MAKE_REFLECTABLE(imGUI_frequencySink, in,id , title, panel_name, x_axis_label, y_axis_label ,windowSize, sampleRate, windowType, outputInDb, typeOfTrigger, typeOfAveraging, endpoint);
 
+
+        GR_MAKE_REFLECTABLE(imGUI_frequencySink, in, id, title, panel_name, x_axis_label, y_axis_label, dataSources, windowSize, sampleRate, windowType, outputInDb, typeOfTrigger, typeOfAveraging, maxBufferedSamples, endpoint);
         void start() {
 
             publisher = zmq::socket_t(zmq_ctx, zmq::socket_type::pub);
             publisher.connect(endpoint.value);
 
-            //Configuring FFT block
+            //Configuring the shared FFT block
             FFTblock.fftSize = this->windowSize;
             FFTblock.sample_rate = this->sampleRate;
             FFTblock.window = std::string(magic_enum::enum_name(this->windowType.value));
             FFTblock.outputInDb = this->outputInDb;
 
+            // DIAGNOSTIC: unbuffered (std::cerr, explicit flush) so this can't be lost to
+            // stdout buffering/interleaving - confirms whether settingsChanged actually
+            // resized everything correctly BEFORE the scheduler starts calling processBulk.
+            std::cerr << "[freq_sink::start] id=" << id.value
+                      << " in.size()=" << in.size()
+                      << " internal_buffers.size()=" << internal_buffers.size()
+                      << " dataSources.size()=" << dataSources.value.size()
+                      << std::endl;
 
             //Which ever block reaches this first will start dashboard server
             imGUI_DashboardRegistry::getInstance().boot_dashboardServer_Once();
@@ -139,66 +165,106 @@ namespace gr::dashboard_blocks {
             
         }
 
-        [[nodiscard]] gr::work::Status processBulk(gr::InputSpanLike auto& input) {
-            
-            
+        void settingsChanged(const gr::property_map&, const gr::property_map& newSettings) {
+            if (newSettings.contains("data_sources")) {
+                in.resize(dataSources.value.size());
+                internal_buffers.resize(dataSources.value.size());
+            }
+        }
 
-            //Check if we have enough samples for
-            if (input.size() < this->windowSize) { return gr::work::Status::INSUFFICIENT_INPUT_ITEMS; }
+        template<gr::InputSpanLike TInSpan>
+        [[nodiscard]] gr::work::Status processBulk(std::span<TInSpan>& input_ports) {
 
-            const std::size_t nSamples = this->windowSize;
-
-            std::span<const T> samples_frame(input.data() , nSamples);
-            
-            if (publisher) {
-
-
-                using floattype = typename extract_real<T>::type;
-                std::vector<gr::DataSet<floattype>> FFT_output(1);
-
-                const gr::work::Status fftStatus = FFTblock.processBulk(samples_frame, std::span{FFT_output});
-                if (fftStatus != gr::work::Status::OK) {
-                    return fftStatus;
-                }
-
-                //Output the magnitudes
-                auto& dataset = FFT_output[0];
-                std::size_t num_bins = static_cast<std::size_t>(dataset.extents[0]); 
-                auto* magnitudes_ptr = dataset.signal_values.data();
-
-                //Debug Message (Comment out when not needed)
-                /* 
-                static int dbg = 0;
-                if (dbg++ % 60 == 0) {
-                    std::cout << "RAW: ";
-                    for (std::size_t i = 0; i < 8; i++) std::cout << samples_frame[i] << " ";
-                    std::cout << "\nMAG: ";
-                    for (std::size_t i = 0; i < 8; i++) std::cout << magnitudes_ptr[i] << " ";
-                    std::cout << std::endl;
-                }
-                */
-
-                //TO DO: Add averaging
-
-
-                //Send over ZMQ to the server
-
-                //1) Apply header
-                std::string header = id.value + ":";
-                std::size_t payload_size = header.size() + (num_bins * sizeof(floattype));
-
-                //2) Message core
-                zmq::message_t z_msg(payload_size);
-
-                //3) Cpy into zmq message buffer
-                std::memcpy(z_msg.data(), header.data(), header.size());
-                std::memcpy(static_cast<char*>(z_msg.data()) + header.size(), magnitudes_ptr, num_bins * sizeof(floattype));
-
-                //4) Send
-                publisher.send(z_msg, zmq::send_flags::dontwait);
+            // DIAGNOSTIC: throttled to every 50th call so it doesn't spam the terminal -
+            // still enough to confirm the block is being scheduled regularly.
+            static std::size_t enter_count = 0;
+            enter_count++;
+            if (enter_count % 50 == 1) {
+                std::cerr << "[freq_sink::processBulk] ENTER #" << enter_count
+                          << " id=" << id.value
+                          << " input_ports.size()=" << input_ports.size() << std::endl;
             }
 
-            std::ignore = input.consume(nSamples);
+            for (std::size_t i = 0; i < input_ports.size(); i++) {
+
+                auto& inSpan = input_ports[i];
+                auto& buffer = internal_buffers[i];
+
+                const std::size_t nSamples = inSpan.size();
+                if (nSamples == 0) { continue; }
+
+                //Copy the data of the port into its internal buffer
+                buffer.insert(buffer.end(), inSpan.data(), inSpan.data() + nSamples);
+                std::ignore = inSpan.consume(nSamples);
+
+                //Drop the oldest samples if this source has fallen behind publishing
+                if (buffer.size() > maxBufferedSamples.value) {
+                    buffer.erase(buffer.begin(),
+                        buffer.begin() + static_cast<std::ptrdiff_t>(buffer.size() - maxBufferedSamples.value));
+                }
+
+                std::size_t offset = 0;
+                //Itterate through the buffer taking window sized chunks
+                while (offset + windowSize.value <= buffer.size()) {
+
+                    std::span<const T> samples_frame(buffer.data() + offset, windowSize.value);
+                    if (publisher) {
+
+                        using floattype = typename extract_real<T>::type;
+                        std::vector<gr::DataSet<floattype>> FFT_output(1);
+
+                        const gr::work::Status fftStatus = FFTblock.processBulk(samples_frame, std::span{FFT_output});
+                        if (fftStatus != gr::work::Status::OK) {
+                            //Drop just this chunk and keep going, rather than abandoning the call
+                            offset += windowSize.value;
+                            continue;
+                        }
+
+                        auto& dataset = FFT_output[0];
+                        std::size_t num_bins = static_cast<std::size_t>(dataset.extents[0]);
+                        auto* magnitudes_ptr = dataset.signal_values.data();
+
+                        // DIAGNOSTIC: confirm what's being published per source - throttled
+                        // to every 20th publish per port so 3 sources don't triple the spam.
+                        static std::vector<std::size_t> publish_counts;
+                        if (publish_counts.size() <= i) publish_counts.resize(i + 1, 0);
+                        publish_counts[i]++;
+                        if (publish_counts[i] % 20 == 1) {
+                            std::cerr << "[freq_sink::publish] source=" << dataSources.value[i]
+                                      << " #" << publish_counts[i]
+                                      << " windowSize=" << windowSize.value
+                                      << " num_bins=" << num_bins
+                                      << " first2=[" << (num_bins > 0 ? magnitudes_ptr[0] : 0.f)
+                                      << ", " << (num_bins > 1 ? magnitudes_ptr[1] : 0.f) << "]"
+                                      << std::endl;
+                        }
+
+                        //TO DO: Add averaging
+
+                        //1) Apply header - id:dataSource:payload
+                        std::string header = id.value + ":" + dataSources.value[i] + ":";
+                        std::size_t payload_size = header.size() + (num_bins * sizeof(floattype));
+
+                        //2) Message core
+                        zmq::message_t z_msg(payload_size);
+
+                        //3) Cpy into zmq message buffer
+                        std::memcpy(z_msg.data(), header.data(), header.size());
+                        std::memcpy(static_cast<char*>(z_msg.data()) + header.size(), magnitudes_ptr, num_bins * sizeof(floattype));
+
+                        //4) Send
+                        publisher.send(z_msg, zmq::send_flags::dontwait);
+                    }
+
+                    offset += windowSize.value;
+                }
+
+                //Erase all the samples we processed from this port's buffer
+                if (offset > 0) {
+                    buffer.erase(buffer.begin(), buffer.begin() + static_cast<std::ptrdiff_t>(offset));
+                }
+            }
+
             return gr::work::Status::OK;
         }
     };

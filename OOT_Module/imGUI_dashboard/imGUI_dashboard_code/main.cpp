@@ -50,6 +50,15 @@ EM_JS(char*, get_websocket_url, (), {
 //Structs for dashboard elements 
 enum class dashboardElementType { TIME_SERIES, VECTOR_SINK , FREQUENCY_SINK, CONSTELLATION_SINK, WATERFALL_SINK , SLIDER, TEXTLABEL, BUTTON, CHECKBOX, DROPDOWN, TEXTBOX, UNKNOWN };
 
+///Each data source for a dashboard element has these parameters
+struct dataSourceState {
+    std::string name;
+    std::vector<float> databuffer;
+    //This flag is meant to prevent plotting of zeros if no data is being sent to the sink
+    //Instead it will either display the last frame or if no data has been sent, it'll display a waiting for data message
+    bool has_rcved_data = false;
+};
+
 //Simplified dashboard element struct
 struct dashboardElement {
 
@@ -59,19 +68,13 @@ struct dashboardElement {
     dashboardElementType type;
 
     //Data sources 
-    std::string data_source;
-    std::vector<float> databuffer;
+    std::vector<dataSourceState> dataSources;
     float current_val = 0.0f;
     bool  current_val_bool = false;
 
     std::string x_axis_label  = "default_x_axis";
     std::string y_axis_label  = "default_y_axis";
 
-
-    //This flag is meant to prevent plotting of zeros if no data is being sent to the sink
-    //Instead it will either display the last frame or if no data has been sent, it'll display a waiting for data message
-    bool has_rcved_data = false;
-    
     // Axis boundries
     int x_axis_min = 0;
     int x_axis_max = 100;
@@ -140,22 +143,34 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
                     std::cout << new_dashboardElement.id << "\n";
                     //Extract title, give fallback if title not found
                     new_dashboardElement.title = item.value("title", "default_title");
-                    //Extract data source, give fallback if data_source not found
-                    new_dashboardElement.data_source = item.value("data_source", "");
+                    //Extract data sources for sinks
+                    if (item.contains("dataSources")) {
+                        for (auto& data_source_name : item["dataSources"]) {
+                            
+                            //Create data source struct
+                            dataSourceState data_source;
+
+                            //Set its name
+                            data_source.name = data_source_name.get<std::string>();
+
+                            //Place in dashboardElements data source list
+                            new_dashboardElement.dataSources.push_back(data_source);
+                        }
+                    }
                 
                     //Sinks
                     if (item["type"] == "timeSeries") {
 
-
                         //Read what the x & y axis labels are
                         new_dashboardElement.x_axis_label = item.value("x_axis_label","default_x_axis");
                         new_dashboardElement.y_axis_label = item.value("y_axis_label","default_x_axis");
-
                         
                         new_dashboardElement.type = dashboardElementType::TIME_SERIES;
 
                         //TO DO: Buffer size should be set by user
-                        new_dashboardElement.databuffer.resize(100, 0.0f);
+                        for (auto& dashBoardSource : new_dashboardElement.dataSources) {
+                            dashBoardSource.databuffer.resize(new_dashboardElement.windowSize, 0.0f);
+                        }
                     }
                     else if (item["type"] == "frequencySink"){
 
@@ -179,7 +194,10 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
                             //TO DO: debugging message
                             std::cout << "Failed to parse window size on intialization";
                         }
-                        new_dashboardElement.databuffer.resize(new_dashboardElement.windowSize, 0.0f);
+                        
+                        for (auto& dashBoardSource : new_dashboardElement.dataSources) {
+                            dashBoardSource.databuffer.resize(new_dashboardElement.windowSize, 0.0f);
+                        }
 
 
                     }
@@ -206,7 +224,9 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
                             std::cout << "Failed to parse window size on intialization";
                         }
 
-                        new_dashboardElement.databuffer.resize(new_dashboardElement.windowSize * new_dashboardElement.history_size, -140.0f);
+                        for (auto& dashBoardSource : new_dashboardElement.dataSources) {
+                            dashBoardSource.databuffer.resize(new_dashboardElement.windowSize * new_dashboardElement.history_size, -140.0f);
+                        }
 
                     }
                     else if (item["type"] == "vectorSink"){
@@ -221,7 +241,10 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
                         } catch (...){
                             new_dashboardElement.windowSize = 256;
                         }
-                        new_dashboardElement.databuffer.resize(new_dashboardElement.windowSize, 0.0f);
+
+                        for (auto& dashBoardSource : new_dashboardElement.dataSources){
+                            dashBoardSource.databuffer.resize(new_dashboardElement.windowSize, 0.0f);
+                        }
                     }
                     else if (item["type"] == "constellationSink"){
                                        
@@ -239,8 +262,10 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
                             new_dashboardElement.windowSize = 256;
                         }
 
-                        //Intialize buffer
-                        new_dashboardElement.databuffer.resize(new_dashboardElement.windowSize * 2, 0.0f);
+                        for (auto& dashBoardSource : new_dashboardElement.dataSources){
+                            dashBoardSource.databuffer.resize(new_dashboardElement.windowSize * 2, 0.0f);
+                        }
+
                     }
                     //Widgets
                     else if (item["type"] == "slider") {
@@ -334,69 +359,91 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
             std::cout << "[Network] Binary telemetry received: " << websocketEvent->numBytes << " bytes" << std::endl;
         }
 
-        // Update our plots with the new data
+        // Update our plots with rcved data
+        // Itterate over each panel loaded into the dashBoard
         for (auto& panel : current_dashboard) {
+            // Itterate over each dashBoardElement in the panel
             for (auto& object : panel.dashboardObjects) {
                 
+                //Parsing packets of sinks
                 if (object.type == dashboardElementType::TIME_SERIES 
                     || object.type == dashboardElementType::FREQUENCY_SINK 
                     || object.type == dashboardElementType::VECTOR_SINK
                     || object.type == dashboardElementType::CONSTELLATION_SINK
                     || object.type == dashboardElementType::WATERFALL_SINK) { 
                     
+                    //We first want to check if the rcved packets header matches with this dashBoardElement
+                    //Get the size of the id of the current dashBoardElement
                     size_t topic_len = object.id.size();
-                    // Match incoming binary packet header against this plot's topic ID
-                    // Checks if buffer has more bytes than the length of the id
-                    // Then compare the first N bytes (Length of the ID) of the packet with the ID of the plot 
-                    if (websocketEvent->numBytes > topic_len && 
-                        std::strncmp((const char*)websocketEvent->data, object.id.c_str(), topic_len) == 0) {
+                    //Check there exists enough bytes to contain the id (Saftey precaution)
+                    //Compare the objects id with the id contained in the packet (The actual check to see if we have a match)
+                    if (websocketEvent->numBytes > topic_len && std::strncmp((const char*)websocketEvent->data, object.id.c_str(), topic_len) == 0) {
                         
-                        //Dashboard element has rcved data, no longer want it to display its awaiting data
-                        if (!object.has_rcved_data){
-                            
-                            //Dashboard element has rcved data, no longer want it to display its awaiting data
-                            object.has_rcved_data = true;
+                        //Itterate after the first delimter (':') using an offset
+                        size_t offset = topic_len;
 
-                        }
+                        //Check offset size is less than the total number of bytes (Saftey precaution)
+                        //Check if the character at the offset is the delimter
+                        if (offset < websocketEvent->numBytes && ((const char*)websocketEvent->data)[offset] == ':') 
+                        { offset++; }
 
-                        size_t data_offset = topic_len;
-                        // Move data offset past the delimter 
-                        // TO DO: Consider using reinterpret_cast instead of c-style cast
-                        if (data_offset < websocketEvent->numBytes && (((const char*)websocketEvent->data)[data_offset] == ':'))
-                            data_offset++;
+                        //Start off after the first delimter
+                        size_t source_start = offset;
+                        //Check offset size is less than the total number of bytes (Saftey precaution)
+                        //Check if the character at the offset is the delimter
+                        //If its not keep itterating until we reach the second delimter
+                        while (offset < websocketEvent->numBytes && ((const char*)websocketEvent->data)[offset] != ':') 
+                        { offset++; }
                         
+                        //Copy the dataSource of the packet
+                        std::string incoming_source(((const char*)websocketEvent->data) + source_start, offset - source_start);
                         
-                        //Calculate the length of bytes the data is stored in
+                        //Skip the second delimter
+                        if (offset < websocketEvent->numBytes) { offset++; };
+
+                        //Itterate over all the dataSources in the dashBoardElement to find which one this packet belongs to
+                        auto correct_dataSource = std::find_if(object.dataSources.begin(), object.dataSources.end(), [&](const dataSourceState& s) { return s.name == incoming_source; });
+                        
+                        //Skip if you cant find the dataSource
+                        //TO DO: Should probably just break out and print a could not find data source statment for example
+                        //Since its not possible really for this case to occur unless something wrong has happened
+                        if (correct_dataSource == object.dataSources.end()) { continue; }
+
+                        //Update the rcved data flag for this element if it has not rcved any data before
+                        if (!correct_dataSource->has_rcved_data) { correct_dataSource->has_rcved_data = true; }
+
+                        //Find the size of the payload and use it to find the number of floats
+                        //TO DO: This will probably need to be adjust according to the data type
+                        size_t data_offset = offset;
                         int valid_payload_bytes = websocketEvent->numBytes - data_offset;
-                        //Calculate the number of floats
-                        int num_floats = valid_payload_bytes / sizeof(float);
+                        int num_floats = valid_payload_bytes / sizeof(float);                        
                         
                         //Copy the floats into a vector 
                         if (num_floats > 0) {
-                            std::vector<float> incoming_floats(num_floats);
 
+                            std::vector<float> incoming_floats(num_floats);
                             //TO DO: Check if this could cause issues somehow
                             std::memcpy(incoming_floats.data(), websocketEvent->data + data_offset, valid_payload_bytes);
 
                             if(object.type == dashboardElementType::TIME_SERIES){                    
                                 //Push floats to buffer 
                                 for (int i = 0; i < num_floats; i++) {
-                                    object.databuffer.push_back(incoming_floats[i]);
+                                    correct_dataSource->databuffer.push_back(incoming_floats[i]);
                                 }
                 
                                 //Overwriting the oldest samples with newer samples 
                                 int max_window_size = 9600;                
-                                if (object.databuffer.size() > max_window_size) {
+                                if (correct_dataSource->databuffer.size() > max_window_size) {
                                     // Erase the oldest samples from the front of the vector
-                                    object.databuffer.erase(
-                                        object.databuffer.begin(), 
-                                        object.databuffer.begin() + (object.databuffer.size() - max_window_size)
+                                    correct_dataSource->databuffer.erase(
+                                        correct_dataSource->databuffer.begin(), 
+                                        correct_dataSource->databuffer.begin() + (correct_dataSource->databuffer.size() - max_window_size)
                                     );
                                 }
                                 
                                 // Prevent ImGui crash on empty buffer
-                                if (object.databuffer.empty()) {
-                                    object.databuffer.push_back(0.0f);
+                                if (correct_dataSource->databuffer.empty()) {
+                                    correct_dataSource->databuffer.push_back(0.0f);
                                 }
 
                             }
@@ -416,10 +463,10 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
                                 }
 
                                 //Check if the incoming_floats size is smaller than that data buffer
-                                std::size_t vectorSize = std::min(incoming_floats.size(), object.databuffer.size());
+                                std::size_t vectorSize = std::min(incoming_floats.size(), correct_dataSource->databuffer.size());
 
                                 //Copy into the buffer the floats 
-                                std::copy(incoming_floats.begin(), incoming_floats.begin() + vectorSize, object.databuffer.begin());                                
+                                std::copy(incoming_floats.begin(), incoming_floats.begin() + vectorSize, correct_dataSource->databuffer.begin());                                
                                 
 
                             }
@@ -437,14 +484,14 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
                                 }
 
                                 //Check if the incoming_floats size is smaller than that data buffer
-                                std::size_t vectorSize = std::min(incoming_floats.size(), object.databuffer.size());
+                                std::size_t vectorSize = std::min(incoming_floats.size(), correct_dataSource->databuffer.size());
 
                                 //Copy into the buffer the floats 
-                                std::copy(incoming_floats.begin(), incoming_floats.begin() + vectorSize, object.databuffer.begin());   
+                                std::copy(incoming_floats.begin(), incoming_floats.begin() + vectorSize, correct_dataSource->databuffer.begin());   
                                 //Zero out the rest of the buffer
-                                if (vectorSize < object.databuffer.size()) {
-                                    //TO DO, UPDATE THIS TO BE THE DYNAMIC NOISE FLOOR
-                                    std::fill(object.databuffer.begin() + vectorSize, object.databuffer.end(), -140.0);
+                                if (vectorSize < correct_dataSource->databuffer.size()) {
+                                    //TO DO: UPDATE THIS TO BE THE DYNAMIC NOISE FLOOR
+                                    std::fill(correct_dataSource->databuffer.begin() + vectorSize, correct_dataSource->databuffer.end(), -140.0);
                                 }                             
                                 
                             }
@@ -456,8 +503,8 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
                                 int history = object.history_size;
 
                                 //Shift the history down one row
-                                std::memmove(object.databuffer.data() + fft_size, //Select everything after that first row
-                                            object.databuffer.data(), //Select all the data in the buffer
+                                std::memmove(correct_dataSource->databuffer.data() + fft_size, //Select everything after that first row
+                                            correct_dataSource->databuffer.data(), //Select all the data in the buffer
                                             (history - 1) * fft_size * sizeof(float)); //all the slots in history - 1, times the number of elements per row, times the size of their type. Total memory size minus the first row
 
 
@@ -466,12 +513,12 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
                                 
                                 //Check if there actually is a difference
                                 int valid_bins = std::min(num_floats, fft_size);
-                                std::memcpy(object.databuffer.data(), incoming_floats.data(), valid_bins * sizeof(float));
+                                std::memcpy(correct_dataSource->databuffer.data(), incoming_floats.data(), valid_bins * sizeof(float));
 
                                 // Fill the remainder of the row (buffer) with the noise floor
                                 if (valid_bins < fft_size) {
-                                    std::fill(object.databuffer.begin() + valid_bins, 
-                                            object.databuffer.begin() + fft_size, 
+                                    std::fill(correct_dataSource->databuffer.begin() + valid_bins, 
+                                            correct_dataSource->databuffer.begin() + fft_size, 
                                             -140.0f);
                                 }
 
@@ -482,7 +529,8 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
                     }
 
 
-                }          
+                }     
+                //Parsing packets of widgets     
                 else if (object.type == dashboardElementType::SLIDER) {
 
                     size_t topic_len = object.id.size();
@@ -615,8 +663,7 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
                 if (websocketEvent->numBytes > topic_len && 
                     std::strncmp((const char*)websocketEvent->data, object.id.c_str(), topic_len) == 0) {
                     
-
-                    size_t data_offset = topic_len;
+                        size_t data_offset = topic_len;
                     // Move data offset past the delimter 
                     // TO DO: Consider using reinterpret_cast instead of c-style cast
                     if (data_offset < websocketEvent->numBytes && (((const char*)websocketEvent->data)[data_offset] == ':'))
@@ -713,11 +760,14 @@ void main_loop(){
             {
                 for(auto& object : panel.dashboardObjects){
                     
-                        //Sinks
+                        //Check if any of the dashBoardElements its sources rcved data
+                        bool has_data = std::any_of(object.dataSources.begin(), object.dataSources.end(), 
+                            [](const dataSourceState& ds) { return ds.has_rcved_data; });
+                        
                         if (object.type == dashboardElementType::TIME_SERIES){
                             
                             //Check if we actually have data in the buffer
-                            if (object.has_rcved_data) {
+                            if (has_data) {
                                 
                                 std::string hidden_id = "##" + object.id;
                                 
@@ -730,10 +780,15 @@ void main_loop(){
                                     //Zooming in and out
                                     ImPlot::SetupAxisLimits(ImAxis_Y1, -2.0, 2.0, ImPlotCond_Once);
                                     
+                                    size_t buf_size =  object.dataSources[0].databuffer.size();
                                     // We keep X locked to the buffer size so it acts like a live oscilloscope screen
-                                    ImPlot::SetupAxisLimits(ImAxis_X1, 0, (double)object.databuffer.size(), ImPlotCond_Once);
+                                    ImPlot::SetupAxisLimits(ImAxis_X1, 0, (double)buf_size, ImPlotCond_Once);
                                     
-                                    ImPlot::PlotLine(hidden_id.c_str(), object.databuffer.data(), (int)object.databuffer.size());
+                                    for (auto& data_source : object.dataSources) {
+                                        //This is used as a legend entry
+                                        std::string series_label = data_source.name;   
+                                        ImPlot::PlotLine(series_label.c_str(), data_source.databuffer.data(), (int)data_source.databuffer.size());
+                                    }
                                     ImPlot::EndPlot();                        
                                 } 
                             } 
@@ -744,20 +799,35 @@ void main_loop(){
                         }
                         else if (object.type == dashboardElementType::FREQUENCY_SINK){
                             
-                            if(object.has_rcved_data){
+                            if(has_data){
                                 std::string hidden_id = "##" + object.id;
 
                                 if(ImPlot::BeginPlot(object.title.c_str(), ImVec2(-1, 300))){
 
+
                                     ImPlot::SetupAxes(object.x_axis_label.c_str(),object.y_axis_label.c_str());
 
-                                    
-                                    double freq_span = (double)object.databuffer.size() * object.step_freq;
+                                    size_t buf_size = object.dataSources[0].databuffer.size();
+                                    double freq_span = buf_size * object.step_freq;
                                     ImPlot::SetupAxisLimits(ImAxis_X1, object.start_freq, object.start_freq + freq_span, ImPlotCond_Always);
                                     ImPlot::SetupAxisLimits(ImAxis_Y1, -140.0, 20.0, ImPlotCond_Once);
                                     
+
+                                    //Frequency x-axis
+                                    static std::vector<float> frequency_x_axis;
+                                    frequency_x_axis.resize(buf_size);
+                                    //We dynamically create x-axis according to the start frequency, step frequency, and buffer size
+                                    for (std::size_t i = 0; i < buf_size; i++) {
+                                        frequency_x_axis[i] = static_cast<float>(object.start_freq + i * object.step_freq);
+                                    }
+
+
                                     //Create plotline
-                                    ImPlot::PlotLine(hidden_id.c_str(), object.databuffer.data(), (int)object.databuffer.size(), object.step_freq, object.start_freq);
+                                    for (auto& data_source : object.dataSources) {
+                                        //This is used as a legend entry
+                                        std::string series_label = data_source.name;   
+                                        ImPlot::PlotLine(series_label.c_str(), frequency_x_axis.data(), data_source.databuffer.data(), (int)data_source.databuffer.size());
+                                    }
                                     ImPlot::EndPlot();
                                 }
 
@@ -768,18 +838,23 @@ void main_loop(){
                         }
                         else if (object.type == dashboardElementType::VECTOR_SINK){
                             
-                            if(object.has_rcved_data){
+                            if(has_data){
                                 std::string hidden_id = "##" + object.id;
                             
                                 if(ImPlot::BeginPlot(object.title.c_str(),ImVec2(-1,250))) {
                                     
                                     ImPlot::SetupAxes(object.x_axis_label.c_str(),object.y_axis_label.c_str());
                                     // Lock X-axis bounds to match the vector length
-                                    ImPlot::SetupAxisLimits(ImAxis_X1, 0, (double)object.databuffer.size(), ImPlotCond_Always);
+                                    size_t buf_size = object.dataSources[0].databuffer.size();
+                                    ImPlot::SetupAxisLimits(ImAxis_X1, 0, (double)buf_size, ImPlotCond_Always);
                                     ImPlot::SetupAxisLimits(ImAxis_Y1, -2.0, 2.0, ImPlotCond_Once);
 
                                     // Render the vector values against indicies
-                                    ImPlot::PlotLine(hidden_id.c_str(), object.databuffer.data(), (int)object.databuffer.size());
+                                    for (auto& data_source : object.dataSources) {
+                                        //This is used as a legend entry
+                                        std::string series_label = data_source.name;   
+                                        ImPlot::PlotLine(series_label.c_str(), data_source.databuffer.data(), (int)data_source.databuffer.size());
+                                    }
                                     ImPlot::EndPlot();
                                 } 
                                 
@@ -791,7 +866,7 @@ void main_loop(){
                         }
                         else if (object.type == dashboardElementType::CONSTELLATION_SINK) {
                             
-                            if (object.has_rcved_data) {
+                            if (has_data) {
                                 std::string hidden_id = "##" + object.id;
                             
                                 // A square aspect ratio is usually best for constellation diagrams
@@ -804,19 +879,28 @@ void main_loop(){
 
                                     // Split the interleaved I/Q buffer into separate X and Y arrays
                                     // Made them static to avoid reallocation everytime
+                                    //TO DO: May be a good idea to realocate these somewhere else
                                     static std::vector<float> xs;
                                     static std::vector<float> ys;
 
                                     xs.resize(object.windowSize);
                                     ys.resize(object.windowSize);
 
+                                    for (auto& data_source : object.dataSources) {
+                                                    
+                                    // Safely de-interleave I and Q
                                     for(int i = 0; i < object.windowSize; i++) {
-                                        xs[i] = object.databuffer[i * 2];       // Even indices = I
-                                        ys[i] = object.databuffer[i * 2 + 1];   // Odd indices  = Q
+                                        // Check bounds just in case the buffer isn't fully filled yet
+                                        if ((i * 2 + 1) < data_source.databuffer.size()) {
+                                            xs[i] = data_source.databuffer[i * 2];       // Even = I
+                                            ys[i] = data_source.databuffer[i * 2 + 1];   // Odd  = Q
+                                        }
                                     }
 
-                                    // Render scatter plot using the separated arrays (4 arguments)
-                                    ImPlot::PlotScatter(hidden_id.c_str(), xs.data(), ys.data(), (int)object.windowSize);
+                                    std::string series_label = data_source.name;   
+                                    ImPlot::PlotScatter(series_label.c_str(), xs.data(), ys.data(), (int)object.windowSize);
+                                    }
+
                                     ImPlot::EndPlot();
                                 } 
                             }
@@ -826,7 +910,7 @@ void main_loop(){
                         }
                         else if (object.type == dashboardElementType::WATERFALL_SINK){
 
-                            if (object.has_rcved_data) {
+                            if (has_data) {
                                 std::string hidden_id = "##" + object.id;
 
                                 // Apply a colormap (This is the look that looked most like waterfall plots i usually see)
@@ -844,7 +928,7 @@ void main_loop(){
 
                                     // Render the flattened vector as a Heatmap
                                     ImPlot::PlotHeatmap(hidden_id.c_str(), 
-                                                        object.databuffer.data(), 
+                                                        object.dataSources[0].databuffer.data(), //Waterfall will only ever have one plot not multiple data sources
                                                         object.history_size,    // rows
                                                         object.windowSize,      // cols
                                                         -140.0, 0.0,            // Scale min/max bounds (dB limits for the colors)
