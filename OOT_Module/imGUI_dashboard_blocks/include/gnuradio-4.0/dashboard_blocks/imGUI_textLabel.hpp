@@ -38,6 +38,8 @@ namespace gr::dashboard_blocks {
         
         gr::Annotated<std::string, "target_property", gr::Visible> target_property = "current_val";
 
+        gr::Annotated<std::size_t, "max_length", gr::Visible> max_length = 256;
+
 
         //TO DO: This section should contain any variables which are not relevant to the user interface with the sink block
         // **Irrlevant to user interface**
@@ -104,7 +106,7 @@ namespace gr::dashboard_blocks {
             });
         }
 
-        GR_MAKE_REFLECTABLE(imGUI_textLabel, out, widget_id, title, panel_name, target_property, endpoint, dashboard_server, current_val);
+        GR_MAKE_REFLECTABLE(imGUI_textLabel, out, widget_id, title, panel_name, target_property, endpoint, max_length, dashboard_server, current_val);
 
         //ZMQ subscriber to the ZMQ publisher in the dashboard_server graph for updating widgets
         void start() {
@@ -169,6 +171,10 @@ namespace gr::dashboard_blocks {
             //This is the only way the text on this widget ever changes
             if (this->get_external_val) {
                 std::string current_flowgraph_val = this->get_external_val();
+
+                //Max length check
+                //Truncates if longer than max
+                if (current_flowgraph_val.size() > max_length.value) { current_flowgraph_val.resize(max_length.value); }
                 if (current_flowgraph_val != current_val.value) { current_val.value = current_flowgraph_val; }
             }
 
@@ -181,11 +187,11 @@ namespace gr::dashboard_blocks {
             //Nothing it every actually published from the output port
             output.publish(0);
             return gr::work::Status::OK;
+        
         }
-    };
-
+    }; // namespace gr::dashboard_blocks
 } // namespace gr::dashboard_blocks
 
-GR_REGISTER_BLOCK("gr::dashboard_blocks::imGUI_textLabel", gr::dashboard_blocks::imGUI_textLabel, [std::uint8_t])
 
+GR_REGISTER_BLOCK("gr::dashboard_blocks::imGUI_textLabel", gr::dashboard_blocks::imGUI_textLabel, [std::uint8_t])
 #endif
