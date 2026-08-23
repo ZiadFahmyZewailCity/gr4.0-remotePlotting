@@ -2,59 +2,6 @@
   "msg_type": "config",
   "panels": [
     {
-      "panel_name": "Controls",
-      "dashboardElement": [
-        {
-          "id": "freq_slider",
-          "panel_name": "Controls",
-          "type": "slider",
-          "title": "Source Frequency (Hz)",
-          "min": 0.0,
-          "max": 24000.0,
-          "target": "current_val"
-        },
-        {
-          "id": "freq_checkBox",
-          "type": "checkBox",
-          "panel_name": "Controls",
-          "title": "WIDGET_NAME_1",
-          "target": "current_val"
-        },
-        {
-          "id": "freq_button",
-          "type": "button",
-          "panel_name": "Controls",
-          "title": "WIDGET_NAME_1",
-          "target": "current_val"
-        },
-        {
-          "id": "freq_dropdown",
-          "type": "dropdown",
-          "panel_name": "Controls",
-          "title": "WIDGET_NAME_1",
-          "target": "frequency",
-          "options": [
-            "Low",
-            "High"
-          ]
-        },
-        {
-          "id": "offset_input_1",
-          "type": "textBox",
-          "panel_name": "Controls",
-          "title": "WIDGET_NAME_1",
-          "target": "current_val"
-        },
-        {
-          "id": "freq_label",
-          "panel_name": "Controls",
-          "type": "textLabel",
-          "title": "WIDGET_NAME_1",
-          "target": "current_val"
-        }
-      ]
-    },
-    {
       "panel_name": "Frequency Domain",
       "dashboardElement": [
         {
@@ -83,23 +30,6 @@
           "dataSources": [
             "freq_1:float32",
             "freq_2:float32"
-          ]
-        }
-      ]
-    },
-    {
-      "panel_name": "Time Domain",
-      "dashboardElement": [
-        {
-          "id": "time_plot_1",
-          "type": "timeSeries",
-          "panel_name": "Time Domain",
-          "title": "Real Time Series (Float)",
-          "x_axis_label": "Samples",
-          "y_axis_label": "Amplitude",
-          "dataSources": [
-            "wave_toggle:float32",
-            "wave_1khz:float32"
           ]
         }
       ]

@@ -55,8 +55,6 @@ namespace gr::dashboard_blocks {
         //TO DO: Create a representive description for this block
         using Description = gr::Doc<R""(FrequencySink)"">;
 
-        
-
 
         // **Variables that can be adjusted by the user**
 
@@ -74,16 +72,20 @@ namespace gr::dashboard_blocks {
         gr::Annotated<std::string, "y_axis_label", gr::Visible> y_axis_label = "y_axis";
 
         gr::Annotated<std::vector<std::string>, "data_sources", gr::Visible> dataSources = std::vector<std::string>{"default_source_1"};
-
+        
         gr::Annotated<size_t, "Window Size", gr::Visible> windowSize = 1024UL;
-        //TO DO: Any reason to default to something in specific, currently default to Hann
+
         gr::Annotated<gr::algorithm::window::Type, "Window Type", gr::Visible> windowType = gr::algorithm::window::Type::Hann;
-        //CURRENTLY PLACEHOLDER DOESNT DO ANYTHING
+        //Create a second data source for each port that publishes the phase of the input
+        gr::Annotated<bool, "Output Phase", gr::Visible> publishPhase = false;
+        gr::Annotated<bool, "Unwrap Phase", gr::Visible> unwrapPhase = false;
+
+        //Not implemented
         gr::Annotated<triggerType, "Trigger Type", gr::Visible> typeOfTrigger;
-        //CURRENTLY PLACE HOLDER DOESNT DO ANYTHING
         gr::Annotated<averagingType, "Averaging Type",gr::Visible> typeOfAveraging;
         gr::Annotated<float, "Sample Rate", gr::Visible, gr::Unit<"Hz">> sampleRate = 1.0f;
         gr::Annotated<bool, "Output in dB", gr::Visible> outputInDb = true;
+        gr::Annotated<bool, "Output Phase in Degrees", gr::Visible> outputPhaseInDeg = false;
 
         gr::Annotated<size_t, "max_buffered_samples", gr::Visible> maxBufferedSamples = windowSize.value * 4;
 
@@ -125,6 +127,9 @@ namespace gr::dashboard_blocks {
                 json_data += "\"dataSources\": [";
                 for (std::size_t i = 0; i < this->dataSources.value.size(); ++i) {
                     json_data += "\"" + this->dataSources.value[i] + ":" + dashboard_dtypeTag<T>() + "\"";
+                    if (publishPhase.value) {
+                        json_data += ", \"" + this->dataSources.value[i] + "_phase:" + dashboard_dtypeTag<T>() + "\"";
+                    }
                     if (i + 1 < this->dataSources.value.size()) { json_data += ", "; }
                 }
                 json_data += "] ";
@@ -135,51 +140,71 @@ namespace gr::dashboard_blocks {
 
 
 
-        GR_MAKE_REFLECTABLE(imGUI_frequencySink, in, id, title, panel_name, x_axis_label, y_axis_label, dataSources, windowSize, sampleRate, windowType, outputInDb, typeOfTrigger, typeOfAveraging, maxBufferedSamples, endpoint);
-        void start() {
+    GR_MAKE_REFLECTABLE(imGUI_frequencySink, in, id, title, panel_name, x_axis_label, y_axis_label, dataSources, windowSize, sampleRate, windowType, outputInDb, publishPhase, unwrapPhase, outputPhaseInDeg, typeOfTrigger, typeOfAveraging, maxBufferedSamples, endpoint);
+    
+    void start() {
 
-            publisher = zmq::socket_t(zmq_ctx, zmq::socket_type::pub);
-            publisher.connect(endpoint.value);
+        publisher = zmq::socket_t(zmq_ctx, zmq::socket_type::pub);
+        publisher.connect(endpoint.value);
 
-            //Configuring the shared FFT block
-            FFTblock.fftSize = this->windowSize;
-            FFTblock.sample_rate = this->sampleRate;
-            FFTblock.window = std::string(magic_enum::enum_name(this->windowType.value));
-            FFTblock.outputInDb = this->outputInDb;
+        //Configuring the shared FFT block
+        FFTblock.fftSize = windowSize.value;
+        FFTblock.sample_rate = sampleRate.value;
+        FFTblock.window = std::string(magic_enum::enum_name(windowType.value));
+        FFTblock.outputInDb = outputInDb.value; 
+        FFTblock.outputInDeg = outputPhaseInDeg.value; 
+        FFTblock.unwrapPhase = unwrapPhase.value; 
 
-            // DIAGNOSTIC: unbuffered (std::cerr, explicit flush) so this can't be lost to
-            // stdout buffering/interleaving - confirms whether settingsChanged actually
-            // resized everything correctly BEFORE the scheduler starts calling processBulk.
-            std::cerr << "[freq_sink::start] id=" << id.value
-                      << " in.size()=" << in.size()
-                      << " internal_buffers.size()=" << internal_buffers.size()
-                      << " dataSources.size()=" << dataSources.value.size()
-                      << std::endl;
+        FFTblock.settingsChanged({}, {{"fftSize", gr::Size_t(windowSize.value)},
+                              {"window",  FFTblock.window.value}});
 
-            //Which ever block reaches this first will start dashboard server
-            imGUI_DashboardRegistry::getInstance().boot_dashboardServer_Once();
-        }
+        //debug message, uncomment when needed
+        /*
+        std::cerr << "[freq_sink::start] id=" << id.value
+                    << " in.size()=" << in.size()
+                    << " internal_buffers.size()=" << internal_buffers.size()
+                    << " dataSources.size()=" << dataSources.value.size()
+                    << std::endl;
+        */
+        //Which ever block reaches this first will start dashboard server
+        imGUI_DashboardRegistry::getInstance().boot_dashboardServer_Once();
+    }
 
-        void stop() {
-            if (publisher) publisher.close();
+    void stop() {
+        if (publisher) publisher.close();
 
-            //unregistering from singleton
-            imGUI_DashboardRegistry::getInstance().unregisterBlockAndTeardown();
-            
-        }
+        //unregistering from singleton
+        imGUI_DashboardRegistry::getInstance().unregisterBlockAndTeardown();
+        
+    }
 
         void settingsChanged(const gr::property_map&, const gr::property_map& newSettings) {
+            
             if (newSettings.contains("data_sources")) {
                 in.resize(dataSources.value.size());
                 internal_buffers.resize(dataSources.value.size());
             }
+            if (newSettings.contains("sampleRate"))          { FFTblock.sample_rate = sampleRate.value; }
+            if (newSettings.contains("outputInDb"))          { FFTblock.outputInDb = outputInDb.value; }
+            if (newSettings.contains("outputPhaseInDeg"))    { FFTblock.outputInDeg = outputPhaseInDeg.value; }
+            if (newSettings.contains("unwrapPhase"))         { FFTblock.unwrapPhase = unwrapPhase.value; }
+
+            if (newSettings.contains("windowSize")) {
+                FFTblock.fftSize = windowSize.value;
+                FFTblock.settingsChanged({}, {{"fftSize", gr::Size_t(windowSize.value)}});
+            }
+            if (newSettings.contains("windowType")) {
+                FFTblock.window = std::string(magic_enum::enum_name(windowType.value));
+                FFTblock.settingsChanged({}, {{"window", FFTblock.window.value}});
+            }
+
         }
 
         template<gr::InputSpanLike TInSpan>
         [[nodiscard]] gr::work::Status processBulk(std::span<TInSpan>& input_ports) {
 
-            // DIAGNOSTIC: throttled to every 50th call so it doesn't spam the terminal -
-            // still enough to confirm the block is being scheduled regularly.
+            //Debug message, uncomment when needed
+            /*
             static std::size_t enter_count = 0;
             enter_count++;
             if (enter_count % 50 == 1) {
@@ -187,6 +212,7 @@ namespace gr::dashboard_blocks {
                           << " id=" << id.value
                           << " input_ports.size()=" << input_ports.size() << std::endl;
             }
+            */
 
             for (std::size_t i = 0; i < input_ports.size(); i++) {
 
@@ -226,8 +252,9 @@ namespace gr::dashboard_blocks {
                         std::size_t num_bins = static_cast<std::size_t>(dataset.extents[0]);
                         auto* magnitudes_ptr = dataset.signal_values.data();
 
-                        // DIAGNOSTIC: confirm what's being published per source - throttled
-                        // to every 20th publish per port so 3 sources don't triple the spam.
+
+                        //Debug message, uncomment when needed
+                        /*
                         static std::vector<std::size_t> publish_counts;
                         if (publish_counts.size() <= i) publish_counts.resize(i + 1, 0);
                         publish_counts[i]++;
@@ -240,6 +267,7 @@ namespace gr::dashboard_blocks {
                                       << ", " << (num_bins > 1 ? magnitudes_ptr[1] : 0.f) << "]"
                                       << std::endl;
                         }
+                        */
 
                         //TO DO: Add averaging
 
@@ -256,6 +284,17 @@ namespace gr::dashboard_blocks {
 
                         //4) Send
                         publisher.send(z_msg, zmq::send_flags::dontwait);
+
+
+                        if (publishPhase.value) {
+                            auto* phase_ptr = magnitudes_ptr + num_bins;   
+                            std::string phaseHeader = id.value + ":" + dataSources.value[i] + "_phase:";
+                            std::size_t phaseSize = phaseHeader.size() + (num_bins * sizeof(floatType));
+                            zmq::message_t phase_msg(phaseSize);
+                            std::memcpy(phase_msg.data(), phaseHeader.data(), phaseHeader.size());
+                            std::memcpy(static_cast<char*>(phase_msg.data()) + phaseHeader.size(), phase_ptr, num_bins * sizeof(floatType));
+                            publisher.send(phase_msg, zmq::send_flags::dontwait);
+                        }
                     }
 
                     offset += windowSize.value;
