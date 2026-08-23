@@ -14,9 +14,9 @@
           "presistance_on": true,
           "numberOfPoints": "256",
           "dataSources": [
-            "complex_1",
-            "complex_2",
-            "complex_3"
+            "complex_1:complex64",
+            "complex_2:complex64",
+            "complex_3:complex64"
           ]
         }
       ]
@@ -79,7 +79,7 @@
           "samplingFreq": "48000.000000",
           "historySize": "100",
           "dataSources": [
-            "default_source_1"
+            "default_source_1:float32"
           ]
         }
       ]
@@ -91,13 +91,26 @@
           "id": "time_plot_1",
           "type": "timeSeries",
           "panel_name": "Time Domain",
-          "title": "Testing the title of the time block",
-          "x_axis_label": "Checking X axis works (#59)",
-          "y_axis_label": "Checking y axis works (@23)",
+          "title": "Real Time Series (Float)",
+          "x_axis_label": "Samples",
+          "y_axis_label": "Amplitude",
           "dataSources": [
-            "wave_toggle",
-            "wave_1khz",
-            "wave_3khz"
+            "wave_toggle:float32",
+            "wave_1khz:float32",
+            "wave_3khz:float32"
+          ]
+        },
+        {
+          "id": "time_plot_complex",
+          "type": "timeSeries",
+          "panel_name": "Time Domain",
+          "title": "Complex Time Series (I/Q Split)",
+          "x_axis_label": "Samples",
+          "y_axis_label": "Amplitude",
+          "dataSources": [
+            "complex_time_1:complex64",
+            "complex_time_2:complex64",
+            "complex_time_3:complex64"
           ]
         }
       ]
@@ -114,9 +127,9 @@
           "y_axis_label": "check_y_vector",
           "vectorSize": "1024",
           "dataSources": [
-            "vec_toggle",
-            "vec_1khz",
-            "vec_3khz"
+            "vec_toggle:float32",
+            "vec_1khz:float32",
+            "vec_3khz:float32"
           ]
         }
       ]

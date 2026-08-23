@@ -8,18 +8,21 @@
 #include <gnuradio-4.0/meta/reflection.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_management.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_typeResolving.hpp>
+#include <gnuradio-4.0/meta/utils.hpp>
+
 
 // External dependencies
-#include <gnuradio-4.0/meta/utils.hpp>
 #include <zmq.hpp>
 #include <string>
 #include <cstring>
 #include <span>
+#include <concepts>
 
 
 namespace gr::dashboard_blocks {
 
     template <typename T>
+    requires(gr::meta::complex_like<T> || std::floating_point<T>)
     struct imGUI_vectorSink : gr::Block<imGUI_vectorSink<T>> {
 
         // TO DO: Add a description
@@ -51,7 +54,7 @@ namespace gr::dashboard_blocks {
 
         // Input Port explicitly requires discrete vectors, not a stream of scalars
         std::vector<gr::PortIn<gr::DataSet<T>>> in;
-         std::vector<std::vector<gr::DataSet<T>>> internal_buffers;
+        std::vector<std::vector<gr::DataSet<T>>> internal_buffers;
 
         // ZMQ related variables
         gr::Annotated<std::string, "zmq_endpoint"> endpoint = "ipc:///tmp/gr4_dashboard_data.sock";
@@ -73,7 +76,7 @@ namespace gr::dashboard_blocks {
                 json_data += "\"vectorSize\": \"" + std::to_string(this->vectorSize.value) + "\", ";
                 json_data += "\"dataSources\": [";
                 for (std::size_t i = 0; i < this->dataSources.value.size(); ++i) {
-                    json_data += "\"" + this->dataSources.value[i] + "\"";
+                    json_data += "\"" + this->dataSources.value[i] + ":" + dashboard_dtypeTag<T>() + "\"";
                     if (i + 1 < this->dataSources.value.size()) { json_data += ", "; }
                 }
                 json_data += "] ";

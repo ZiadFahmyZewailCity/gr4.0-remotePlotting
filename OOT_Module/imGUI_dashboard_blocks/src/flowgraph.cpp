@@ -31,7 +31,7 @@ int main() {
 
     /*
     ============================================================
-    Real-valued chain shared by waterFallSink and timeSeries
+    Real-valued chain shared by waterFallSink and timeSeries[cite: 11]
     ============================================================
     */
     auto& source = graph.emplaceBlock<basicBlocks::SignalGenerator<float>>();
@@ -66,9 +66,9 @@ int main() {
     time_sink.settingsChanged({}, {{"data_sources", true}});
     time_sink.id   = "time_plot_1";
     time_sink.panel_name = "Time Domain";
-    time_sink.title = "Testing the title of the time block";
-    time_sink.x_axis_label = "Checking X axis works (#59)";
-    time_sink.y_axis_label = "Checking y axis works (@23)";
+    time_sink.title = "Real Time Series (Float)";
+    time_sink.x_axis_label = "Samples";
+    time_sink.y_axis_label = "Amplitude";
 
     auto& waterfall_sink = graph.emplaceBlock<dashboardBlocks::imGUI_waterFallSink<float>>();
     waterfall_sink.settingsChanged({}, {{"data_sources", true}});
@@ -83,7 +83,7 @@ int main() {
 
     /*
     ============================================================
-    vector_sink's dedicated sources 
+    vector_sink's dedicated sources[cite: 11]
     ============================================================
     */
     auto& vec_source = graph.emplaceBlock<basicBlocks::SignalGenerator<float>>();
@@ -158,7 +158,7 @@ int main() {
 
     /*
     ============================================================
-    Complex chain: drives constellationSink
+    Complex chain: drives constellationSink & time_sink_complex[cite: 11]
     ============================================================
     */
     auto& source_complex = graph.emplaceBlock<basicBlocks::SignalGenerator<std::complex<float>>>();
@@ -203,7 +203,7 @@ int main() {
     throttle_complex3.busy_wait = false;
     auto& throttle_complex3_drain = graph.emplaceBlock<testing::NullSink<std::complex<float>>>();
 
-    auto& constellation_sink = graph.emplaceBlock<dashboardBlocks::imGUI_constellationSink<float>>();
+    auto& constellation_sink = graph.emplaceBlock<dashboardBlocks::imGUI_constellationSink<std::complex<float>>>();
     constellation_sink.dataSources = std::vector<std::string>{"complex_1", "complex_2", "complex_3"};
     constellation_sink.settingsChanged({}, {{"data_sources", true}});
     constellation_sink.id = "constellation_1";
@@ -213,9 +213,19 @@ int main() {
     constellation_sink.y_axis_label = "checking_y_axis_constellation";
     constellation_sink.numberOfPoints = 256;
 
+    // New Complex Time Series Sink
+    auto& time_sink_complex = graph.emplaceBlock<dashboardBlocks::dep_imGUI_timeSeries<std::complex<float>>>();
+    time_sink_complex.dataSources = std::vector<std::string>{"complex_time_1", "complex_time_2", "complex_time_3"};
+    time_sink_complex.settingsChanged({}, {{"data_sources", true}});
+    time_sink_complex.id = "time_plot_complex";
+    time_sink_complex.panel_name = "Time Domain";
+    time_sink_complex.title = "Complex Time Series (I/Q Split)";
+    time_sink_complex.x_axis_label = "Samples";
+    time_sink_complex.y_axis_label = "Amplitude";
+
     /*
     ============================================================
-    Widgets
+    Widgets[cite: 11]
     ============================================================
     */
     auto& checkBox_src = graph.emplaceBlock<dashboardBlocks::dep_imGUI_checkBox<float>>();
@@ -246,7 +256,6 @@ int main() {
     freq_label.panel_name = "Controls";
     auto& freq_label_drain = graph.emplaceBlock<testing::NullSink<float>>();
 
-    // Shared toggle state driving the real source's frequency
     bool freq_toggle_state = false;
 
     auto apply_freq_toggle = [&source](bool state) {
@@ -284,7 +293,6 @@ int main() {
         return freq_toggle_state ? "High" : "Low";
     };
 
-    // Text box drives the complex source's DC offset live
     text_box.on_val_update = [&source_complex](std::string msg) {
         try {
             float new_offset = std::stof(msg);
@@ -312,7 +320,7 @@ int main() {
 
     /*
     ============================================================
-    Connections
+    Connections[cite: 11]
     ============================================================
     */
     auto source_to_time0 = graph.connect(source, "out", time_sink, "in#0");
@@ -346,12 +354,15 @@ int main() {
     auto s2ds3_to_vector = graph.connect(s2ds3, "out", vector_sink, "in#2");
     if (!s2ds3_to_vector.has_value()) { return 1; }
 
+    // Complex chain connections: Constellation & Complex Time Series
     auto sourceC_to_throttleC = graph.connect<"out", "in">(source_complex, throttle_complex);
     if (!sourceC_to_throttleC.has_value()) { return 1; }
     auto throttleC_to_drain = graph.connect<"out", "in">(throttle_complex, throttle_complex_drain);
     if (!throttleC_to_drain.has_value()) { return 1; }
     auto sourceC_to_constellation = graph.connect(source_complex, "out", constellation_sink, "in#0");
     if (!sourceC_to_constellation.has_value()) { return 1; }
+    auto sourceC_to_timeC0 = graph.connect(source_complex, "out", time_sink_complex, "in#0");
+    if (!sourceC_to_timeC0.has_value()) { return 1; }
 
     auto sourceC2_to_throttleC2 = graph.connect<"out", "in">(source_complex2, throttle_complex2);
     if (!sourceC2_to_throttleC2.has_value()) { return 1; }
@@ -359,6 +370,8 @@ int main() {
     if (!throttleC2_to_drain.has_value()) { return 1; }
     auto sourceC2_to_constellation = graph.connect(source_complex2, "out", constellation_sink, "in#1");
     if (!sourceC2_to_constellation.has_value()) { return 1; }
+    auto sourceC2_to_timeC1 = graph.connect(source_complex2, "out", time_sink_complex, "in#1");
+    if (!sourceC2_to_timeC1.has_value()) { return 1; }
 
     auto sourceC3_to_throttleC3 = graph.connect<"out", "in">(source_complex3, throttle_complex3);
     if (!sourceC3_to_throttleC3.has_value()) { return 1; }
@@ -366,6 +379,8 @@ int main() {
     if (!throttleC3_to_drain.has_value()) { return 1; }
     auto sourceC3_to_constellation = graph.connect(source_complex3, "out", constellation_sink, "in#2");
     if (!sourceC3_to_constellation.has_value()) { return 1; }
+    auto sourceC3_to_timeC2 = graph.connect(source_complex3, "out", time_sink_complex, "in#2");
+    if (!sourceC3_to_timeC2.has_value()) { return 1; }
 
     auto checkBox_to_drain = graph.connect<"out", "in">(checkBox_src, checkBox_drain);
     if (!checkBox_to_drain.has_value()) { return 1; }

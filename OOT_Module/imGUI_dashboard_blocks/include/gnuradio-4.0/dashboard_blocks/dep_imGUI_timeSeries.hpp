@@ -7,15 +7,19 @@
 #include <gnuradio-4.0/meta/reflection.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_management.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_typeResolving.hpp>
+
+// External dependencies
 #include <zmq.hpp>
 #include <string>
 #include <cstring>
 #include <span>
 #include <vector>
+#include <concepts>
 
 namespace gr::dashboard_blocks {
 
     template <typename T>
+    requires(gr::meta::complex_like<T> || std::floating_point<T>)
     struct dep_imGUI_timeSeries : gr::Block<dep_imGUI_timeSeries<T>> {
 
         //TO DO: Update description
@@ -69,7 +73,7 @@ namespace gr::dashboard_blocks {
                 json_data += "\"dataSources\": ["; // send over the list of data_sources
                 //Itterate over the length of data sources
                 for (std::size_t i = 0; i < this->dataSources.value.size(); ++i) {
-                    json_data += "\"" + this->dataSources.value[i] + "\"";
+                    json_data += "\"" + this->dataSources.value[i] + ":" + dashboard_dtypeTag<T>() + "\"";
                     //Place the name of the source followed by a comma
                     if (i + 1 < this->dataSources.value.size()) { json_data += ", "; }
                 }
@@ -152,6 +156,5 @@ namespace gr::dashboard_blocks {
 
 } // namespace gr::dashboard_blocks
 
-GR_REGISTER_BLOCK("gr::dashboard_blocks::dep_imGUI_timeSeries", gr::dashboard_blocks::dep_imGUI_timeSeries, [float])
-
+GR_REGISTER_BLOCK("gr::dashboard_blocks::dep_imGUI_timeSeries", gr::dashboard_blocks::dep_imGUI_timeSeries, [float, double, std::complex<float>, std::complex<double>])
 #endif

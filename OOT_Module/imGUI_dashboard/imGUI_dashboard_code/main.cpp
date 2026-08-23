@@ -477,7 +477,6 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
                         //Copy the floats into a vector 
                         if (num_floats > 0) {
 
-                            std::vector<float> incoming_floats(num_floats);
                             //TO DO: Check if this could cause issues somehow
                             std::memcpy(incoming_floats.data(), websocketEvent->data + data_offset, valid_payload_bytes);
 
@@ -828,22 +827,61 @@ void main_loop(){
                                 std::string hidden_id = "##" + object.id;
                                 
                                 if (ImPlot::BeginPlot(object.title.c_str(), ImVec2(-1, 200))) {
-                                    
+                                
                                     //Axis labels
-                                    ImPlot::SetupAxes(object.x_axis_label.c_str(),object.y_axis_label.c_str());
-                                    
+                                    ImPlot::SetupAxes(object.x_axis_label.c_str(),object.y_axis_label.c_str());      
                                     //TO DO: Should probably just remove this
                                     //Zooming in and out
                                     ImPlot::SetupAxisLimits(ImAxis_Y1, -2.0, 2.0, ImPlotCond_Once);
-                                    
+                                    // We keep X locked to the buffer size so it acts like a live oscilloscope screen                                    
+
+                                    // Set X-Axis limits once based on the first data source type
+                                    if (!object.dataSources.empty()) {
+                                        auto& first_ds = object.dataSources[0];
+                                        if (first_ds.dtype == dataSourceDType::COMPLEX64 || 
+                                            first_ds.dtype == dataSourceDType::COMPLEX128) {
+                                            int num_complex_samples = (int)(first_ds.databuffer.size() / 2);
+                                            ImPlot::SetupAxisLimits(ImAxis_X1, 0, (double)num_complex_samples, ImPlotCond_Once);
+                                        } else {
+                                            ImPlot::SetupAxisLimits(ImAxis_X1, 0, (double)first_ds.databuffer.size(), ImPlotCond_Once);
+                                        }
+                                    }
+
+
                                     size_t buf_size =  object.dataSources[0].databuffer.size();
-                                    // We keep X locked to the buffer size so it acts like a live oscilloscope screen
-                                    ImPlot::SetupAxisLimits(ImAxis_X1, 0, (double)buf_size, ImPlotCond_Once);
-                                    
                                     for (auto& data_source : object.dataSources) {
-                                        //This is used as a legend entry
-                                        std::string series_label = data_source.name;   
-                                        ImPlot::PlotLine(series_label.c_str(), data_source.databuffer.data(), (int)data_source.databuffer.size());
+
+                                        if (data_source.dtype == dataSourceDType::COMPLEX64 || data_source.dtype == dataSourceDType::COMPLEX128) {
+                                        
+                                            //Complex stream so buffer being plotted is halved
+                                            int num_complex_samples = (int)(data_source.databuffer.size() / 2);
+                                            
+                                            static std::vector<float> inPhase_buffer;
+                                            static std::vector<float> quadrature_buffer;
+
+                                            //Resize buffers to be half the original buffers size
+                                            if (inPhase_buffer.size() < (size_t)num_complex_samples) {
+                                                inPhase_buffer.resize(num_complex_samples);
+                                                quadrature_buffer.resize(num_complex_samples);
+                                            }
+
+                                            //De-interleave the inphase and quadrature
+                                            for (int i = 0; i < num_complex_samples; i++) {
+                                                inPhase_buffer[i] = data_source.databuffer[i * 2];       
+                                                quadrature_buffer[i] = data_source.databuffer[i * 2 + 1];   
+                                            }
+
+                                            std::string label_I = data_source.name + " (I)";
+                                            ImPlot::PlotLine(label_I.c_str(), inPhase_buffer.data(), num_complex_samples);
+
+                                            std::string label_Q = data_source.name + " (Q)";
+                                            ImPlot::PlotLine(label_Q.c_str(), quadrature_buffer.data(), num_complex_samples);
+
+                                        }
+                                        //Plotting floating & double
+                                        else {
+                                            ImPlot::PlotLine(data_source.name.c_str(), data_source.databuffer.data(), (int)data_source.databuffer.size());
+                                        }
                                     }
                                     ImPlot::EndPlot();                        
                                 } 
@@ -892,33 +930,76 @@ void main_loop(){
                                 ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Waiting for FFT telemetry stream...");
                             }
                         }
-                        else if (object.type == dashboardElementType::VECTOR_SINK){
-                            
-                            if(has_data){
-                                std::string hidden_id = "##" + object.id;
-                            
-                                if(ImPlot::BeginPlot(object.title.c_str(),ImVec2(-1,250))) {
-                                    
-                                    ImPlot::SetupAxes(object.x_axis_label.c_str(),object.y_axis_label.c_str());
-                                    // Lock X-axis bounds to match the vector length
-                                    size_t buf_size = object.dataSources[0].databuffer.size();
-                                    ImPlot::SetupAxisLimits(ImAxis_X1, 0, (double)buf_size, ImPlotCond_Always);
-                                    ImPlot::SetupAxisLimits(ImAxis_Y1, -2.0, 2.0, ImPlotCond_Once);
-
-                                    // Render the vector values against indicies
-                                    for (auto& data_source : object.dataSources) {
-                                        //This is used as a legend entry
-                                        std::string series_label = data_source.name;   
-                                        ImPlot::PlotLine(series_label.c_str(), data_source.databuffer.data(), (int)data_source.databuffer.size());
-                                    }
-                                    ImPlot::EndPlot();
-                                } 
+                        else if (object.type == dashboardElementType::VECTOR_SINK){                       
+                            //Check if we actually have data in the buffer
+                            if (has_data) {
                                 
-                            }
+                                std::string hidden_id = "##" + object.id;
+                                
+                                if (ImPlot::BeginPlot(object.title.c_str(), ImVec2(-1, 200))) {
+                                
+                                    //Axis labels
+                                    ImPlot::SetupAxes(object.x_axis_label.c_str(),object.y_axis_label.c_str());      
+                                    //TO DO: Should probably just remove this
+                                    //Zooming in and out
+                                    ImPlot::SetupAxisLimits(ImAxis_Y1, -2.0, 2.0, ImPlotCond_Once);
+                                    // We keep X locked to the buffer size so it acts like a live oscilloscope screen                                    
+
+                                    // Set X-Axis limits once based on the first data source type
+                                    if (!object.dataSources.empty()) {
+                                        auto& first_ds = object.dataSources[0];
+                                        if (first_ds.dtype == dataSourceDType::COMPLEX64 || 
+                                            first_ds.dtype == dataSourceDType::COMPLEX128) {
+                                            int num_complex_samples = (int)(first_ds.databuffer.size() / 2);
+                                            ImPlot::SetupAxisLimits(ImAxis_X1, 0, (double)num_complex_samples, ImPlotCond_Once);
+                                        } else {
+                                            ImPlot::SetupAxisLimits(ImAxis_X1, 0, (double)first_ds.databuffer.size(), ImPlotCond_Once);
+                                        }
+                                    }
+
+
+                                    size_t buf_size =  object.dataSources[0].databuffer.size();
+                                    for (auto& data_source : object.dataSources) {
+
+                                        if (data_source.dtype == dataSourceDType::COMPLEX64 || data_source.dtype == dataSourceDType::COMPLEX128) {
+                                        
+                                            //Complex stream so buffer being plotted is halved
+                                            int num_complex_samples = (int)(data_source.databuffer.size() / 2);
+                                            
+                                            static std::vector<float> inPhase_buffer;
+                                            static std::vector<float> quadrature_buffer;
+
+                                            //Resize buffers to be half the original buffers size
+                                            if (inPhase_buffer.size() < (size_t)num_complex_samples) {
+                                                inPhase_buffer.resize(num_complex_samples);
+                                                quadrature_buffer.resize(num_complex_samples);
+                                            }
+
+                                            //De-interleave the inphase and quadrature
+                                            for (int i = 0; i < num_complex_samples; i++) {
+                                                inPhase_buffer[i] = data_source.databuffer[i * 2];       
+                                                quadrature_buffer[i] = data_source.databuffer[i * 2 + 1];   
+                                            }
+
+                                            std::string label_I = data_source.name + " (I)";
+                                            ImPlot::PlotLine(label_I.c_str(), inPhase_buffer.data(), num_complex_samples);
+
+                                            std::string label_Q = data_source.name + " (Q)";
+                                            ImPlot::PlotLine(label_Q.c_str(), quadrature_buffer.data(), num_complex_samples);
+
+                                        }
+                                        //Plotting floating & double
+                                        else {
+                                            ImPlot::PlotLine(data_source.name.c_str(), data_source.databuffer.data(), (int)data_source.databuffer.size());
+                                        }
+                                    }
+                                    ImPlot::EndPlot();                        
+                                } 
+                            } 
                             else {
-                                    ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Waiting for vector telemetry stream...");
+
+                                ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Waiting for vector telemetry stream...");
                             }
-                            
                         }
                         else if (object.type == dashboardElementType::CONSTELLATION_SINK) {
                             
