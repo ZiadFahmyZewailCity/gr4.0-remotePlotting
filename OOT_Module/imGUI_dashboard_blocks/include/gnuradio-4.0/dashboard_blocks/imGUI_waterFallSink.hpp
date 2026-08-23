@@ -87,6 +87,10 @@ namespace gr::dashboard_blocks {
         gr::Annotated<float, "Sample Rate", gr::Visible, gr::Unit<"Hz">> sampleRate = 1.0f;
         gr::Annotated<bool, "Output in dB", gr::Visible> outputInDb = true;
 
+
+        gr::Annotated<size_t, "max_buffered_samples", gr::Visible> maxBufferedSamples = windowSize.value * 4;
+
+
         // **Irrlevant to user interface**
         
         //Input Port
@@ -94,6 +98,9 @@ namespace gr::dashboard_blocks {
 
         //The FFT block wrapped inside the imGUI block
         std::vector<gr::blocks::fft::DefaultFFT<T>> FFTblocks;
+
+        //Internal Buffers 
+        std::vector<std::vector<T>> internal_buffers;
 
         //ZMQ related variables (Not to be adjusted by user)
         gr::Annotated<std::string, "zmq_endpoint"> endpoint = "ipc:///tmp/gr4_dashboard_data.sock";
@@ -157,36 +164,55 @@ namespace gr::dashboard_blocks {
             if (newSettings.contains("data_sources")) {
                 in.resize(dataSources.value.size());
                 FFTblocks.resize(dataSources.value.size());
+                internal_buffers.resize(dataSources.value.size());
             }
         }
 
         template<gr::InputSpanLike TInSpan>
         [[nodiscard]] gr::work::Status processBulk(std::span<TInSpan>& input_ports) {
-
-            const std::size_t nSamples = this->windowSize;
-
+ 
             for (std::size_t i = 0; i < input_ports.size(); i++) {
-
+ 
                 auto& inSpan = input_ports[i];
-                std::span<const T> samples_frame(inSpan.data(), nSamples);
-
-                if (publisher) {
-
+                auto& buffer = internal_buffers[i];
+ 
+                const std::size_t nSamples = inSpan.size();
+                if (nSamples == 0) { continue; }
+ 
+                //Copy the data of the port into its internal buffer
+                buffer.insert(buffer.end(), inSpan.data(), inSpan.data() + nSamples);
+                std::ignore = inSpan.consume(nSamples);
+ 
+                //Drop the oldest samples if this source has fallen behind publishing
+                if (buffer.size() > maxBufferedSamples.value) {
+                    buffer.erase(buffer.begin(), buffer.begin() + static_cast<std::ptrdiff_t>(buffer.size() - maxBufferedSamples.value));
+                }
+ 
+                std::size_t offset = 0;
+                //Itterate through the buffer taking window sized chunks
+                while (offset + windowSize.value <= buffer.size()) {
+ 
+                    std::span<const T> samples_frame(buffer.data() + offset, windowSize.value);
+ 
+                    if (publisher) {
+ 
                         using floattype = typename waterfall_extract_real<T>::type;
-
+ 
                         //TO DO: This is constantly being intalized, probably very heavy computaion wise. Statically allocate it somewhere else
                         std::vector<gr::DataSet<floattype>> FFT_output(1);
-
+ 
                         const gr::work::Status fftStatus = FFTblocks[i].processBulk(samples_frame, std::span{FFT_output});
                         if (fftStatus != gr::work::Status::OK) {
-                            return fftStatus;
+                            //Drop just this chunk and keep going, rather than abandoning the call
+                            offset += windowSize.value;
+                            continue;
                         }
-
+ 
                         //Output the magnitudes
                         auto& dataset = FFT_output[0];
                         std::size_t num_bins = static_cast<std::size_t>(dataset.extents[0]);
                         auto* magnitudes_ptr = dataset.signal_values.data();
-
+ 
                         //Debug Message (Comment out when not needed)
                         /*
                         static int dbg = 0;
@@ -198,33 +224,37 @@ namespace gr::dashboard_blocks {
                             std::cout << std::endl;
                         }
                         */
-
+ 
                         //TO DO: Add averaging
                         //Send over ZMQ to the server
-
+ 
                         //1) Apply header
                         std::string header = sink_id.value + ":" + dataSources.value[i] + ":";
                         std::size_t payload_size = header.size() + (num_bins * sizeof(floattype));
-
+ 
                         //2) Message core
                         zmq::message_t z_msg(payload_size);
-
+ 
                         //3) Cpy into zmq message buffer
                         std::memcpy(z_msg.data(), header.data(), header.size());
                         std::memcpy(static_cast<char*>(z_msg.data()) + header.size(), magnitudes_ptr, num_bins * sizeof(floattype));
-
+ 
                         //4) Send
                         publisher.send(z_msg, zmq::send_flags::dontwait);
                     }
-
-                        std::ignore = inSpan.consume(nSamples);
+ 
+                    offset += windowSize.value;
                 }
-                    //TO DO: multi-source waterfall rendering isn't yet decided on the frontend (can't naturally overlay
-                    //two heatmaps like line plots) - this loop happily publishes N independent streams regardless
-                    return gr::work::Status::OK;
+ 
+                //Erase all the samples we processed from this port's buffer
+                if (offset > 0) {
+                    buffer.erase(buffer.begin(), buffer.begin() + static_cast<std::ptrdiff_t>(offset));
+                }
+            }
+            return gr::work::Status::OK;
         }
     };
-
+ 
 } // namespace gr::dashboard_blocks
 
 //TO DO: Register the block, list every T this sink should be instantiable for

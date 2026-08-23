@@ -44,10 +44,14 @@ namespace gr::dashboard_blocks {
         
         gr::Annotated<std::vector<std::string>, "data_sources", gr::Visible> dataSources = std::vector<std::string>{"default_source_1"};
 
+        gr::Annotated<size_t, "max_buffered_vectors", gr::Visible> maxBufferedVectors = 8UL;
+
         // **Irrlevant to user interface**
 
         // Input Port explicitly requires discrete vectors, not a stream of scalars
         std::vector<gr::PortIn<gr::DataSet<T>>> in;
+         std::vector<std::vector<gr::DataSet<T>>> internal_buffers;
+
         // ZMQ related variables
         gr::Annotated<std::string, "zmq_endpoint"> endpoint = "ipc:///tmp/gr4_dashboard_data.sock";
         zmq::context_t zmq_ctx{1};
@@ -78,7 +82,7 @@ namespace gr::dashboard_blocks {
         }
 
 
-        GR_MAKE_REFLECTABLE(imGUI_vectorSink, in, sink_id, title, panel_name, x_axis_label, y_axis_label, dataSources, vectorSize, endpoint);
+        GR_MAKE_REFLECTABLE(imGUI_vectorSink, in, sink_id, title, panel_name, x_axis_label, y_axis_label, dataSources, vectorSize, maxBufferedVectors, endpoint);
 
         void start() {
             publisher = zmq::socket_t(zmq_ctx, zmq::socket_type::pub);
@@ -98,6 +102,7 @@ namespace gr::dashboard_blocks {
         void settingsChanged(const gr::property_map&, const gr::property_map& newSettings) {
             if (newSettings.contains("data_sources")) {
                 in.resize(dataSources.value.size());
+                internal_buffers.resize(dataSources.value.size());
             }
         }
         
@@ -105,56 +110,72 @@ namespace gr::dashboard_blocks {
         template<gr::InputSpanLike TInSpan>
         [[nodiscard]] gr::work::Status processBulk(std::span<TInSpan>& input_ports) {
             
-
+ 
             for (std::size_t i = 0; i < input_ports.size(); i++) {
-
+ 
                 auto& inSpan = input_ports[i];
-
+                if (inSpan.size() == 0) { continue; }
+ 
                 std::span<const gr::DataSet<T>> in_span(inSpan.data(), inSpan.size());
-                const gr::DataSet<T>& vec = in_span[in_span.size() - 1];
-
-                //Check if the size of the vector is greater than the pre-defined user length of the vector
-                //Drops buffer if this is the case
-                //If the vector size is smaller than the vector size set by the user, the dashboard will zero out the tail
-                const std::size_t nSamples = static_cast<std::size_t>(vec.extents[0]);
-                if (nSamples > vectorSize.value) {
-
-                    //Debug Message (Comment out when not needed)
-                    //std::cout << "[vectorSink] Dropping frame on source " << dataSources.value[i]
-                    //           << ": got vector of size " << nSamples
-                    //           << " which exceeds configured vectorSize " << vectorSize.value << "\n";
-                    std::ignore = inSpan.consume(in_span.size());
-                    continue; //this is a data-validity skip, not a readiness check, so it's fine under sync ports
+                auto& buffer = internal_buffers[i];
+ 
+                for (const auto& vec : in_span) {
+ 
+                    //Check if the size of the vector is greater than the pre-defined user length of the vector
+                    //Drops the frame if this is the case
+                    //If the vector size is smaller than the vector size set by the user, the dashboard will zero out the tail
+                    const std::size_t nSamples = static_cast<std::size_t>(vec.extents[0]);
+                    if (nSamples > vectorSize.value) {
+ 
+                        //Debug Message (Comment out when not needed)
+                        //std::cout << "[vectorSink] Dropping frame on source " << dataSources.value[i]
+                        //           << ": got vector of size " << nSamples
+                        //           << " which exceeds configured vectorSize " << vectorSize.value << "\n";
+                        continue; //this is a data-validity skip, not a readiness check, so it's fine under sync ports
+                    }
+ 
+                    buffer.push_back(vec);
                 }
-
-                if (publisher) {
-
-                    //1) Apply header - "id:dataSource:payload" so the daemon/frontend can demux per source
-                    std::string header = sink_id.value + ":" + dataSources.value[i] + ":";
-
-                    //Has to be unsigned to work with the T
-                    const std::size_t nExtents = static_cast<std::size_t>(vec.extents[0]);
-
-                    //2) Message core - dynamically sized based on the incoming vector length
-                    std::size_t payload_size = header.size() + (nExtents * sizeof(T));
-                    zmq::message_t z_msg(payload_size);
-
-                    //3) Cpy into zmq message buffer
-                    std::memcpy(z_msg.data(), header.data(), header.size());
-                    std::memcpy(static_cast<char*>(z_msg.data()) + header.size(), vec.signal_values.data(), nExtents * sizeof(T));
-
-                    //4) Send
-                    publisher.send(z_msg, zmq::send_flags::dontwait);
-                }
-
-                // Consume all the vectors rcved on this port
                 std::ignore = inSpan.consume(in_span.size());
+ 
+                //Drop the oldest queued vectors if this source has fallen behind publishing
+                if (buffer.size() > maxBufferedVectors.value) {
+                    buffer.erase(buffer.begin(), buffer.begin() + static_cast<std::ptrdiff_t>(buffer.size() - maxBufferedVectors.value));
+                }
+ 
+                //Publish every buffered vector, oldest first
+                while (!buffer.empty()) {
+ 
+                    const gr::DataSet<T>& vec = buffer.front();
+ 
+                    if (publisher) {
+ 
+                        //1) Apply header - "id:dataSource:payload" so the daemon/frontend can demux per source
+                        std::string header = sink_id.value + ":" + dataSources.value[i] + ":";
+ 
+                        //Has to be unsigned to work with the T
+                        const std::size_t nExtents = static_cast<std::size_t>(vec.extents[0]);
+ 
+                        //2) Message core - dynamically sized based on the incoming vector length
+                        std::size_t payload_size = header.size() + (nExtents * sizeof(T));
+                        zmq::message_t z_msg(payload_size);
+ 
+                        //3) Cpy into zmq message buffer
+                        std::memcpy(z_msg.data(), header.data(), header.size());
+                        std::memcpy(static_cast<char*>(z_msg.data()) + header.size(), vec.signal_values.data(), nExtents * sizeof(T));
+ 
+                        //4) Send
+                        publisher.send(z_msg, zmq::send_flags::dontwait);
+                    }
+ 
+                    buffer.erase(buffer.begin());
+                }
             }
             return gr::work::Status::OK;
-
+ 
         }
     };
-
+ 
 } // namespace gr::dashboard_blocks
 
 // Register the block for all standard data types that might be plotted
