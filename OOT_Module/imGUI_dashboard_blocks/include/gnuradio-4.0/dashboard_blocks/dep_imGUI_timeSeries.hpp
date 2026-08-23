@@ -6,6 +6,7 @@
 #include <gnuradio-4.0/annotated.hpp>
 #include <gnuradio-4.0/meta/reflection.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_management.hpp>
+#include <gnuradio-4.0/dashboard_blocks/imGUI_typeResolving.hpp>
 #include <zmq.hpp>
 #include <string>
 #include <cstring>
@@ -43,7 +44,7 @@ namespace gr::dashboard_blocks {
         //Input Ports (one per data source)
         std::vector<gr::PortIn<T>> in = std::vector<gr::PortIn<T>>(1);
 
-        //Buffers
+        //Internal Buffers
         std::vector<std::vector<T>> internal_buffers = std::vector<std::vector<T>>(1);
 
 
