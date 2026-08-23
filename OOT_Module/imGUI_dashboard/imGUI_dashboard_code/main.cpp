@@ -100,6 +100,9 @@ struct dashboardElement {
     std::vector<std::string> options;
     int current_val_int = 0;
 
+    //Slider range maximum or minimum
+    float slider_min = 0;
+    float slider_max = 100;
 
     // FREQUENCY/WATERFALL SINK PARAMS
     int windowSize = 1024;
@@ -303,6 +306,8 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
                     //Widgets
                     else if (item["type"] == "slider") {
                         new_dashboardElement.type = dashboardElementType::SLIDER;
+                        new_dashboardElement.slider_min  = item.value("min", 0.0f);
+                        new_dashboardElement.slider_max  = item.value("max", 100.0f);
                     }
                     else if (item["type"] == "button") {
                         new_dashboardElement.type = dashboardElementType::BUTTON;
@@ -1092,7 +1097,7 @@ void main_loop(){
                             ImGui::SetNextItemWidth(-1.0f);
        
                             std::string hidden_id = "##" + object.id;                     
-                            if (ImGui::SliderFloat(hidden_id.c_str(), &object.current_val, 0.1f, 100.0f)) {
+                            if (ImGui::SliderFloat(hidden_id.c_str(), &object.current_val, object.slider_min, object.slider_max)) {
                                 
                                 // Package the ID of the widget and the value into a JSON object
                                 nlohmann::json command_msg;

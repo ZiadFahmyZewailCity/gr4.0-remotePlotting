@@ -35,7 +35,9 @@ namespace gr::dashboard_blocks {
         
         //Caption thats on or to the right of the widget
         gr::Annotated<std::string, "title", gr::Visible> title = "WIDGET_NAME_1";
-        
+    
+        gr::Annotated<float, "minimum_slider_value", gr::Visible> min_val = 0;
+        gr::Annotated<float, "maximum_slider_value", gr::Visible> max_val = 100;
 
         //TO DO: Probably remove this
         gr::Annotated<std::string, "target_property", gr::Visible> target_property = "current_val";
@@ -99,6 +101,8 @@ namespace gr::dashboard_blocks {
                 json_data += "\"panel_name\": \"" + this->panel_name.value + "\", ";
                 json_data += "\"type\": \"slider\", ";
                 json_data += "\"title\": \"" + this->title.value + "\", "; //Text next to the widget
+                json_data += "\"min\": " + std::to_string(this->min_val.value) + ", ";
+                json_data += "\"max\": " + std::to_string(this->max_val.value) + ", ";
                 json_data += "\"target\": \"" + this->target_property.value + "\"";
                 json_data += "}";
                 return json_data;

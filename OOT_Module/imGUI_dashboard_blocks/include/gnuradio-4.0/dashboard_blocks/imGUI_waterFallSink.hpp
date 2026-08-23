@@ -54,7 +54,7 @@ namespace gr::dashboard_blocks {
         // **Variables that can be adjusted by user**
 
         //Every sink needs a id, this must be unique to the instantiated block as the dashboard will create a dashboard element using this ID
-        gr::Annotated<std::string, "sink_id", gr::Visible> sink_id = "SINK_ID_1";
+        gr::Annotated<std::string, "sink_id", gr::Visible> id = "SINK_ID_1";
 
         //All widgets or blocks with the same panel name will be placed in the same panel
         //The panel chosen purely has an affect on the widget or blocks location, has no affect on the data it displays or affects
@@ -112,7 +112,7 @@ namespace gr::dashboard_blocks {
             // Register the sink config using the live variables
             imGUI_DashboardRegistry::getInstance().register_imGUI_block([this]() -> std::string {
                 std::string json_data = "{";
-                json_data += "\"id\": \"" + this->sink_id.value + "\", "; //Unique identifier of the block
+                json_data += "\"id\": \"" + this->id.value + "\", "; //Unique identifier of the block
                 json_data += "\"type\": \"waterFallSink\", "; //This is what is used by the dashboard to understand what type of sink this is
                 json_data += "\"panel_name\": \"" + this->panel_name.value + "\", "; //Which panel is this plot associated with
                 json_data += "\"title\": \"" + this->title.value + "\", "; //Will be the text above the sink
@@ -133,7 +133,7 @@ namespace gr::dashboard_blocks {
         }
 
         
-        GR_MAKE_REFLECTABLE(imGUI_waterFallSink, in, sink_id, title, panel_name, x_axis_label, y_axis_label, dataSources, windowSize, sampleRate, history_size, windowType, outputInDb, typeOfTrigger, typeOfAveraging, endpoint);
+        GR_MAKE_REFLECTABLE(imGUI_waterFallSink, in, id, title, panel_name, x_axis_label, y_axis_label, dataSources, windowSize, sampleRate, history_size, windowType, outputInDb, typeOfTrigger, typeOfAveraging, endpoint);
 
         void start() {
 
@@ -226,7 +226,7 @@ namespace gr::dashboard_blocks {
                         //Send over ZMQ to the server
  
                         //1) Apply header
-                        std::string header = sink_id.value + ":" + dataSources.value[i] + ":";
+                        std::string header = id.value + ":" + dataSources.value[i] + ":";
                         std::size_t payload_size = header.size() + (num_bins * sizeof(floatType));
  
                         //2) Message core
