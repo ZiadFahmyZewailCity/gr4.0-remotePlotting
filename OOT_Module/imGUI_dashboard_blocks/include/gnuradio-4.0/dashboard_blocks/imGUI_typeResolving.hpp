@@ -1,8 +1,10 @@
 #ifndef GNURADIO_DASHBOARDBLOCKS_IMGUI_TYPERESOLVING_HPP
 #define GNURADIO_DASHBOARDBLOCKS_IMGUI_TYPERESOLVING_HPP
 
-#include <string>
+#include <gnuradio-4.0/meta/utils.hpp>
+#include <concepts>
 #include <complex>
+#include <string>
 #include <type_traits>
 
 //TO DO: Add comments explaining the point of this file
@@ -11,14 +13,17 @@ namespace gr::dashboard_blocks {
 
     // Compile time type extraction
     template <typename T>
-    struct extract_real { 
-        using type = T; 
+    struct scalar_type {
+        using type = T;
+    };
+
+    template <gr::meta::complex_like T>
+    struct scalar_type<T> {
+        using type = typename T::value_type;
     };
 
     template <typename T>
-    struct extract_real<std::complex<T>> { 
-        using type = T; 
-    };
+    using scalar_type_t = typename scalar_type<T>::type;
 
     // Compile-Time Type tags for the dataSources of the config file
     template <typename U>

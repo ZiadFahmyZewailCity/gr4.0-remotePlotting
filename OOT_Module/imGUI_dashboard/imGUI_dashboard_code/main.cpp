@@ -48,12 +48,18 @@ EM_JS(char*, get_websocket_url, (), {
 
 
 //Structs for dashboard elements 
+
+//List of possible dashboard elements
 enum class dashboardElementType { TIME_SERIES, VECTOR_SINK , FREQUENCY_SINK, CONSTELLATION_SINK, WATERFALL_SINK , SLIDER, TEXTLABEL, BUTTON, CHECKBOX, DROPDOWN, TEXTBOX, UNKNOWN };
+
+//List of possible data types
+enum class dataSourceDType { FLOAT32, FLOAT64, COMPLEX64, COMPLEX128, UNKNOWN };
 
 ///Each data source for a dashboard element has these parameters
 struct dataSourceState {
     std::string name;
     std::vector<float> databuffer;
+    dataSourceDType dtype = dataSourceDType::FLOAT32; 
     //This flag is meant to prevent plotting of zeros if no data is being sent to the sink
     //Instead it will either display the last frame or if no data has been sent, it'll display a waiting for data message
     bool has_rcved_data = false;
@@ -145,13 +151,30 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
                     new_dashboardElement.title = item.value("title", "default_title");
                     //Extract data sources for sinks
                     if (item.contains("dataSources")) {
-                        for (auto& data_source_name : item["dataSources"]) {
+                        for (auto& data_source_val : item["dataSources"]) {
                             
                             //Create data source struct
                             dataSourceState data_source;
+                            std::string raw_string = data_source_val.get<std::string>();
 
-                            //Set its name
-                            data_source.name = data_source_name.get<std::string>();
+                            //Find the delmiter between the name of teh data source and the type
+                            size_t delim_positon = raw_string.find(':');
+                            if (delim_positon != std::string::npos){
+                                //Extract the name as the string before the delimter
+                                data_source.name = raw_string.substr(0, delim_positon);
+                                //Extract the type as the string after the delimter
+                                std::string type_tag = raw_string.substr(delim_positon + 1);
+                                if (type_tag == "float32") { data_source.dtype = dataSourceDType::FLOAT32; }
+                                else if (type_tag == "float64") { data_source.dtype = dataSourceDType::FLOAT64; }
+                                else if (type_tag == "complex64") { data_source.dtype = dataSourceDType::COMPLEX64; }
+                                else if (type_tag == "complex128") { data_source.dtype = dataSourceDType::COMPLEX128; }
+                                else { 
+                                    //fallback
+                                    data_source.name = raw_string; 
+                                    data_source.dtype = dataSourceDType::FLOAT32; 
+                                }
+                                    
+                            }
 
                             //Place in dashboardElements data source list
                             new_dashboardElement.dataSources.push_back(data_source);
@@ -185,10 +208,21 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
                         try{
                             new_dashboardElement.windowSize = std::stoi(item.value("windowSize", "1024"));
                             new_dashboardElement.sample_rate = std::stof(item.value("samplingFreq", "1.0"));
-
+                 
                             //The start and end of the frequency graph
-                            new_dashboardElement.start_freq = 0;
+                            //The first data source sets the type of plotting you want, note all data sources should have the same type for proper plotting 
+                            if ((!new_dashboardElement.dataSources.empty()) &&  
+                                (new_dashboardElement.dataSources[0].dtype == dataSourceDType::COMPLEX64 || new_dashboardElement.dataSources[0].dtype == dataSourceDType::COMPLEX128)){
+                                // Complex spectrum: centered at 0 Hz spans [-fs/2, +fs/2]
+                                new_dashboardElement.start_freq = -(double)new_dashboardElement.sample_rate / 2.0;
+                            }
+                            else {
+                                // Real spectrum: spans [0, +fs/2]
+                                new_dashboardElement.start_freq = 0.0;
+                            }
+                            
                             new_dashboardElement.step_freq  = (double)new_dashboardElement.sample_rate / (double)new_dashboardElement.windowSize;
+
 
                         } catch (...){
                             //TO DO: debugging message
@@ -198,7 +232,6 @@ void callback_configLoaded(void* arg, void* buffer, int buffer_size) {
                         for (auto& dashBoardSource : new_dashboardElement.dataSources) {
                             dashBoardSource.databuffer.resize(new_dashboardElement.windowSize, 0.0f);
                         }
-
 
                     }
                     else if (item["type"] == "waterFallSink"){
@@ -412,12 +445,35 @@ EM_BOOL callback_Run(int eventType, const EmscriptenWebSocketMessageEvent *webso
                         //Update the rcved data flag for this element if it has not rcved any data before
                         if (!correct_dataSource->has_rcved_data) { correct_dataSource->has_rcved_data = true; }
 
-                        //Find the size of the payload and use it to find the number of floats
-                        //TO DO: This will probably need to be adjust according to the data type
+                        //Extract the part of the packet with the raw data
                         size_t data_offset = offset;
                         int valid_payload_bytes = websocketEvent->numBytes - data_offset;
-                        int num_floats = valid_payload_bytes / sizeof(float);                        
+                        //ptr to the raw data (No explicit type yet)
+                        void* raw_data = (void*)(websocketEvent->data +data_offset);
+
+                        //Vector for the incoming data
+                        //Everything will end up as a float at the end
+                        std::vector<float> incoming_floats;
+
+                        if (correct_dataSource->dtype == dataSourceDType::FLOAT32 || correct_dataSource->dtype == dataSourceDType::COMPLEX64 ) {
+
+                            //We know that the data is made up of 4 bytes and so divide by the size of float
+                            int num_items = valid_payload_bytes / sizeof(float);
+                            //We place it into the vector
+                            incoming_floats.assign((float*)raw_data , ((float*)raw_data) + num_items);
+                        }              
+                        else if (correct_dataSource->dtype == dataSourceDType::FLOAT64 || correct_dataSource->dtype == dataSourceDType::COMPLEX128){
+
+                            //We know that the data is made up of 8 bytes and so divide by the size of a double 
+                            int num_items = valid_payload_bytes /sizeof(double);
+
+                            //The assign will down cast this automatically to a float
+                            //Everything must be a float to properly plot
+                            incoming_floats.assign((double*)raw_data, ((double*)raw_data) + num_items);
+
+                        }
                         
+                        int num_floats = incoming_floats.size();
                         //Copy the floats into a vector 
                         if (num_floats > 0) {
 
