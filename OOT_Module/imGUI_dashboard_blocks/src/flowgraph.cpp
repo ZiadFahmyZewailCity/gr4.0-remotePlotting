@@ -1,13 +1,14 @@
 #include <gnuradio-4.0/Graph.hpp>
 #include <gnuradio-4.0/Scheduler.hpp>
 #include <gnuradio-4.0/basic/SignalGenerator.hpp>
+#include <gnuradio-4.0/basic/StreamToDataSet.hpp>
 #include <gnuradio-4.0/testing/NullSources.hpp>
-#include <gnuradio-4.0/dashboard_blocks/imGUI_frequencySink.hpp>
+#include <gnuradio-4.0/dashboard_blocks/insertTag.hpp>
 #include <gnuradio-4.0/dashboard_blocks/dep_imGUI_timeSeries.hpp>
+#include <gnuradio-4.0/dashboard_blocks/imGUI_frequencySink.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_waterFallSink.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_vectorSink.hpp>
-#include <gnuradio-4.0/basic/StreamToDataSet.hpp>
-#include <gnuradio-4.0/dashboard_blocks/insertTag.hpp>
+#include <gnuradio-4.0/dashboard_blocks/imGUI_constellationSink.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_checkBox.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_button.hpp>
 #include <gnuradio-4.0/dashboard_blocks/imGUI_dropDownMenu.hpp>
@@ -26,13 +27,18 @@ int main() {
 
     constexpr float FREQ_LOW  = 2343.75f;
     constexpr float FREQ_HIGH = 4687.5f;
+    constexpr float FREQ_CH2  = 1000.0f;   // fixed, no widget control
+    constexpr float FREQ_CH3  = 3000.0f;   // fixed, no widget control
 
     /*
     ============================================================
-    ISOLATION TEST: only freq_sink + widgets in this flowgraph, no other sinks,
-    no other generators, no throttle/tagger/StreamToDataSet chains - stripped down
-    to rule out any interference from the rest of the graph while freq_sink's
-    scheduling issue is still unresolved.
+    Real-valued chain shared by freq_sink, waterFallSink, and timeSeries only.
+    vector_sink deliberately does NOT share these sources - see below - since its
+    tag/StreamToDataSet framing pipeline was found to stall the shared source buffers
+    when reintroduced during staged testing, silencing freq_sink/waterfall_sink/time_sink
+    even though none of them touch vector_sink's pipeline directly. Root cause not yet
+    fully isolated (tagger vs StreamToDataSet vs imGUI_vectorSink itself); giving
+    vector_sink its own dedicated sources sidesteps it for now.
     ============================================================
     */
     auto& source = graph.emplaceBlock<basicBlocks::SignalGenerator<float>>();
@@ -44,11 +50,9 @@ int main() {
     source.signal_type = basicBlocks::signal_generator::Type::Sin;
     source.chunk_size  = 1024;
 
-    // Second and third sources for the multi-source test - still isolated from every
-    // other sink, no throttle/drain paths needed since nothing else consumes them.
     auto& source2 = graph.emplaceBlock<basicBlocks::SignalGenerator<float>>();
     source2.sample_rate = 48000.f;
-    source2.frequency   = 1000.0f;
+    source2.frequency   = FREQ_CH2;
     source2.amplitude   = 0.6f;
     source2.offset      = 0.0f;
     source2.phase       = 0.0f;
@@ -57,7 +61,7 @@ int main() {
 
     auto& source3 = graph.emplaceBlock<basicBlocks::SignalGenerator<float>>();
     source3.sample_rate = 48000.f;
-    source3.frequency   = 3000.0f;
+    source3.frequency   = FREQ_CH3;
     source3.amplitude   = 0.3f;
     source3.offset      = 0.0f;
     source3.phase       = 0.0f;
@@ -75,9 +79,6 @@ int main() {
     freq_sink.sampleRate = 48000.0f;
     freq_sink.windowSize = 1024;
 
-    // STEP 1 of staged reintroduction: time_sink added back first, since it already
-    // proved to work correctly with this exact 3-source join before freq_sink's
-    // scheduling issue was found - lowest-risk block to add back first.
     auto& time_sink = graph.emplaceBlock<dashboardBlocks::dep_imGUI_timeSeries<float>>();
     time_sink.dataSources = std::vector<std::string>{"wave_toggle", "wave_1khz", "wave_3khz"};
     time_sink.settingsChanged({}, {{"data_sources", true}});
@@ -87,8 +88,6 @@ int main() {
     time_sink.x_axis_label = "Checking X axis works (#59)";
     time_sink.y_axis_label = "Checking y axis works (@23)";
 
-    // STEP 2 of staged reintroduction: waterfall_sink added back next, single source only
-    // (matching the config that already proved working before the reintroduction started).
     auto& waterfall_sink = graph.emplaceBlock<dashboardBlocks::imGUI_waterFallSink<float>>();
     waterfall_sink.settingsChanged({}, {{"data_sources", true}});
     waterfall_sink.sink_id = "waterfall_id";
@@ -100,9 +99,40 @@ int main() {
     waterfall_sink.windowSize   = 1024;
     waterfall_sink.history_size = 100;
 
-    // STEP 3 of staged reintroduction: vector_sink added back next, along with its
-    // required tag/StreamToDataSet framing chains (one per source, since it consumes
-    // DataSet<T> rather than a plain stream).
+    /*
+    ============================================================
+    vector_sink's dedicated sources - NOT shared with source/source2/source3 above.
+    Same signal characteristics for visual consistency with the widget-controlled tone
+    plus two fixed tones, just on their own independent generators.
+    ============================================================
+    */
+    auto& vec_source = graph.emplaceBlock<basicBlocks::SignalGenerator<float>>();
+    vec_source.sample_rate = 48000.f;
+    vec_source.frequency   = FREQ_LOW;
+    vec_source.amplitude   = 1.0f;
+    vec_source.offset      = 0.0f;
+    vec_source.phase       = 0.0f;
+    vec_source.signal_type = basicBlocks::signal_generator::Type::Sin;
+    vec_source.chunk_size  = 1024;
+
+    auto& vec_source2 = graph.emplaceBlock<basicBlocks::SignalGenerator<float>>();
+    vec_source2.sample_rate = 48000.f;
+    vec_source2.frequency   = FREQ_CH2;
+    vec_source2.amplitude   = 0.6f;
+    vec_source2.offset      = 0.0f;
+    vec_source2.phase       = 0.0f;
+    vec_source2.signal_type = basicBlocks::signal_generator::Type::Sin;
+    vec_source2.chunk_size  = 1024;
+
+    auto& vec_source3 = graph.emplaceBlock<basicBlocks::SignalGenerator<float>>();
+    vec_source3.sample_rate = 48000.f;
+    vec_source3.frequency   = FREQ_CH3;
+    vec_source3.amplitude   = 0.3f;
+    vec_source3.offset      = 0.0f;
+    vec_source3.phase       = 0.0f;
+    vec_source3.signal_type = basicBlocks::signal_generator::Type::Sin;
+    vec_source3.chunk_size  = 1024;
+
     auto& tagger = graph.emplaceBlock<custom_testing::insertTag<float>>();
     tagger.interval = 1024;
     tagger.offset   = 0;
@@ -136,22 +166,80 @@ int main() {
     s2ds3.n_pre  = 0;
     s2ds3.n_post = 1024;
 
-    // ISOLATION TEST: vector_sink itself removed entirely for this test (not just
-    // disconnected) - a block with unconnected required ports could itself cause a
-    // scheduler error, muddying the result. s2ds outputs go to NullSinks instead, to
-    // test whether the tag/StreamToDataSet framing pipeline itself stalls the shared
-    // source buffers independent of what consumes its output, or whether it's
-    // specifically vector_sink's own processBulk that's the problem.
-    auto& s2ds_drain  = graph.emplaceBlock<testing::NullSink<gr::DataSet<float>>>();
-    auto& s2ds2_drain = graph.emplaceBlock<testing::NullSink<gr::DataSet<float>>>();
-    auto& s2ds3_drain = graph.emplaceBlock<testing::NullSink<gr::DataSet<float>>>();
+    auto& vector_sink = graph.emplaceBlock<dashboardBlocks::imGUI_vectorSink<float>>();
+    vector_sink.dataSources = std::vector<std::string>{"vec_toggle", "vec_1khz", "vec_3khz"};
+    vector_sink.settingsChanged({}, {{"data_sources", true}});
+    vector_sink.title = "check_vector_title";
+    vector_sink.sink_id = "vector_ID";
+    vector_sink.x_axis_label = "check_x_vector";
+    vector_sink.y_axis_label = "check_x_vector";
+    vector_sink.panel_name = "Vector";
+    vector_sink.vectorSize = 1024;
+
+    /*
+    ============================================================
+    Complex chain: drives constellationSink (needs PortIn<complex<T>>)
+    Circle centered at (50,50) radius 40 - stays inside the sink's
+    default 0-100 axis bounds while leaving room to move via the offset control
+    ============================================================
+    */
+    auto& source_complex = graph.emplaceBlock<basicBlocks::SignalGenerator<std::complex<float>>>();
+    source_complex.sample_rate = 48000.f;
+    source_complex.frequency   = 500.0f;
+    source_complex.amplitude   = 2.0f;
+    source_complex.offset      = 50.0f;
+    source_complex.phase       = 0.0f;
+    source_complex.signal_type = basicBlocks::signal_generator::Type::Sin;
+    source_complex.chunk_size  = 1024;
+
+    auto& throttle_complex = graph.emplaceBlock<testing::SimCompute<std::complex<float>>>();
+    throttle_complex.target_throughput = 48000.f;
+    throttle_complex.busy_wait = false;
+    auto& throttle_complex_drain = graph.emplaceBlock<testing::NullSink<std::complex<float>>>();
+
+    auto& source_complex2 = graph.emplaceBlock<basicBlocks::SignalGenerator<std::complex<float>>>();
+    source_complex2.sample_rate = 48000.f;
+    source_complex2.frequency   = 750.0f;
+    source_complex2.amplitude   = 30.0f;
+    source_complex2.offset      = 0.0f;
+    source_complex2.phase       = 0.0f;
+    source_complex2.signal_type = basicBlocks::signal_generator::Type::Sin;
+    source_complex2.chunk_size  = 1024;
+
+    auto& throttle_complex2 = graph.emplaceBlock<testing::SimCompute<std::complex<float>>>();
+    throttle_complex2.target_throughput = 48000.f;
+    throttle_complex2.busy_wait = false;
+    auto& throttle_complex2_drain = graph.emplaceBlock<testing::NullSink<std::complex<float>>>();
+
+    auto& source_complex3 = graph.emplaceBlock<basicBlocks::SignalGenerator<std::complex<float>>>();
+    source_complex3.sample_rate = 48000.f;
+    source_complex3.frequency   = 1000.0f;
+    source_complex3.amplitude   = 100.0f;
+    source_complex3.offset      = 100.0f;
+    source_complex3.phase       = 0.0f;
+    source_complex3.signal_type = basicBlocks::signal_generator::Type::Sin;
+    source_complex3.chunk_size  = 1024;
+
+    auto& throttle_complex3 = graph.emplaceBlock<testing::SimCompute<std::complex<float>>>();
+    throttle_complex3.target_throughput = 48000.f;
+    throttle_complex3.busy_wait = false;
+    auto& throttle_complex3_drain = graph.emplaceBlock<testing::NullSink<std::complex<float>>>();
+
+    auto& constellation_sink = graph.emplaceBlock<dashboardBlocks::imGUI_constellationSink<float>>();
+    constellation_sink.dataSources = std::vector<std::string>{"complex_1", "complex_2", "complex_3"};
+    constellation_sink.settingsChanged({}, {{"data_sources", true}});
+    constellation_sink.id = "constellation_1";
+    constellation_sink.title      = "checking_title_constellation";
+    constellation_sink.panel_name = "Constellation";
+    constellation_sink.x_axis_label = "checking_x_axis_constellation";
+    constellation_sink.y_axis_label = "checking_y_axis_constellation";
+    constellation_sink.numberOfPoints = 256;
 
     /*
     ============================================================
     Widgets: all on the "Controls" panel. Checkbox, button, and dropdown
     all drive the same shared toggle between FREQ_LOW/FREQ_HIGH on the real source.
-    Text box just logs its input (no complex source in this stripped graph to drive).
-    Label reports the real frequency.
+    Text box drives the complex source's offset live. Label reports the real frequency.
     ============================================================
     */
     auto& checkBox_src = graph.emplaceBlock<dashboardBlocks::dep_imGUI_checkBox<float>>();
@@ -220,10 +308,25 @@ int main() {
         return freq_toggle_state ? "High" : "Low";
     };
 
-    // No complex source in this stripped graph anymore - text box just logs its input
-    // instead of driving a constellation offset.
-    text_box.on_val_update = [](std::string msg) {
-        std::cout << "[Coordinator] Text box input received: '" << msg << "'" << std::endl;
+    // Text box drives the complex source's DC offset live, so typing a new
+    // value re-centers the plotted constellation circle
+    text_box.on_val_update = [&source_complex](std::string msg) {
+        try {
+            float new_offset = std::stof(msg);
+
+            gr::property_map old_props;
+            old_props["offset"] = source_complex.offset;
+
+            gr::property_map new_props;
+            new_props["offset"] = new_offset;
+
+            source_complex.offset = new_offset;
+            source_complex.settingsChanged(old_props, new_props);
+
+            std::cout << "[Coordinator] Constellation offset shifted to: " << new_offset << std::endl;
+        } catch (const std::exception& e) {
+            std::cerr << "[TextBox] Invalid offset input: '" << msg << "' (" << e.what() << ")\n";
+        }
     };
 
     freq_label.get_external_val = [&source]() -> std::string {
@@ -254,26 +357,51 @@ int main() {
     auto source_to_waterfall = graph.connect(source, "out", waterfall_sink, "in#0");
     if (!source_to_waterfall.has_value()) { return 1; }
 
-    auto source_to_tagger = graph.connect<"out", "in">(source, tagger);
-    if (!source_to_tagger.has_value()) { return 1; }
+    // vector_sink's tag/StreamToDataSet chains now pull from vec_source/vec_source2/
+    // vec_source3, NOT source/source2/source3 - keeps the two pipelines fully decoupled.
+    auto vecSource_to_tagger = graph.connect<"out", "in">(vec_source, tagger);
+    if (!vecSource_to_tagger.has_value()) { return 1; }
     auto tagger_to_s2ds = graph.connect<"out", "in">(tagger, s2ds);
     if (!tagger_to_s2ds.has_value()) { return 1; }
-    auto s2ds_to_drain = graph.connect<"out", "in">(s2ds, s2ds_drain);
-    if (!s2ds_to_drain.has_value()) { return 1; }
+    auto s2ds_to_vector = graph.connect(s2ds, "out", vector_sink, "in#0");
+    if (!s2ds_to_vector.has_value()) { return 1; }
 
-    auto source2_to_tagger2 = graph.connect<"out", "in">(source2, tagger2);
-    if (!source2_to_tagger2.has_value()) { return 1; }
+    auto vecSource2_to_tagger2 = graph.connect<"out", "in">(vec_source2, tagger2);
+    if (!vecSource2_to_tagger2.has_value()) { return 1; }
     auto tagger2_to_s2ds2 = graph.connect<"out", "in">(tagger2, s2ds2);
     if (!tagger2_to_s2ds2.has_value()) { return 1; }
-    auto s2ds2_to_drain = graph.connect<"out", "in">(s2ds2, s2ds2_drain);
-    if (!s2ds2_to_drain.has_value()) { return 1; }
+    auto s2ds2_to_vector = graph.connect(s2ds2, "out", vector_sink, "in#1");
+    if (!s2ds2_to_vector.has_value()) { return 1; }
 
-    auto source3_to_tagger3 = graph.connect<"out", "in">(source3, tagger3);
-    if (!source3_to_tagger3.has_value()) { return 1; }
+    auto vecSource3_to_tagger3 = graph.connect<"out", "in">(vec_source3, tagger3);
+    if (!vecSource3_to_tagger3.has_value()) { return 1; }
     auto tagger3_to_s2ds3 = graph.connect<"out", "in">(tagger3, s2ds3);
     if (!tagger3_to_s2ds3.has_value()) { return 1; }
-    auto s2ds3_to_drain = graph.connect<"out", "in">(s2ds3, s2ds3_drain);
-    if (!s2ds3_to_drain.has_value()) { return 1; }
+    auto s2ds3_to_vector = graph.connect(s2ds3, "out", vector_sink, "in#2");
+    if (!s2ds3_to_vector.has_value()) { return 1; }
+
+    // Complex-valued fork: pacing path + constellation sink
+    auto sourceC_to_throttleC = graph.connect<"out", "in">(source_complex, throttle_complex);
+    if (!sourceC_to_throttleC.has_value()) { return 1; }
+    auto throttleC_to_drain = graph.connect<"out", "in">(throttle_complex, throttle_complex_drain);
+    if (!throttleC_to_drain.has_value()) { return 1; }
+
+    auto sourceC_to_constellation = graph.connect(source_complex, "out", constellation_sink, "in#0");
+    if (!sourceC_to_constellation.has_value()) { return 1; }
+
+    auto sourceC2_to_throttleC2 = graph.connect<"out", "in">(source_complex2, throttle_complex2);
+    if (!sourceC2_to_throttleC2.has_value()) { return 1; }
+    auto throttleC2_to_drain = graph.connect<"out", "in">(throttle_complex2, throttle_complex2_drain);
+    if (!throttleC2_to_drain.has_value()) { return 1; }
+    auto sourceC2_to_constellation = graph.connect(source_complex2, "out", constellation_sink, "in#1");
+    if (!sourceC2_to_constellation.has_value()) { return 1; }
+
+    auto sourceC3_to_throttleC3 = graph.connect<"out", "in">(source_complex3, throttle_complex3);
+    if (!sourceC3_to_throttleC3.has_value()) { return 1; }
+    auto throttleC3_to_drain = graph.connect<"out", "in">(throttle_complex3, throttle_complex3_drain);
+    if (!throttleC3_to_drain.has_value()) { return 1; }
+    auto sourceC3_to_constellation = graph.connect(source_complex3, "out", constellation_sink, "in#2");
+    if (!sourceC3_to_constellation.has_value()) { return 1; }
 
     // Widget uplinks -> NullSinks
     auto checkBox_to_drain = graph.connect<"out", "in">(checkBox_src, checkBox_drain);
