@@ -1,0 +1,38 @@
+{
+  "msg_type": "config",
+  "panels": [
+    {
+      "panel_name": "Frequency Domain",
+      "dashboardElement": [
+        {
+          "id": "waterfall_id",
+          "type": "waterFallSink",
+          "panel_name": "Frequency Domain",
+          "title": "check_waterfall_title",
+          "x_axis_label": "check_x-axis label",
+          "y_axis_label": "check_y-axis label",
+          "windowSize": "1024",
+          "samplingFreq": "48000.000000",
+          "historySize": "100",
+          "dataSources": [
+            "default_source_1:float32"
+          ]
+        },
+        {
+          "id": "freq_sink_id",
+          "type": "frequencySink",
+          "panel_name": "Frequency Domain",
+          "title": "Real Frequency Spectrum",
+          "x_axis_label": "Frequency (Hz)",
+          "y_axis_label": "Magnitude",
+          "windowSize": "1024",
+          "samplingFreq": "48000.000000",
+          "dataSources": [
+            "freq_1:float32",
+            "freq_2:float32"
+          ]
+        }
+      ]
+    }
+  ]
+}

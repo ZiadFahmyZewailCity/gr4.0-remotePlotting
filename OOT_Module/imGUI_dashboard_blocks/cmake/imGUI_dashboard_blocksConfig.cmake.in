@@ -1,0 +1,12 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+# Automatically find dependencies for the downstream user
+find_dependency(Threads)
+find_dependency(fmt)
+find_dependency(cppzmq)
+find_dependency(nlohmann_json)
+find_dependency(gnuradio4)
+
+include("${CMAKE_CURRENT_LIST_DIR}/imGUI_dashboard_blocksTargets.cmake")

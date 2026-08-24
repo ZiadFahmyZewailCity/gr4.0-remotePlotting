@@ -1,0 +1,21 @@
+# ninja log v5
+2	856	1787536547357514024	build.ninja	38917c606e652907
+5	6963	1787533589005716292	OOT_Module/imGUI_dashboard_blocks/CMakeFiles/imGUI_dashboard_blocks.dir/src/imGUI_management.cpp.o	ecc19b66a0f3d59e
+6	34491	1787534871885254431	OOT_Module/imGUI_dashboard_blocks/CMakeFiles/flowgraph.dir/src/flowgraph.cpp.o	eaedceed28905802
+6	6586	1787534116609402873	OOT_Module/imGUI_dashboard_blocks/tests/CMakeFiles/qa_dashBoardServer.dir/qa_dashBoardServer.cpp.o	36af3937e1834207
+4353	4403	1787533113006008178	OOT_Module/imGUI_dashboard_blocks/libimGUI_dashboard_blocks.a	282b19178a6170bd
+5	7516	1787535884121562970	OOT_Module/imGUI_dashboard_blocks/CMakeFiles/dashboard_daemon.dir/src/dashBoard_daemon.cpp.o	3e8f7366e0af21b5
+9324	9628	1787534119651402796	OOT_Module/imGUI_dashboard_blocks/tests/qa_dashBoardServer	4a0dabca2f42b359
+5	10803	1787535887390362887	OOT_Module/imGUI_dashboard_blocks/CMakeFiles/dashboard_daemon.dir/src/dashBoard_server.cpp.o	84fda560d0c1fc88
+10803	11022	1787535887627962881	OOT_Module/imGUI_dashboard_blocks/dashboard_daemon	c7b3e8beef45f934
+34491	35138	1787534872598054412	OOT_Module/imGUI_dashboard_blocks/flowgraph	6d4b44b679ae2a25
+5	157	1787533947343801552	OOT_Module/imGUI_dashboard_blocks/libimGUI_dashboard_blocks.so	c73e148672467086
+6	4193	1787534114215402930	OOT_Module/imGUI_dashboard_blocks/CMakeFiles/flowgraph.dir/src/imGUI_management.cpp.o	8b968051889a6e21
+6	9324	1787534119331002804	OOT_Module/imGUI_dashboard_blocks/tests/CMakeFiles/qa_dashBoardServer.dir/__/src/dashBoard_server.cpp.o	73286401780805ed
+5	4458	1787536551825113914	OOT_Module/imGUI_dashboard_blocks/CMakeFiles/imGUI_dashboard_blocks.dir/src/imGUI_management.cpp.o	ecc19b66a0f3d59e
+5	4484	1787536551853913913	OOT_Module/imGUI_dashboard_blocks/CMakeFiles/dashboard_daemon.dir/src/dashBoard_daemon.cpp.o	3e8f7366e0af21b5
+4458	4638	1787536552008713909	OOT_Module/imGUI_dashboard_blocks/libimGUI_dashboard_blocks.so	c73e148672467086
+5	8099	1787536555450313822	OOT_Module/imGUI_dashboard_blocks/CMakeFiles/dashboard_daemon.dir/src/dashBoard_server.cpp.o	84fda560d0c1fc88
+8099	8355	1787536555727513814	OOT_Module/imGUI_dashboard_blocks/dashboard_daemon	c7b3e8beef45f934
+6	35771	1787536583067393223	OOT_Module/imGUI_dashboard_blocks/CMakeFiles/flowgraph.dir/src/flowgraph.cpp.o	eaedceed28905802
+35771	36339	1787536583700993207	OOT_Module/imGUI_dashboard_blocks/flowgraph	6d4b44b679ae2a25
