@@ -51,7 +51,7 @@ sudo cmake --install build
 
 ## Link to Tutorial and Examples
 
-TODO: Link to tutorials, example flowgraphs, and usage walkthroughs.
+**To be added shortly**
 
 ## Contact of GSoC contributer
 
