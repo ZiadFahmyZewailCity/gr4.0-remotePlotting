@@ -13,7 +13,7 @@
 #include <thread>
 
 #include <chrono>
-#include <unordered_map>
+
 
 #include <fstream>
 #include <iostream>
@@ -142,16 +142,14 @@ int main(){
         { static_cast<void*>(data_aggregation),0,ZMQ_POLLIN,0},
         { static_cast<void*>(internal_cmd_rx),0,ZMQ_POLLIN,0}
     };
-    
-    //Throttling added, hardcoded currenlty
-    const auto throttle_interval = std::chrono::milliseconds(33); // ~30 Hz, tune as needed
-    auto last_broadcast = std::chrono::steady_clock::now();
-    std::unordered_map<std::string, std::string> latest_by_id;
 
     while(true){
 
-
-        zmq::poll(&sockets[0],2, std::chrono::milliseconds(5));
+        // This function is called poll but its actually a non blocking and interrupt based
+        // You give it your sockets and the timeout time you want for the process to be slept for
+        // -1 means this thread will remain asleep until a network packet associated with a port that one of the 
+        // sockets the thread is listening 
+        zmq::poll(&sockets[0],2, std::chrono::milliseconds(-1));
 
         //Data coming from flowgraph to dashboard/s
         if(sockets[0].revents & ZMQ_POLLIN){
@@ -183,9 +181,8 @@ int main(){
             //TO DO: The to_string here is a major performance bottleneck here and is not necessary, my own broadcast_data function is whats 
             //forcing me to do it this way, however readjusting this is pretty simple, just going to have to refactor the broadcast data funciton to have accept a ptr 
             //to the payload
-            if(recived_sinks) {
-                std::string key = (delim_pos != std::string::npos) ? debug_message.substr(0, delim_pos) : debug_message;
-                latest_by_id[key] = debug_message;
+            if(recived_sinks) { 
+                dashBoard_server.broadcast_data(debug_message);
             };
 
         }
@@ -206,15 +203,6 @@ int main(){
                 //Look into version to see if we need a 
                 commands_toFlowGraph.send(dashBoard_command_message, zmq::send_flags::none);
             }
-        }
-
-        auto now = std::chrono::steady_clock::now();
-        if (now - last_broadcast >= throttle_interval && !latest_by_id.empty()) {
-            for (auto& [id, msg] : latest_by_id) {
-                dashBoard_server.broadcast_data(msg);
-            }
-            latest_by_id.clear();
-            last_broadcast = now;
         }
 
     }
