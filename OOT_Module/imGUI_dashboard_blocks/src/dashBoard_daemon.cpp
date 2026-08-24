@@ -1,3 +1,7 @@
+#ifndef WEB_ASSETS_DIR
+#define WEB_ASSETS_DIR "../web/"
+#endif
+
 #include "dashBoard_server.hpp"
 #include <cstddef>
 #include <cstring>
@@ -68,11 +72,13 @@ void read_config_file(zmq::socket_t & flowgraphSocket, const std::string &config
 //This should just run the dashboard
 int main(){
     
-    //Pass path to the dashboard files
-    std::string web_root = "../web/";
+    std::string web_root = WEB_ASSETS_DIR;
+    if (!web_root.empty() && web_root.back() != '/') {
+        web_root += "/";
+    }
     DashboardServer dashBoard_server(web_root);
     //Pass path to the config file
-    std::string config_path = web_root + "config.json";
+    std::string config_path = "/tmp/gr4_dashboard_config.json";
     
     //Passing zero will dynamically allocate the port
     //If you want to use a specific port, you can pass whatever port number you want to set port without issue

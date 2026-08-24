@@ -10,8 +10,6 @@ namespace gr::dashboard_blocks {
 
     void imGUI_DashboardRegistry::config_fileGenerator() {
         
-
-        
         //Config type
         json root_config;
         root_config["msg_type"] = "config";

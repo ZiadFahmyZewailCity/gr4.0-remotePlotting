@@ -1,0 +1,15 @@
+/home/ziad/GR4/gr4.0-remotePlotting/build/CMakeFiles/edit_cache.dir
+/home/ziad/GR4/gr4.0-remotePlotting/build/CMakeFiles/rebuild_cache.dir
+/home/ziad/GR4/gr4.0-remotePlotting/build/CMakeFiles/list_install_components.dir
+/home/ziad/GR4/gr4.0-remotePlotting/build/CMakeFiles/install.dir
+/home/ziad/GR4/gr4.0-remotePlotting/build/CMakeFiles/install/local.dir
+/home/ziad/GR4/gr4.0-remotePlotting/build/CMakeFiles/install/strip.dir
+/home/ziad/GR4/gr4.0-remotePlotting/build/OOT_Module/imGUI_dashboard_blocks/CMakeFiles/imGUI_dashboard_blocks.dir
+/home/ziad/GR4/gr4.0-remotePlotting/build/OOT_Module/imGUI_dashboard_blocks/CMakeFiles/dashboard_daemon.dir
+/home/ziad/GR4/gr4.0-remotePlotting/build/OOT_Module/imGUI_dashboard_blocks/CMakeFiles/flowgraph.dir
+/home/ziad/GR4/gr4.0-remotePlotting/build/OOT_Module/imGUI_dashboard_blocks/CMakeFiles/edit_cache.dir
+/home/ziad/GR4/gr4.0-remotePlotting/build/OOT_Module/imGUI_dashboard_blocks/CMakeFiles/rebuild_cache.dir
+/home/ziad/GR4/gr4.0-remotePlotting/build/OOT_Module/imGUI_dashboard_blocks/CMakeFiles/list_install_components.dir
+/home/ziad/GR4/gr4.0-remotePlotting/build/OOT_Module/imGUI_dashboard_blocks/CMakeFiles/install.dir
+/home/ziad/GR4/gr4.0-remotePlotting/build/OOT_Module/imGUI_dashboard_blocks/CMakeFiles/install/local.dir
+/home/ziad/GR4/gr4.0-remotePlotting/build/OOT_Module/imGUI_dashboard_blocks/CMakeFiles/install/strip.dir

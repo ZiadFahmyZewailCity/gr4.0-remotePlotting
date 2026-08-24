@@ -100,7 +100,12 @@ void DashboardServer::on_http(connection_hdl connection_handle) {
         return;
     }
 
-    std::string full_path = dashBoard_web_root + target_filename;
+    std::string full_path;
+    if (target_filename == "config.json") {
+        full_path = "/tmp/gr4_dashboard_config.json";
+    } else {
+        full_path = dashBoard_web_root + target_filename;
+    }
     std::string file_content;
     
     //Read File path
