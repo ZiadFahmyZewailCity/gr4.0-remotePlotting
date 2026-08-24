@@ -4,7 +4,8 @@ A successor to gr-bokehgui, the out-of-tree (OOT) module developed as part of Go
 
 This module is meant to allow for remote browser-based plotting/interaction with GNU Radio 4 flowgraphs through sinks and widgets.
 
-Developed by Ziad Haithem Fahmi as part of GSoC 2026.
+Developed by Ziad Haithem Fahmi as part of GSoC 2026. 
+[Development Blog](https://ziadfahmyzewailcity.github.io/blog-gr4.0-remotePlotting/)
 
 ## Requirements
 
