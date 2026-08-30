@@ -25,7 +25,7 @@
 #include <zmq.hpp>
 #include <string>
 #include <cstring>
-
+#include <chrono>
 
 
 namespace gr::dashboard_blocks {
@@ -89,19 +89,19 @@ namespace gr::dashboard_blocks {
 
         gr::Annotated<size_t, "max_buffered_samples", gr::Visible> maxBufferedSamples = windowSize.value * 4;
 
+        gr::Annotated<float, "max_update_rate", gr::Visible, gr::Unit<"Hz">> maxUpdateRate = 30.f;
+
 
         // **Internal variables of the sink**
-        //Input Ports (one per data source) - back to vector ports now that scheduling is
-        //confirmed working in isolation. This tests multi-source specifically, separate
-        //from the still-open question of what in the full graph was blocking scheduling.
+        //Input Ports (one per data source)
         std::vector<gr::PortIn<T>> in = std::vector<gr::PortIn<T>>(1);
+        //Time tracking per source
+        std::vector<std::chrono::steady_clock::time_point> lastPublishTime = std::vector<std::chrono::steady_clock::time_point>(1);
 
         //Internal Buffers (one per port)
         std::vector<std::vector<T>> internal_buffers = std::vector<std::vector<T>>(1);
 
-        //A single shared FFT instance - windowSize/windowType/sampleRate/outputInDb are all
-        //single (not per-source) fields, so every source already uses identical FFT config.
-        //Called sequentially once per port per call, never concurrently.
+        //The FFT block wrapped inside the imGUI block
         gr::blocks::fft::DefaultFFT<T> FFTblock{};
 
 
@@ -140,9 +140,13 @@ namespace gr::dashboard_blocks {
 
 
 
-    GR_MAKE_REFLECTABLE(imGUI_frequencySink, in, id, title, panel_name, x_axis_label, y_axis_label, dataSources, windowSize, sampleRate, windowType, outputInDb, publishPhase, unwrapPhase, outputPhaseInDeg, typeOfTrigger, typeOfAveraging, maxBufferedSamples, endpoint);
+    GR_MAKE_REFLECTABLE(imGUI_frequencySink, in, id, title, panel_name, x_axis_label, y_axis_label, dataSources, windowSize, sampleRate, windowType, outputInDb, publishPhase, unwrapPhase, outputPhaseInDeg, typeOfTrigger, typeOfAveraging, maxBufferedSamples, maxUpdateRate, endpoint);
     
     void start() {
+
+        //Clock for controlling publishing rate
+        const auto now = std::chrono::steady_clock::now();
+        std::fill(lastPublishTime.begin(), lastPublishTime.end(), now);
 
         publisher = zmq::socket_t(zmq_ctx, zmq::socket_type::pub);
         publisher.connect(endpoint.value);
@@ -183,6 +187,7 @@ namespace gr::dashboard_blocks {
             if (newSettings.contains("data_sources")) {
                 in.resize(dataSources.value.size());
                 internal_buffers.resize(dataSources.value.size());
+                lastPublishTime.resize(dataSources.value.size());
             }
             if (newSettings.contains("sampleRate"))          { FFTblock.sample_rate = sampleRate.value; }
             if (newSettings.contains("outputInDb"))          { FFTblock.outputInDb = outputInDb.value; }
@@ -231,11 +236,21 @@ namespace gr::dashboard_blocks {
                     buffer.erase(buffer.begin(),
                         buffer.begin() + static_cast<std::ptrdiff_t>(buffer.size() - maxBufferedSamples.value));
                 }
+                
+                //For tracking when the next publish should occur
+                const auto now = std::chrono::steady_clock::now();
+                bool       shouldPublish = true;
+                if (maxUpdateRate.value > 0.f) {
+                    const auto minInterval = std::chrono::duration<double>(1.0 / static_cast<double>(maxUpdateRate.value));
+                    shouldPublish = (now - lastPublishTime[i]) >= minInterval;
+                }
 
+                //Buffer offset
                 std::size_t offset = 0;
-                //Itterate through the buffer taking window sized chunks
-                while (offset + windowSize.value <= buffer.size()) {
-
+                if (shouldPublish){
+                    
+                    //Itterate through the buffer taking window sized chunks
+                    while (offset + windowSize.value <= buffer.size()) {
                     std::span<const T> samples_frame(buffer.data() + offset, windowSize.value);
                     if (publisher) {
 
@@ -298,6 +313,9 @@ namespace gr::dashboard_blocks {
                     }
 
                     offset += windowSize.value;
+                    }
+                    lastPublishTime[i] = now;
+                    
                 }
 
                 //Erase all the samples we processed from this port's buffer

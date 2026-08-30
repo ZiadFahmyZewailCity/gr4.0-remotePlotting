@@ -22,6 +22,7 @@
 #include <string>
 #include <cstring>
 #include <span>
+#include <chrono>
 #include <concepts>
 
 namespace gr::dashboard_blocks {
@@ -66,11 +67,14 @@ namespace gr::dashboard_blocks {
 
         gr::Annotated<size_t, "max_buffered_samples", gr::Visible> maxBufferedSamples = numberOfPoints.value * 4;
 
+        gr::Annotated<float, "max_update_rate", gr::Visible, gr::Unit<"Hz">> maxUpdateRate = 30.f;
+
 
         // **Irrlevant to user interface**
-
         //Input Port
         std::vector<gr::PortIn<T>> in;
+        //Time tracking per source
+        std::vector<std::chrono::steady_clock::time_point> lastPublishTime = std::vector<std::chrono::steady_clock::time_point>(1);
 
         //Internal buffers
         std::vector<std::vector<T>> internal_buffers;
@@ -111,8 +115,12 @@ namespace gr::dashboard_blocks {
             });
         }
 
-        GR_MAKE_REFLECTABLE(imGUI_constellationSink, in, id, title, panel_name, x_axis_label, y_axis_label, dataSources, endpoint, state_presistance, maxPoints, minPoints, numberOfPoints, maxBufferedSamples);
+        GR_MAKE_REFLECTABLE(imGUI_constellationSink, in, id, title, panel_name, x_axis_label, y_axis_label, dataSources, endpoint, state_presistance, maxPoints, minPoints, numberOfPoints, maxBufferedSamples,maxUpdateRate);
         void start() {
+
+            //Clock for controlling publishing rate
+            const auto now = std::chrono::steady_clock::now();
+            std::fill(lastPublishTime.begin(), lastPublishTime.end(), now);
 
             publisher = zmq::socket_t(zmq_ctx, zmq::socket_type::pub);
             publisher.connect(endpoint.value);
@@ -139,6 +147,7 @@ namespace gr::dashboard_blocks {
             if (newSettings.contains("data_sources")) {
                 in.resize(dataSources.value.size());
                 internal_buffers.resize(dataSources.value.size());
+                lastPublishTime.resize(dataSources.value.size());
             }
         }
 
@@ -161,9 +170,19 @@ namespace gr::dashboard_blocks {
                 if (buffer.size() > maxBufferedSamples.value) {
                     buffer.erase(buffer.begin(), buffer.begin() + static_cast<std::ptrdiff_t>(buffer.size() - maxBufferedSamples.value));
                 }
+                
+                //For tracking when the next publish should occur
+                const auto now = std::chrono::steady_clock::now();
+                bool       shouldPublish = true;
+                if (maxUpdateRate.value > 0.f) {
+                    const auto minInterval = std::chrono::duration<double>(1.0 / static_cast<double>(maxUpdateRate.value));
+                    shouldPublish = (now - lastPublishTime[i]) >= minInterval;
+                }
+
 
                 std::size_t offset = 0;
-                while( offset + numberOfPoints.value <= buffer.size()){
+                if (shouldPublish){
+                    while( offset + numberOfPoints.value <= buffer.size()){
                     
                     std::span<const T> samples_frame(buffer.data() + offset, numberOfPoints.value);
                     if (publisher) {
@@ -185,8 +204,10 @@ namespace gr::dashboard_blocks {
                     }
 
                     offset += numberOfPoints.value;
+                    }
+                    lastPublishTime[i] = now;
                 }
-
+                
                 if (offset > 0){
                     buffer.erase(buffer.begin(),buffer.begin() + static_cast<std::ptrdiff_t>(offset));
                 }
