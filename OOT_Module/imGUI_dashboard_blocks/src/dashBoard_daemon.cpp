@@ -24,7 +24,6 @@
 
 
 void read_config_file(zmq::socket_t & flowgraphSocket, const std::string &config_file_path){
-
     std::ifstream config_file(config_file_path);
     if (!config_file.is_open()) {
         return;

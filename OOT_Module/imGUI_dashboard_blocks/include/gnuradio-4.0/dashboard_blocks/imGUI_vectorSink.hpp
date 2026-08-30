@@ -17,6 +17,7 @@
 #include <cstring>
 #include <span>
 #include <concepts>
+#include <chrono>
 
 
 namespace gr::dashboard_blocks {
@@ -50,10 +51,15 @@ namespace gr::dashboard_blocks {
 
         gr::Annotated<size_t, "max_buffered_vectors", gr::Visible> maxBufferedVectors = 8UL;
 
+        gr::Annotated<float, "max_update_rate", gr::Visible, gr::Unit<"Hz">> maxUpdateRate = 30.f;
+
         // **Irrlevant to user interface**
 
         // Input Port explicitly requires discrete vectors, not a stream of scalars
         std::vector<gr::PortIn<gr::DataSet<T>>> in;
+        //Time tracking per source
+        std::vector<std::chrono::steady_clock::time_point> lastPublishTime = std::vector<std::chrono::steady_clock::time_point>(1);
+        
         std::vector<std::vector<gr::DataSet<T>>> internal_buffers;
 
         // ZMQ related variables
@@ -86,9 +92,14 @@ namespace gr::dashboard_blocks {
         }
 
 
-        GR_MAKE_REFLECTABLE(imGUI_vectorSink, in, sink_id, title, panel_name, x_axis_label, y_axis_label, dataSources, vectorSize, maxBufferedVectors, endpoint);
+        GR_MAKE_REFLECTABLE(imGUI_vectorSink, in, sink_id, title, panel_name, x_axis_label, y_axis_label, dataSources, vectorSize, maxBufferedVectors, endpoint,maxUpdateRate);
 
         void start() {
+
+            //Clock for controlling publishing rate
+            const auto now = std::chrono::steady_clock::now();
+            std::fill(lastPublishTime.begin(), lastPublishTime.end(), now);
+
             publisher = zmq::socket_t(zmq_ctx, zmq::socket_type::pub);
             publisher.connect(endpoint.value);
 
@@ -107,6 +118,7 @@ namespace gr::dashboard_blocks {
             if (newSettings.contains("data_sources")) {
                 in.resize(dataSources.value.size());
                 internal_buffers.resize(dataSources.value.size());
+                lastPublishTime.resize(dataSources.value.size());
             }
         }
         
@@ -146,34 +158,47 @@ namespace gr::dashboard_blocks {
                 if (buffer.size() > maxBufferedVectors.value) {
                     buffer.erase(buffer.begin(), buffer.begin() + static_cast<std::ptrdiff_t>(buffer.size() - maxBufferedVectors.value));
                 }
- 
-                //Publish every buffered vector, oldest first
-                while (!buffer.empty()) {
- 
-                    const gr::DataSet<T>& vec = buffer.front();
- 
-                    if (publisher) {
- 
-                        //1) Apply header - "id:dataSource:payload" so the daemon/frontend can demux per source
-                        std::string header = sink_id.value + ":" + dataSources.value[i] + ":";
- 
-                        //Has to be unsigned to work with the T
-                        const std::size_t nExtents = static_cast<std::size_t>(vec.extents[0]);
- 
-                        //2) Message core - dynamically sized based on the incoming vector length
-                        std::size_t payload_size = header.size() + (nExtents * sizeof(T));
-                        zmq::message_t z_msg(payload_size);
- 
-                        //3) Cpy into zmq message buffer
-                        std::memcpy(z_msg.data(), header.data(), header.size());
-                        std::memcpy(static_cast<char*>(z_msg.data()) + header.size(), vec.signal_values.data(), nExtents * sizeof(T));
- 
-                        //4) Send
-                        publisher.send(z_msg, zmq::send_flags::dontwait);
-                    }
- 
-                    buffer.erase(buffer.begin());
+
+                //For tracking when the next publish should occur
+                const auto now = std::chrono::steady_clock::now();
+                bool       shouldPublish = true;
+                if (maxUpdateRate.value > 0.f) {
+                    const auto minInterval = std::chrono::duration<double>(1.0 / static_cast<double>(maxUpdateRate.value));
+                    shouldPublish = (now - lastPublishTime[i]) >= minInterval;
                 }
+                
+                if(shouldPublish){
+                    
+                    //Publish every buffered vector, oldest first
+                    while (!buffer.empty()) {
+    
+                        const gr::DataSet<T>& vec = buffer.front();
+    
+                        if (publisher) {
+    
+                            //1) Apply header - "id:dataSource:payload" so the daemon/frontend can demux per source
+                            std::string header = sink_id.value + ":" + dataSources.value[i] + ":";
+    
+                            //Has to be unsigned to work with the T
+                            const std::size_t nExtents = static_cast<std::size_t>(vec.extents[0]);
+    
+                            //2) Message core - dynamically sized based on the incoming vector length
+                            std::size_t payload_size = header.size() + (nExtents * sizeof(T));
+                            zmq::message_t z_msg(payload_size);
+    
+                            //3) Cpy into zmq message buffer
+                            std::memcpy(z_msg.data(), header.data(), header.size());
+                            std::memcpy(static_cast<char*>(z_msg.data()) + header.size(), vec.signal_values.data(), nExtents * sizeof(T));
+    
+                            //4) Send
+                            publisher.send(z_msg, zmq::send_flags::dontwait);
+                        }
+    
+                        buffer.erase(buffer.begin());
+                    }
+
+                }
+
             }
             return gr::work::Status::OK;
  

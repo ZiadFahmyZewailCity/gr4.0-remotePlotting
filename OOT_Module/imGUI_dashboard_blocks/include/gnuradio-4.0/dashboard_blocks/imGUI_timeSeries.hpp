@@ -15,6 +15,7 @@
 #include <span>
 #include <vector>
 #include <concepts>
+#include <chrono>
 
 namespace gr::dashboard_blocks {
 
@@ -43,14 +44,18 @@ namespace gr::dashboard_blocks {
 
         gr::Annotated<size_t, "max_buffered_samples", gr::Visible> maxBufferedSamples = 4096UL;
 
+        //Update Rate
+        gr::Annotated<float, "max_update_rate", gr::Visible, gr::Unit<"Hz">> maxUpdateRate = 30.f;
+
         // **Internal variables of the sink**
 
         //Input Ports (one per data source)
         std::vector<gr::PortIn<T>> in = std::vector<gr::PortIn<T>>(1);
-
+        //Time tracking per source
+        std::vector<std::chrono::steady_clock::time_point> lastPublishTime = std::vector<std::chrono::steady_clock::time_point>(1);
+        
         //Internal Buffers
         std::vector<std::vector<T>> internal_buffers = std::vector<std::vector<T>>(1);
-
 
         //ZMQ related variables (Connection to server process)
         gr::Annotated<std::string, "zmq_endpoint"> endpoint = "ipc:///tmp/gr4_dashboard_data.sock";
@@ -85,15 +90,23 @@ namespace gr::dashboard_blocks {
 
         //Keeps in.size() matched to dataSources.value.size() any time data_sources is updated
         void settingsChanged(const gr::property_map&, const gr::property_map& newSettings) {
+            
             if (newSettings.contains("data_sources")) {
                 in.resize(dataSources.value.size());
                 internal_buffers.resize(dataSources.value.size());
+                lastPublishTime.resize(dataSources.value.size());
             }
+
         }
 
-        GR_MAKE_REFLECTABLE(imGUI_timeSeries, in, id, title, panel_name, x_axis_label, y_axis_label, dataSources, maxBufferedSamples, endpoint);
+        GR_MAKE_REFLECTABLE(imGUI_timeSeries, in, id, title, panel_name, x_axis_label, y_axis_label, dataSources, maxBufferedSamples, endpoint, maxUpdateRate);
 
         void start() {
+
+            //Clock for controlling publishing rate
+            const auto now = std::chrono::steady_clock::now();
+            std::fill(lastPublishTime.begin(), lastPublishTime.end(), now);
+
             publisher = zmq::socket_t(zmq_ctx, zmq::socket_type::pub);
             publisher.connect(endpoint.value);
 
@@ -128,9 +141,17 @@ namespace gr::dashboard_blocks {
                     buffer.erase(buffer.begin(), buffer.begin() + static_cast<std::ptrdiff_t>(buffer.size() - maxBufferedSamples.value));
                 }
 
-                if (publisher) {
+                //For tracking when the next publish should occur
+                const auto now = std::chrono::steady_clock::now();
+                bool shouldPublish = true;
+                if (maxUpdateRate.value > 0.f) {
+                    const auto minInterval = std::chrono::duration<double>(1.0 / static_cast<double>(maxUpdateRate.value));
+                    shouldPublish = (now - lastPublishTime[i]) >= minInterval;
+                }
 
-                    const std::size_t nSamples = inSpan.size();
+                if (publisher && shouldPublish && !buffer.empty()) {
+
+                    const std::size_t nSamples = buffer.size();
                     //1) Apply header - "id:dataSource:payload" so the daemon/frontend can demux per source
                     std::string header = id.value + ":" + dataSources.value[i] + ":";
                     std::size_t payload_size = header.size() + (nSamples * sizeof(T));
