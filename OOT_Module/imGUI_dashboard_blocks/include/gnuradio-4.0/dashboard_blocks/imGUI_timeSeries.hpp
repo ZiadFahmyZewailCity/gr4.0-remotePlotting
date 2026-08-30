@@ -168,6 +168,9 @@ namespace gr::dashboard_blocks {
 
                     //5) Clear out the temporary buffer
                     buffer.clear();
+
+                    //Update the latest time a succefully publish has occured
+                    lastPublishTime[i] = now;
                 }
 
             }

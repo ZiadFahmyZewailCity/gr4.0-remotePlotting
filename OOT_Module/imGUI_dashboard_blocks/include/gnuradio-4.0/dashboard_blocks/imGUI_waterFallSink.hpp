@@ -21,6 +21,7 @@
 #include <zmq.hpp>
 #include <string>
 #include <cstring>
+#include <chrono>
 
 
 namespace gr::dashboard_blocks {
@@ -71,7 +72,10 @@ namespace gr::dashboard_blocks {
         //TO DO: Any reason to default to something in specific, currently default to Hann
         gr::Annotated<gr::algorithm::window::Type, "Window Type", gr::Visible> windowType = gr::algorithm::window::Type::Hann;
         //Control size of the history  
-        gr::Annotated<size_t, "History Size", gr::Visible> history_size = 1024UL;        
+        gr::Annotated<size_t, "History Size", gr::Visible> history_size = 1024UL;  
+        
+        gr::Annotated<float, "max_update_rate", gr::Visible, gr::Unit<"Hz">> maxUpdateRate = 30.f;
+
         
         
         //FFT Variables:
@@ -94,6 +98,8 @@ namespace gr::dashboard_blocks {
         
         //Input Port
         std::vector<gr::PortIn<T>> in;
+        //Time tracking per source
+        std::vector<std::chrono::steady_clock::time_point> lastPublishTime = std::vector<std::chrono::steady_clock::time_point>(1);
 
         //The FFT block wrapped inside the imGUI block
         std::vector<gr::blocks::fft::DefaultFFT<T>> FFTblocks;
@@ -133,9 +139,13 @@ namespace gr::dashboard_blocks {
         }
 
         
-        GR_MAKE_REFLECTABLE(imGUI_waterFallSink, in, id, title, panel_name, x_axis_label, y_axis_label, dataSources, windowSize, sampleRate, history_size, windowType, outputInDb, typeOfTrigger, typeOfAveraging, endpoint);
+        GR_MAKE_REFLECTABLE(imGUI_waterFallSink, in, id, title, panel_name, x_axis_label, y_axis_label, dataSources, windowSize, sampleRate, history_size, windowType, outputInDb, typeOfTrigger, typeOfAveraging, endpoint, maxUpdateRate);
 
         void start() {
+
+            //Clock for controlling publishing rate
+            const auto now = std::chrono::steady_clock::now();
+            std::fill(lastPublishTime.begin(), lastPublishTime.end(), now);
 
             publisher = zmq::socket_t(zmq_ctx, zmq::socket_type::pub);
             publisher.connect(endpoint.value);
@@ -164,6 +174,8 @@ namespace gr::dashboard_blocks {
                 in.resize(dataSources.value.size());
                 FFTblocks.resize(dataSources.value.size());
                 internal_buffers.resize(dataSources.value.size());
+                lastPublishTime.resize(dataSources.value.size());
+
             }
         }
 
@@ -186,63 +198,76 @@ namespace gr::dashboard_blocks {
                 if (buffer.size() > maxBufferedSamples.value) {
                     buffer.erase(buffer.begin(), buffer.begin() + static_cast<std::ptrdiff_t>(buffer.size() - maxBufferedSamples.value));
                 }
- 
-                std::size_t offset = 0;
-                //Itterate through the buffer taking window sized chunks
-                while (offset + windowSize.value <= buffer.size()) {
- 
-                    std::span<const T> samples_frame(buffer.data() + offset, windowSize.value);
- 
-                    if (publisher) {
- 
-                        //TO DO: This is constantly being intalized, probably very heavy computaion wise. Statically allocate it somewhere else
-                        std::vector<gr::DataSet<floatType>> FFT_output(1);
- 
-                        const gr::work::Status fftStatus = FFTblocks[i].processBulk(samples_frame, std::span{FFT_output});
-                        if (fftStatus != gr::work::Status::OK) {
-                            //Drop just this chunk and keep going, rather than abandoning the call
-                            offset += windowSize.value;
-                            continue;
-                        }
- 
-                        //Output the magnitudes
-                        auto& dataset = FFT_output[0];
-                        std::size_t num_bins = static_cast<std::size_t>(dataset.extents[0]);
-                        auto* magnitudes_ptr = dataset.signal_values.data();
- 
-                        //Debug Message (Comment out when not needed)
-                        /*
-                        static int dbg = 0;
-                        if (dbg++ % 60 == 0) {
-                            std::cout << "[" << dataSources.value[i] << "] RAW: ";
-                            for (std::size_t j = 0; j < 8; j++) std::cout << samples_frame[j] << " ";
-                            std::cout << "\nMAG: ";
-                            for (std::size_t j = 0; j < 8; j++) std::cout << magnitudes_ptr[j] << " ";
-                            std::cout << std::endl;
-                        }
-                        */
- 
-                        //TO DO: Add averaging
-                        //Send over ZMQ to the server
- 
-                        //1) Apply header
-                        std::string header = id.value + ":" + dataSources.value[i] + ":";
-                        std::size_t payload_size = header.size() + (num_bins * sizeof(floatType));
- 
-                        //2) Message core
-                        zmq::message_t z_msg(payload_size);
- 
-                        //3) Cpy into zmq message buffer
-                        std::memcpy(z_msg.data(), header.data(), header.size());
-                        std::memcpy(static_cast<char*>(z_msg.data()) + header.size(), magnitudes_ptr, num_bins * sizeof(floatType));
- 
-                        //4) Send
-                        publisher.send(z_msg, zmq::send_flags::dontwait);
-                    }
- 
-                    offset += windowSize.value;
+
+                //For tracking when the next publish should occur
+                const auto now = std::chrono::steady_clock::now();
+                bool       shouldPublish = true;
+                if (maxUpdateRate.value > 0.f) {
+                    const auto minInterval = std::chrono::duration<double>(1.0 / static_cast<double>(maxUpdateRate.value));
+                    shouldPublish = (now - lastPublishTime[i]) >= minInterval;
                 }
- 
+                
+                std::size_t offset = 0;
+                if (shouldPublish){
+                    //Itterate through the buffer taking window sized chunks
+                    while (offset + windowSize.value <= buffer.size()) {
+    
+                        std::span<const T> samples_frame(buffer.data() + offset, windowSize.value);
+    
+                        if (publisher) {
+    
+                            //TO DO: This is constantly being intalized, probably very heavy computaion wise. Statically allocate it somewhere else
+                            std::vector<gr::DataSet<floatType>> FFT_output(1);
+    
+                            const gr::work::Status fftStatus = FFTblocks[i].processBulk(samples_frame, std::span{FFT_output});
+                            if (fftStatus != gr::work::Status::OK) {
+                                //Drop just this chunk and keep going, rather than abandoning the call
+                                offset += windowSize.value;
+                                continue;
+                            }
+    
+                            //Output the magnitudes
+                            auto& dataset = FFT_output[0];
+                            std::size_t num_bins = static_cast<std::size_t>(dataset.extents[0]);
+                            auto* magnitudes_ptr = dataset.signal_values.data();
+    
+                            //Debug Message (Comment out when not needed)
+                            /*
+                            static int dbg = 0;
+                            if (dbg++ % 60 == 0) {
+                                std::cout << "[" << dataSources.value[i] << "] RAW: ";
+                                for (std::size_t j = 0; j < 8; j++) std::cout << samples_frame[j] << " ";
+                                std::cout << "\nMAG: ";
+                                for (std::size_t j = 0; j < 8; j++) std::cout << magnitudes_ptr[j] << " ";
+                                std::cout << std::endl;
+                            }
+                            */
+    
+                            //TO DO: Add averaging
+                            //Send over ZMQ to the server
+    
+                            //1) Apply header
+                            std::string header = id.value + ":" + dataSources.value[i] + ":";
+                            std::size_t payload_size = header.size() + (num_bins * sizeof(floatType));
+    
+                            //2) Message core
+                            zmq::message_t z_msg(payload_size);
+    
+                            //3) Cpy into zmq message buffer
+                            std::memcpy(z_msg.data(), header.data(), header.size());
+                            std::memcpy(static_cast<char*>(z_msg.data()) + header.size(), magnitudes_ptr, num_bins * sizeof(floatType));
+    
+                            //4) Send
+                            publisher.send(z_msg, zmq::send_flags::dontwait);
+                        }
+    
+                        offset += windowSize.value;
+                    }
+                    lastPublishTime[i] = now;
+                }
+
+
+
                 //Erase all the samples we processed from this port's buffer
                 if (offset > 0) {
                     buffer.erase(buffer.begin(), buffer.begin() + static_cast<std::ptrdiff_t>(offset));

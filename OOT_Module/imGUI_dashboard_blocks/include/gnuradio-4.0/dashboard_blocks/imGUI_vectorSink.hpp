@@ -167,7 +167,7 @@ namespace gr::dashboard_blocks {
                     shouldPublish = (now - lastPublishTime[i]) >= minInterval;
                 }
                 
-                if(shouldPublish){
+                if(shouldPublish){    
                     
                     //Publish every buffered vector, oldest first
                     while (!buffer.empty()) {
@@ -192,11 +192,13 @@ namespace gr::dashboard_blocks {
     
                             //4) Send
                             publisher.send(z_msg, zmq::send_flags::dontwait);
+
+                            //Update the latest time a succefully publish has occured
                         }
     
                         buffer.erase(buffer.begin());
                     }
-
+                    lastPublishTime[i] = now;
                 }
 
             }
