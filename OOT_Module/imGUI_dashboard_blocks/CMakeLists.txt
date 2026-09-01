@@ -1,19 +1,17 @@
+#### What is being built
 cmake_minimum_required(VERSION 3.20)
-project(dashboard_blocks CXX)
+project(gr4-remotePlotting)
 
-# Standard installation directories (must be loaded before targets use path variables)
+#CMAKE Modules for installation
+#destination-path variables
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
-# 1. Global Baseline Standard (Strictly C++23 for GR4 Monadic Error Handling)
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF) 
-
-# 2. Global Macro Definitions
+# Global Macro Defintions
 add_compile_definitions(ASIO_STANDALONE)
 add_compile_definitions(ZMQ_BUILD_DRAFT_API=1)
 
+#### What does each target need to be built 
 # Packages
 find_package(Threads REQUIRED)
 find_package(fmt REQUIRED)
@@ -26,21 +24,20 @@ find_package(gnuradio4 REQUIRED)
 find_package(gnuradio4Library REQUIRED)
 find_package(gnuradio4Blocks REQUIRED)
 
-# =====================================================================
-# Target 1: OOT Core Library (Changed to SHARED for GR4 Plugin compatibility)
-# =====================================================================
-add_library(imGUI_dashboard_blocks SHARED
+## Build target Management singelton
+add_library(imGUI_dashBoard_blocks SHARED
     src/imGUI_management.cpp
 )
 
-# PUBLIC includes propagate to anything linking this library
-target_include_directories(imGUI_dashboard_blocks PUBLIC
+# Directories which the singleton needs
+target_include_directories(imGUI_dashBoard_blocks PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
     $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(imGUI_dashboard_blocks PUBLIC
+# singelton dependecies
+target_link_libraries(imGUI_dashBoard_blocks PUBLIC
     gnuradio4::gnuradio-core
     gnuradio4::gnuradio-meta
     gnuradio4::gnuradio-blocklib-core
@@ -50,98 +47,85 @@ target_link_libraries(imGUI_dashboard_blocks PUBLIC
     nlohmann_json::nlohmann_json
 )
 
-# =====================================================================
-# Target 2: Standalone Dashboard Daemon (ZMQ <-> WebSocket Broker)
-# =====================================================================
-add_executable(dashboard_daemon
+## Build target dashBoard daemon
+add_executable(dashBoard_daemon 
     src/dashBoard_daemon.cpp
     src/dashBoard_server.cpp
 )
 
-# Injected escaped string path for runtime web assets lookup
-target_compile_definitions(dashboard_daemon PRIVATE
+# WASM files path (In share directory)
+target_compile_definitions(dashBoard_daemon PRIVATE
     WEB_ASSETS_DIR=\"${CMAKE_INSTALL_FULL_DATADIR}/dashboard_blocks/web\"
 )
 
-# Sandboxed to C++17 strictly for WebSocket++ legacy header compatibility
-set_target_properties(dashboard_daemon PROPERTIES 
+# WebSocket++ not compatible with latest Cpp, Using cpp 17
+set_target_properties(dashBoard_daemon PROPERTIES 
     CXX_STANDARD 17 
     CXX_STANDARD_REQUIRED ON
 )
 
-target_include_directories(dashboard_daemon PRIVATE
+# Directories which the dashboard_daemon needs
+target_include_directories(dashBoard_daemon PRIVATE
     include
     src
 )
 
-target_link_libraries(dashboard_daemon PRIVATE
+# dashBoard daemon dependecies
+target_link_libraries(dashBoard_daemon PRIVATE
     Threads::Threads
     cppzmq
 )
 
+# A precaution i read that should be done with libraries which are header only
 if(TARGET websocketpp::websocketpp)
-    target_link_libraries(dashboard_daemon PRIVATE websocketpp::websocketpp)
+    target_link_libraries(dashBoard_daemon PRIVATE websocketpp::websocketpp)
 elseif(DEFINED WEBSOCKETPP_INCLUDE_DIR)
-    target_include_directories(dashboard_daemon PRIVATE ${WEBSOCKETPP_INCLUDE_DIR})
+    target_include_directories(dashBoard_daemon PRIVATE ${WEBSOCKETPP_INCLUDE_DIR})
 endif()
 
-# =====================================================================
-# Target 3: Live GR4 Flowgraph Coordinator (Inherits C++23)
-# =====================================================================
-add_executable(flowgraph
-    src/flowgraph.cpp
-)
 
-# Mirroring the exact target link order from the simple_flowgraph baseline
-target_link_libraries(flowgraph PRIVATE
-    gnuradio4::gnuradio-core
-    gnuradio4::gnuradio-blocklib-core
-    gnuradio4::gnuradio-algorithm
-    gnuradio4::gr-basic
-    gnuradio4::gnuradio-meta
-    imGUI_dashboard_blocks
-)
+#### What does each output go when someone install its
 
-# =====================================================================
-# Installation & Discovery Rules
-# =====================================================================
-
-# Install the shared library and export its target
-install(TARGETS imGUI_dashboard_blocks
-    EXPORT imGUI_dashboard_blocksTargets
+# Install .so file and register consumers should look at /include
+install(TARGETS imGUI_dashBoard_blocks
+    EXPORT imGUI_dashBoard_blocksTargets
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
-# Install the daemon executable to system bin
-install(TARGETS dashboard_daemon
+# Install daemon executable to /bin
+install(TARGETS dashBoard_daemon
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-# Install the public headers
+# Cpy header to /include
 install(DIRECTORY include/ 
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
-# Generate and install the targets file
-install(EXPORT imGUI_dashboard_blocksTargets
-    FILE imGUI_dashboard_blocksTargets.cmake
-    NAMESPACE imGUI_dashboard_blocks::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/imGUI_dashboard_blocks
+
+#### How does someone else project find and use what is installed
+
+# Generate the script to recreate teh imGUI_dashBoard_blocks target
+install(EXPORT imGUI_dashBoard_blocksTargets
+    FILE imGUI_dashBoard_blocksTargets.cmake
+    NAMESPACE imGUI_dashBoard_blocks::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/imGUI_dashBoard_blocks
 )
 
 # Generate and install the package config file
 configure_package_config_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/imGUI_dashboard_blocksConfig.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/imGUI_dashboard_blocksConfig.cmake"
-    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/imGUI_dashboard_blocks
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/imGUI_dashBoard_blocksConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/imGUI_dashBoard_blocksConfig.cmake"
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/imGUI_dashBoard_blocks
 )
 
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/imGUI_dashboard_blocksConfig.cmake"
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/imGUI_dashboard_blocks
+# Cpy config
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/imGUI_dashBoard_blocksConfig.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/imGUI_dashBoard_blocks
 )
 
-# Install the web assets (HTML, JS, WASM)
+# Install the web files to share directory
 install(DIRECTORY web/ 
-    DESTINATION ${CMAKE_INSTALL_DATADIR}/dashboard_blocks/web
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/dashBoard_blocks/web
 )
