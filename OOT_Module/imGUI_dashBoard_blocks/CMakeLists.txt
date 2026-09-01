@@ -63,7 +63,7 @@ set_target_properties(dashBoard_daemon PROPERTIES
     CXX_STANDARD_REQUIRED ON
 )
 
-# Directories which the dashboard_daemon needs
+# Directories which the dashBoard_daemon needs
 target_include_directories(dashBoard_daemon PRIVATE
     include
     src

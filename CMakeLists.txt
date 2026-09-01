@@ -1,3 +1,3 @@
 cmake_minimum_required(VERSION 3.20)
 project(gr4_remote_plotting LANGUAGES CXX)
-add_subdirectory(OOT_Module/imGUI_dashboard_blocks)
+add_subdirectory(OOT_Module/imGUI_dashBoard_blocks)
