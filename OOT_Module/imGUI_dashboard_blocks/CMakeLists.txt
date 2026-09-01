@@ -7,10 +7,6 @@ project(gr4-remotePlotting)
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
-# Global Macro Defintions
-add_compile_definitions(ASIO_STANDALONE)
-add_compile_definitions(ZMQ_BUILD_DRAFT_API=1)
-
 #### What does each target need to be built 
 # Packages
 find_package(Threads REQUIRED)
@@ -25,9 +21,11 @@ find_package(gnuradio4Library REQUIRED)
 find_package(gnuradio4Blocks REQUIRED)
 
 ## Build target Management singelton
-add_library(imGUI_dashBoard_blocks SHARED
+add_library(imGUI_dashBoard_blocks SHARED 
     src/imGUI_management.cpp
 )
+
+target_compile_definitions(imGUI_dashBoard_blocks PUBLIC ZMQ_BUILD_DRAFT_API=1)
 
 # Directories which the singleton needs
 target_include_directories(imGUI_dashBoard_blocks PUBLIC
@@ -49,13 +47,14 @@ target_link_libraries(imGUI_dashBoard_blocks PUBLIC
 
 ## Build target dashBoard daemon
 add_executable(dashBoard_daemon 
-    src/dashBoard_daemon.cpp
+    src/dashBoard_daemon.cpp 
     src/dashBoard_server.cpp
 )
 
 # WASM files path (In share directory)
 target_compile_definitions(dashBoard_daemon PRIVATE
-    WEB_ASSETS_DIR=\"${CMAKE_INSTALL_FULL_DATADIR}/dashboard_blocks/web\"
+    WEB_ASSETS_DIR=\"${CMAKE_INSTALL_FULL_DATADIR}/dashBoard_blocks/web\"
+    ASIO_STANDALONE
 )
 
 # WebSocket++ not compatible with latest Cpp, Using cpp 17
