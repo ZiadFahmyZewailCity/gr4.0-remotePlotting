@@ -14,7 +14,7 @@
 #include <gnuradio-4.0/Port.hpp>
 #include <gnuradio-4.0/annotated.hpp>
 #include <gnuradio-4.0/meta/reflection.hpp>
-#include <gnuradio-4.0/dashboard_blocks/imGUI_management.hpp>
+#include <gnuradio-4.0/dashBoard_blocks/imGUI_management.hpp>
 //TO DO: Add any extra GR4 headers this sink needs (fft.hpp / window.hpp for anything spectral, etc)
 
 //External dependencies

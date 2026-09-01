@@ -1,2 +1,8 @@
 CompileFlags:
-  Add: [-std=c++23]
+  CompilationDatabase: build
+  Add:
+    - -std=gnu++23
+    - -I/home/ziad/GNURADIO_DEVELOPMENT/OOT_Module/imGUI_dashBoard_blocks/include
+    - -I/home/ziad/GNURADIO_DEVELOPMENT/OOT_Module/imGUI_dashBoard_blocks/src
+    - -isystem
+    - /home/ziad/gnuradio4/install/include

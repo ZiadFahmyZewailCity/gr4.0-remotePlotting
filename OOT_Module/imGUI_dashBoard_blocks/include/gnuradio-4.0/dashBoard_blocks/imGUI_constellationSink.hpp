@@ -13,8 +13,8 @@
 #include <gnuradio-4.0/BlockRegistry.hpp>
 #include <gnuradio-4.0/annotated.hpp>
 #include <gnuradio-4.0/meta/reflection.hpp>
-#include <gnuradio-4.0/dashboard_blocks/imGUI_management.hpp>
-#include <gnuradio-4.0/dashboard_blocks/imGUI_typeResolving.hpp>
+#include <gnuradio-4.0/dashBoard_blocks/imGUI_management.hpp>
+#include <gnuradio-4.0/dashBoard_blocks/imGUI_typeResolving.hpp>
 #include <gnuradio-4.0/meta/utils.hpp>
 
 //External dependencies

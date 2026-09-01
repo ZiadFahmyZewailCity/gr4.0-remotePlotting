@@ -1,5 +1,5 @@
-#ifndef GNURADIO_DASHBOARDBLOCKS_DEP_IMGUI_DROPDOWNMENU_HPP
-#define GNURADIO_DASHBOARDBLOCKS_DEP_IMGUI_DROPDOWNMENU_HPP
+#ifndef GNURADIO_DASHBOARDBLOCKS_IMGUI_DROPDOWNMENU_HPP
+#define GNURADIO_DASHBOARDBLOCKS_IMGUI_DROPDOWNMENU_HPP
 
 //GNU Radio includes
 #include <gnuradio-4.0/Block.hpp>
@@ -8,7 +8,7 @@
 #include <gnuradio-4.0/annotated.hpp>
 #include <gnuradio-4.0/meta/reflection.hpp>
 #include <gnuradio-4.0/Message.hpp>
-#include <gnuradio-4.0/dashboard_blocks/imGUI_management.hpp>
+#include <gnuradio-4.0/dashBoard_blocks/imGUI_management.hpp>
 
 //External Dependences
 #include <zmq.hpp>
@@ -56,7 +56,7 @@ namespace gr::dashboard_blocks {
 
         //ZMQ related variables (Connection to server process)
         gr::Annotated<std::string, "zmq_endpoint"> endpoint = "ipc:///tmp/gr4_dashboard_cmds.sock";
-        gr::Annotated<std::string, "zmq_SUB_dashboard_server", gr::Visible> dashboard_server = "ipc:///tmp/gr4_dashboard_data.sock";
+        gr::Annotated<std::string, "zmq_SUB_dashboard_server"> dashboard_server = "ipc:///tmp/gr4_dashboard_data.sock";
         
         zmq::context_t zmq_ctx{1};
         zmq::socket_t publisher;
@@ -124,7 +124,7 @@ namespace gr::dashboard_blocks {
         }
 
         // TODO: ADD ANY NEW ANNOTATED FIELDS TO THIS LIST
-        GR_MAKE_REFLECTABLE(imGUI_dropDownMenu, out, widget_id, panel_name, target_property, endpoint, dashboard_server, options, current_val);
+        GR_MAKE_REFLECTABLE(imGUI_dropDownMenu, out, widget_id, panel_name, target_property, endpoint, dashboard_server, options, current_val, title);
 
         //ZMQ subscriber to the ZMQ publisher in the dashboard_server graph for updating widgets
         void start() {

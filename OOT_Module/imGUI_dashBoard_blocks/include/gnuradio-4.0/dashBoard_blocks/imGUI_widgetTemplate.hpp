@@ -1,5 +1,5 @@
-#ifndef GNURADIO_DASHBOARDBLOCKS_DEP_IMGUI_<<WIDGET_NAME_UPPER>>_HPP
-#define GNURADIO_DASHBOARDBLOCKS_DEP_IMGUI_<<WIDGET_NAME_UPPER>>_HPP
+#ifndef GNURADIO_DASHBOARDBLOCKS_IMGUI_<<WIDGET_NAME_UPPER>>_HPP
+#define GNURADIO_DASHBOARDBLOCKS_IMGUI_<<WIDGET_NAME_UPPER>>_HPP
 
 
 //TEMPLATE FOR NEW DASHBOARD WIDGETS
@@ -13,7 +13,7 @@
 #include <gnuradio-4.0/annotated.hpp>
 #include <gnuradio-4.0/meta/reflection.hpp>
 #include <gnuradio-4.0/Message.hpp>
-#include <gnuradio-4.0/dashboard_blocks/imGUI_management.hpp>
+#include <gnuradio-4.0/dashBoard_blocks/imGUI_management.hpp>
 //TO DO: Add any extra GR4 headers this sink needs (fft.hpp / window.hpp for anything spectral, etc)
 
 //External Dependences
@@ -47,15 +47,19 @@ namespace gr::dashboard_blocks {
         
         gr::Annotated<std::string, "target_property", gr::Visible> target_property = "current_val";
 
+        //This is the current value of the widget
+        gr::Annotated<T, "current_val", gr::Visible> current_val = static_cast<T>(1.0);
+
         //TO DO: This section should contain any variables which are not relevant to the user interface with the sink block
         // **Irrlevant to user interface**
 
         //Output Port (This is a dummy port which should be attached to a null sink, it never outputs anything)
         gr::PortOut<T, gr::Async> out;
+        
 
         //ZMQ related variables (Connection to server process)
         gr::Annotated<std::string, "zmq_endpoint"> endpoint = "ipc:///tmp/gr4_dashboard_cmds.sock";
-        gr::Annotated<std::string, "zmq_SUB_dashboard_server", gr::Visible> dashboard_server = "ipc:///tmp/gr4_dashboard_data.sock";
+        gr::Annotated<std::string, "zmq_SUB_dashboard_server"> dashboard_server = "ipc:///tmp/gr4_dashboard_data.sock";
         
         zmq::context_t zmq_ctx{1};
         zmq::socket_t publisher;
