@@ -2,11 +2,12 @@
 
 include(CMakeFindDependencyMacro)
 
-# Automatically find dependencies for the downstream user
+# Find all PUBLIC dependencies required by your exported targets
 find_dependency(Threads)
 find_dependency(fmt)
 find_dependency(cppzmq)
 find_dependency(nlohmann_json)
 find_dependency(gnuradio4)
 
-include("${CMAKE_CURRENT_LIST_DIR}/imGUI_dashboard_blocksTargets.cmake")
+# Include the auto-generated targets file
+include("${CMAKE_CURRENT_LIST_DIR}/imGUI_dashBoard_blocksTargets.cmake")

@@ -20,7 +20,7 @@ find_package(gnuradio4 REQUIRED)
 find_package(gnuradio4Library REQUIRED)
 find_package(gnuradio4Blocks REQUIRED)
 
-## Build target Management singelton
+## Build target Management singelton & Blocks
 add_library(imGUI_dashBoard_blocks SHARED 
     src/imGUI_management.cpp
 )
